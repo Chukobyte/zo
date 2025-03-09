@@ -8,7 +8,9 @@ pub fn main() !void {
 
     window.create("General", 200, 200, 600, 800);
 
-    std.time.sleep(2_000_000_000);
+    while (window.is_active()) {
+        window.update();
+    }
 
     zo.deinit();
 }

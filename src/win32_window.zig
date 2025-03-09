@@ -36,6 +36,7 @@ const Win32Data = struct {
 const main_window: Window = {};
 var w32_data: Win32Data = .{};
 const class_name: []const u8 = "My window class";
+var window_is_active = false;
 
 fn convert_vkcode_to_key(vk_code: u32) InputKey {
     // First letters
@@ -64,6 +65,7 @@ fn win_proc(
     switch (msg) {
         win.WM_DESTROY => {
             win.PostQuitMessage(0);
+            window_is_active = false;
             return 0;
         },
         win.WM_SIZE => {
@@ -72,28 +74,37 @@ fn win_proc(
         win.WM_KEYDOWN => {
             const vk_code: u32 = @intCast(w_param);
             const key: InputKey = convert_vkcode_to_key(vk_code);
-            _ = key;
+            input.register_input_event(.{ .source = .keyboard, .key = key, .trigger = .pressed });
             return 0;
         },
         win.WM_KEYUP => {
+            const vk_code: u32 = @intCast(w_param);
+            const key: InputKey = convert_vkcode_to_key(vk_code);
+            input.register_input_event(.{ .source = .keyboard, .key = key, .trigger = .released });
             return 0;
         },
         win.WM_LBUTTONDOWN => {
+            input.register_input_event(.{ .source = .mouse, .key = .mouse_button_left, .trigger = .pressed });
             return 0;
         },
         win.WM_LBUTTONUP => {
+            input.register_input_event(.{ .source = .mouse, .key = .mouse_button_left, .trigger = .released });
             return 0;
         },
         win.WM_RBUTTONDOWN => {
+            input.register_input_event(.{ .source = .mouse, .key = .mouse_button_right, .trigger = .pressed });
             return 0;
         },
         win.WM_RBUTTONUP => {
+            input.register_input_event(.{ .source = .mouse, .key = .mouse_button_right, .trigger = .released });
             return 0;
         },
         win.WM_MBUTTONDOWN => {
+            input.register_input_event(.{ .source = .mouse, .key = .mouse_button_middle, .trigger = .pressed });
             return 0;
         },
         win.WM_MBUTTONUP => {
+            input.register_input_event(.{ .source = .mouse, .key = .mouse_button_right, .trigger = .released });
             return 0;
         },
         win.WM_MOUSEMOVE => {
@@ -136,6 +147,8 @@ pub fn init(h_instance: HINSTANCE, h_prev_instance: HINSTANCE, cmd_line: [*c]u8,
     _ = win.RegisterClassW(&window_class);
 }
 
+// Window interface
+
 pub fn create_window(title: []const u8, pos_x: i32, pos_y: i32, width: i32, height: i32) void {
     _ = pos_x; _ = pos_y; _ = title;
     const style = win.WS_OVERLAPPEDWINDOW;
@@ -162,4 +175,17 @@ pub fn create_window(title: []const u8, pos_x: i32, pos_y: i32, width: i32, heig
     }
 
     _ = win.ShowWindow(w32_data.hwnd, w32_data.cmd_show);
+    window_is_active = true;
+}
+
+pub fn update_window() void {
+    var msg: win.MSG = .{};
+    while (win.PeekMessageW(&msg, null, 0, 0, win.PM_REMOVE) > 0) {
+        _ = win.TranslateMessage(&msg);
+        _ = win.DispatchMessageW(&msg);
+    }
+}
+
+pub fn is_window_active() bool {
+    return window_is_active;
 }
