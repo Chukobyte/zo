@@ -330,15 +330,14 @@ pub fn init(h_instance: HINSTANCE, h_prev_instance: HINSTANCE, cmd_line: [*c]u8,
 
 // Window interface
 
-pub fn create_window(title: []const u8, pos_x: i32, pos_y: i32, width: i32, height: i32) void {
-    _ = pos_x; _ = pos_y; _ = title;
+pub fn create_window(comptime title: []const u8, pos_x: i32, pos_y: i32, width: i32, height: i32) void {
+    _ = pos_x; _ = pos_y;
     const style = win.WS_OVERLAPPEDWINDOW;
 
     w32_data.hwnd = win.CreateWindowExW(
         0,
         std.unicode.utf8ToUtf16LeStringLiteral(class_name),
-        // std.unicode.utf8ToUtf16LeStringLiteral(title),
-        std.unicode.utf8ToUtf16LeStringLiteral("Test Window"),
+        std.unicode.utf8ToUtf16LeStringLiteral(title),
         style,
         win.CW_USEDEFAULT,
         win.CW_USEDEFAULT,

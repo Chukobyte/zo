@@ -8,12 +8,12 @@ pub fn main() !void {
     zo.init();
     defer zo.deinit();
 
-    window.create("General", 200, 200, 600, 800);
+    window.create("Test Game", 300, 300, 800, 600);
 
     var is_running = true;
 
     while (window.is_active() and is_running) {
-        window.clear(.{ .r = 0.5, .g = 0.5, .b = 0.5 });
+        window.clear(.{ .r = 0.25, .g = 0.25, .b = 0.25 });
 
         input.new_frame();
         window.update();
