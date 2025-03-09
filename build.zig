@@ -32,6 +32,9 @@ pub fn build(b: *std.Build) void {
     const stb_image_lib: *std.Build.Step.Compile = try add_stb_image(b, target, optimize);
     exe.linkLibrary(glad_lib);
     exe.linkLibrary(stb_image_lib);
+    exe.linkSystemLibrary("gdi32");
+    exe.linkSystemLibrary("user32");
+    exe.linkSystemLibrary("opengl32");
 
     b.installArtifact(exe);
 

@@ -8,6 +8,10 @@ pub const win = @cImport({
     @cInclude("windows.h");
 });
 
+pub const glad = @cImport({
+    @cInclude("glad/glad.h");
+});
+
 pub const WINAPI: std.builtin.CallingConvention = .winapi;
 pub const HINSTANCE = win.HINSTANCE;
 pub const HWND = win.HWND;
@@ -18,6 +22,18 @@ pub const LRESULT = win.LRESULT;
 pub const INT = win.INT;
 const Vec2i = math.Vec2i;
 const InputKey = input.InputKey;
+
+// OpenGL Stuff
+pub const WGL_CONTEXT_MAJOR_VERSION_ARB: u32 = 0x2091;
+pub const WGL_CONTEXT_MINOR_VERSION_ARB: u32 = 0x2092;
+pub const WGL_CONTEXT_FLAGS_ARB: u32 = 0x2094;
+pub const WGL_CONTEXT_COREPROFILE_BIT_ARB: u32 = 0x00000001;
+pub const WGL_CONTEXT_PROFILE_MASK_ARB: u32 = 0x9126;
+// Define the function pointer types using the winapi calling convention:
+const PFNWGLGETEXTENSIONSSTRINGEXTPROC = *fn() callconv(WINAPI) [*c]const u8;
+const PFNWGLSWAPINTERVALEXTPROC = *fn(interval: i32) callconv(WINAPI) bool;
+const PFNWGLGETSWAPINTERVALEXTPROC = *fn() callconv(WINAPI) i32;
+const PFNWGLCREATECONTEXTATTRIBSARBPROC = *fn(hdc: win.HDC, hShareContext: win.HGLRC, attribList: [*]const i32) callconv(WINAPI) win.HGLRC;
 
 const Window = struct {
     title: []const u8,
@@ -37,6 +53,7 @@ const main_window: Window = {};
 var w32_data: Win32Data = .{};
 const class_name: []const u8 = "My window class";
 var window_is_active = false;
+var is_opengl_initialized = false;
 
 fn convert_vkcode_to_key(vk_code: u32) InputKey {
     // First letters
@@ -133,6 +150,89 @@ fn convert_vkcode_to_key(vk_code: u32) InputKey {
         win.VK_F24 => return InputKey.keyboard_f24,
         else => return InputKey.invalid
     }
+}
+
+fn cStringToSlice(cstr: [*c]const u8) []const u8 {
+    var len: usize = 0;
+    // Loop until we encounter the null terminator (0)
+    while (cstr[len] != 0) : (len += 1) {}
+    return cstr[0..len];
+}
+
+pub fn opengl_init(hwnd: HWND) !void {
+    // Setup PIXELFORMATDESCRIPTOR (zero-initialize if needed)
+    var pfd: win.PIXELFORMATDESCRIPTOR = undefined;
+    pfd.nSize = @intCast(@sizeOf(win.PIXELFORMATDESCRIPTOR));
+    pfd.nVersion = 1;
+    pfd.dwFlags = win.PFD_SUPPORT_OPENGL | win.PFD_DRAW_TO_WINDOW | win.PFD_DOUBLEBUFFER;
+    pfd.iPixelType = win.PFD_TYPE_RGBA;
+    pfd.cColorBits = 24;
+    pfd.cDepthBits = 32;
+    pfd.cStencilBits = 8;
+
+    // Get the device context from the window handle
+    const hdc = win.GetDC(hwnd);
+    w32_data.hdc = hdc;
+    const pixelFormat = win.ChoosePixelFormat(hdc, &pfd);
+    _ = win.SetPixelFormat(hdc, pixelFormat, &pfd);
+
+    // Create a temporary context to load WGL extension functions.
+    const tempRC = win.wglCreateContext(hdc);
+    _ = win.wglMakeCurrent(hdc, tempRC);
+
+    // Get the pointer to wglCreateContextAttribsARB
+    const ptr = win.wglGetProcAddress("wglCreateContextAttribsARB");
+    const wglCreateContextAttribsARB: PFNWGLCREATECONTEXTATTRIBSARBPROC = @constCast(@ptrCast(ptr));
+
+    // Set attributes for an OpenGL 3.3 core profile context.
+    const attribList = [_]i32{
+        @intCast(WGL_CONTEXT_MAJOR_VERSION_ARB), 3,
+        @intCast(WGL_CONTEXT_MINOR_VERSION_ARB), 3,
+        @intCast(WGL_CONTEXT_FLAGS_ARB), 0,
+        @intCast(WGL_CONTEXT_PROFILE_MASK_ARB),
+        @intCast(WGL_CONTEXT_COREPROFILE_BIT_ARB),
+        0, // terminator
+    };
+
+    // Create the actual OpenGL context.
+    const hglrc = wglCreateContextAttribsARB(hdc, null, &attribList);
+    _ = win.wglMakeCurrent(null, null);
+    _ = win.wglDeleteContext(tempRC);
+    _ = win.wglMakeCurrent(hdc, hglrc);
+
+    // Load OpenGL function pointers with GLAD.
+    if (glad.gladLoadGL() != 0) {
+        // ska_logger_error("Could not initialize GLAD!");
+    } else {
+        // ska_logger_debug("OpenGL Version %d", glad.GLVersion.major);
+    }
+
+    // Enable VSync if supported.
+    const extPtr = win.wglGetProcAddress("wglGetExtensionsStringEXT");
+    const wglGetExtensionsStringEXT: PFNWGLGETEXTENSIONSSTRINGEXTPROC = @constCast(@ptrCast(extPtr));
+    const extStr = wglGetExtensionsStringEXT();
+    if (std.mem.indexOf(u8, cStringToSlice(extStr), "WGL_EXT_swap_control") != null) {
+        const swapPtr = win.wglGetProcAddress("wglSwapIntervalEXT");
+        const wglSwapIntervalEXT: PFNWGLSWAPINTERVALEXTPROC = @constCast(@ptrCast(swapPtr));
+        if (wglSwapIntervalEXT(1)) {
+            // ska_logger_debug("VSynch enabled");
+            } else {
+            // ska_logger_error("Could not enable VSynch");
+        }
+        // if (wglSwapIntervalEXT != null) {
+        //     if (wglSwapIntervalEXT(1)) {
+        //         // ska_logger_debug("VSynch enabled");
+        //     } else {
+        //         // ska_logger_error("Could not enable VSynch");
+        //     }
+        // } else {
+        //     // ska_logger_error("wglSwapIntervalEXT not found");
+        // }
+    } else {
+        // ska_logger_error("WGL_EXT_swap_control not supported");
+    }
+
+    is_opengl_initialized = true;
 }
 
 fn win_proc(
@@ -252,6 +352,8 @@ pub fn create_window(title: []const u8, pos_x: i32, pos_y: i32, width: i32, heig
         _ = win.MessageBoxA(null, "Window Creation Failed!", "Error", win.MB_ICONEXCLAMATION | win.MB_OK);
         unreachable;
     }
+
+    opengl_init(w32_data.hwnd) catch unreachable;
 
     _ = win.ShowWindow(w32_data.hwnd, w32_data.cmd_show);
     window_is_active = true;
