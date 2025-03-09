@@ -9,12 +9,18 @@ pub fn main() !void {
 
     window.create("General", 200, 200, 600, 800);
 
-    while (window.is_active()) {
+    var is_running = true;
+
+    while (window.is_active() and is_running) {
         input.new_frame();
         window.update();
 
         if (input.is_key_just_pressed(.{ .key = .keyboard_a })) {
             std.debug.print("a pressed!\n", .{});
+        }
+
+        if (input.is_key_just_pressed(.{ .key = .keyboard_escape })) {
+            is_running = false;
         }
     }
 
