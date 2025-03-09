@@ -1,3 +1,5 @@
+const std = @import("std");
+
 const math = @import("math.zig");
 
 const Vec2i = math.Vec2i;
@@ -274,13 +276,13 @@ const InputState = struct {
 
     fn cleanup_keys(self: *InputState) void {
         // Just pressed
-        for (self.cleanup_keys_state.pressed_cleanup_keys_count) |i| {
+        for (0..self.cleanup_keys_state.pressed_cleanup_keys_count) |i| {
             const cleanup_key: *CleanupKeys = &self.cleanup_keys_state.pressed_cleanup_keys[i];
             self.key_state[cleanup_key.device_index][@intFromEnum(cleanup_key.key)].is_just_pressed = false;
         }
         self.cleanup_keys_state.pressed_cleanup_keys_count = 0;
         // Just released
-        for (self.cleanup_keys_state.released_cleanup_keys_count) |i| {
+        for (0..self.cleanup_keys_state.released_cleanup_keys_count) |i| {
             const cleanup_key: *CleanupKeys = &self.cleanup_keys_state.released_cleanup_keys[i];
             self.key_state[cleanup_key.device_index][@intFromEnum(cleanup_key.key)].is_just_released = false;
         }
@@ -295,11 +297,12 @@ pub fn register_mouse_move_event(new_position: Vec2i) void {
 }
 
 pub fn register_input_event(event_params: RegisterInputParams) void {
+    // std.debug.print("register input event, key = {}\n", .{ event_params.key });
     var key_state: *InputKeyState = &state.key_state[event_params.device_index][@intFromEnum(event_params.key)];
     switch (event_params.trigger) {
         .pressed =>  {
             if (!key_state.is_pressed) {
-                key_state.is_just_released = true;
+                key_state.is_just_pressed = true;
                 state.add_pressed_cleanup(event_params.key, event_params.device_index);
             } else {
                 key_state.is_just_pressed = false;
