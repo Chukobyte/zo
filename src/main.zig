@@ -6,6 +6,7 @@ const input = @import("input.zig");
 
 pub fn main() !void {
     zo.init();
+    defer zo.deinit();
 
     window.create("General", 200, 200, 600, 800);
 
@@ -23,6 +24,4 @@ pub fn main() !void {
             is_running = false;
         }
     }
-
-    zo.deinit();
 }
