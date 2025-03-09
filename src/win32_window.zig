@@ -12,6 +12,8 @@ pub const glad = @cImport({
     @cInclude("glad/glad.h");
 });
 
+const LinearColor = math.LinearColor;
+
 pub const WINAPI: std.builtin.CallingConvention = .winapi;
 pub const HINSTANCE = win.HINSTANCE;
 pub const HWND = win.HWND;
@@ -365,6 +367,15 @@ pub fn update_window() void {
         _ = win.TranslateMessage(&msg);
         _ = win.DispatchMessageW(&msg);
     }
+}
+
+pub fn clear_window(color: LinearColor) void {
+    glad.glClearColor(color.r, color.g, color.b, color.a);
+    glad.glClear(glad.GL_COLOR_BUFFER_BIT | glad.GL_DEPTH_BUFFER_BIT);
+}
+
+pub fn swap_window() void {
+    _ = win.SwapBuffers(w32_data.hdc);
 }
 
 pub fn is_window_active() bool {
