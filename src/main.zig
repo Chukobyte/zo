@@ -1,13 +1,10 @@
 const std = @import("std");
 
 const zo = @import("zo.zig");
-const window = @import("window.zig");
-const input = @import("input.zig");
+const window = zo.window;
+const input = zo.input;
 
 pub fn main() !void {
-    zo.init();
-    defer zo.deinit();
-
     window.create("Test Game", 300, 300, 800, 600);
 
     var is_running = true;
