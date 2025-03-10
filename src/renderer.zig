@@ -9,10 +9,40 @@ const GLuint = glad.GLuint;
 const GLsizei = glad.GLsizei;
 
 const Vec2 = math.Vec2;
+const Vec3 = math.Vec3;
+const Vec4 = math.Vec4;
+const Mat4 = math.Mat4;
 
 pub const RenderContext = struct {
     res_width: i32 = undefined,
     res_height: i32 = undefined,
+};
+
+pub const Shader = struct {
+    id: GLuint,
+
+    pub fn compileNew(vertex_source: []const u8, fragment_source: []const u8) Shader {
+        _ = vertex_source; _ = fragment_source;
+        return Shader{ .id = 0 }; // TODO: Implement
+    }
+
+    pub fn use(self: *const Shader) void {
+        _ = self;
+    }
+
+    pub fn setUniform(self: *const Shader, name: []const u8, comptime T: type, value: T) void {
+        _ = self; _ = name; _ = value;
+        switch (T) {
+            bool =>  {},
+            i32 =>  {},
+            f32 =>  {},
+            Vec2 =>  {},
+            Vec3 =>  {},
+            Vec4 =>  {},
+            Mat4 =>  {},
+            else => @compileError("Unsupported type for Shader.setUniform!"),
+        }
+    }
 };
 
 pub const Texture = struct {
