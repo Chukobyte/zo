@@ -234,6 +234,64 @@ pub fn Matrix4(comptime T: type) type {
             }
             return @This(){ .data = result };
         }
+
+        pub fn translate(self: *@This(), v: Vec3) void {
+            self.data[0][3] = v.x;
+            self.data[1][3] = v.y;
+            self.data[2][3] = v.z;
+        }
+
+        pub fn rotate_z(self: *@This(), angle_rad: f32) void {
+            const c = std.math.cos(angle_rad);
+            const s = std.math.sin(angle_rad);
+            self.data[0][0] = c;
+            self.data[0][1] = -s;
+            self.data[1][0] = s;
+            self.data[1][1] = c;
+        }
+
+        pub fn scale(self: *@This(), v: Vec3) void {
+            self.data[0][0] = v.x;
+            self.data[1][1] = v.y;
+            self.data[2][2] = v.z;
+        }
+
+        pub fn determinant(self: *const @This()) f32 {
+            const Helper = struct {
+                // Helper for 3x3 determinant.
+                fn det3(m: [3][3]f32) f32 {
+                    return m[0][0]*(m[1][1]*m[2][2] - m[1][2]*m[2][1])
+                        - m[0][1]*(m[1][0]*m[2][2] - m[1][2]*m[2][0])
+                        + m[0][2]*(m[1][0]*m[2][1] - m[1][1]*m[2][0]);
+                }
+            };
+
+            var m0: [3][3]f32 = undefined;
+            m0[0] = .{ self.data[1][1], self.data[1][2], self.data[1][3] };
+            m0[1] = .{ self.data[2][1], self.data[2][2], self.data[2][3] };
+            m0[2] = .{ self.data[3][1], self.data[3][2], self.data[3][3] };
+            const det0 = self.data[0][0] * Helper.det3(m0);
+
+            var m1: [3][3]f32 = undefined;
+            m1[0] = .{ self.data[1][0], self.data[1][2], self.data[1][3] };
+            m1[1] = .{ self.data[2][0], self.data[2][2], self.data[2][3] };
+            m1[2] = .{ self.data[3][0], self.data[3][2], self.data[3][3] };
+            const det1 = self.data[0][1] * Helper.det3(m1);
+
+            var m2: [3][3]f32 = undefined;
+            m2[0] = .{ self.data[1][0], self.data[1][1], self.data[1][3] };
+            m2[1] = .{ self.data[2][0], self.data[2][1], self.data[2][3] };
+            m2[2] = .{ self.data[3][0], self.data[3][1], self.data[3][3] };
+            const det2 = self.data[0][2] * Helper.det3(m2);
+
+            var m3: [3][3]f32 = undefined;
+            m3[0] = .{ self.data[1][0], self.data[1][1], self.data[1][2] };
+            m3[1] = .{ self.data[2][0], self.data[2][1], self.data[2][2] };
+            m3[2] = .{ self.data[3][0], self.data[3][1], self.data[3][2] };
+            const det3_val = self.data[0][3] * Helper.det3(m3);
+
+            return det0 - det1 + det2 - det3_val;
+        }
     };
 }
 
