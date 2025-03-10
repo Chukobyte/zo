@@ -20,8 +20,6 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
 
-    exe.linkLibC();
-
     if (target.result.os.tag == .windows) {
         exe.subsystem = .Windows;
     } else {
@@ -33,12 +31,13 @@ pub fn build(b: *std.Build) !void {
     const glad_lib: *std.Build.Step.Compile = try add_glad(b, target, optimize);
     const stb_image_lib: *std.Build.Step.Compile = try add_stb_image(b, target, optimize);
     const freetype_lib: *std.Build.Step.Compile = try add_freetype(b, target, optimize);
-    exe.linkLibrary(glad_lib);
-    exe.linkLibrary(stb_image_lib);
-    exe.linkLibrary(freetype_lib);
+    exe.linkLibC();
     exe.linkSystemLibrary("gdi32");
     exe.linkSystemLibrary("user32");
     exe.linkSystemLibrary("opengl32");
+    exe.linkLibrary(glad_lib);
+    exe.linkLibrary(stb_image_lib);
+    exe.linkLibrary(freetype_lib);
 
     b.installArtifact(exe);
 
