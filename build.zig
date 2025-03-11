@@ -39,6 +39,11 @@ pub fn build(b: *std.Build) !void {
     exe.linkLibrary(stb_image_lib);
     exe.linkLibrary(freetype_lib);
 
+    const static_assets_module = b.addModule("static_assets", .{
+        .root_source_file = b.path("static_assets.zig"),
+    });
+    exe.root_module.addImport("static_assets",static_assets_module);
+
     b.installArtifact(exe);
 
     const run_exe = b.addRunArtifact(exe);

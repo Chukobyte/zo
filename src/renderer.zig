@@ -4,6 +4,10 @@ pub const glad = @cImport({
     @cInclude("glad/glad.h");
 });
 
+pub const stb_image = @cImport({
+    @cInclude("stb_image/stb_image.h");
+});
+
 const math = @import("math.zig");
 const string = @import("string.zig");
 
@@ -90,6 +94,10 @@ pub const Shader = struct {
     }
 };
 
+const TextureError = error{
+    FailedToGenerate,
+};
+
 pub const Texture = struct {
     id: GLuint,
     data: []u8,
@@ -101,7 +109,60 @@ pub const Texture = struct {
     wrap_s: GLint,
     wrap_t: GLint,
     using_nearest_neighbor: bool,
-    file_path: []u8,
+    allocator: std.mem.allocator,
+    file_path: ?[]u8 = null,
+
+    pub fn init(allocator: std.mem.Allocator, file_path: []const u8, nearest_neighbor: bool) !@This() {
+        var texture: Texture = initImpl(allocator, nearest_neighbor);
+        texture.file_path = texture.allocator.alloc(u8, file_path.len);
+        std.mem.copyForwards(u8, texture.file_path, file_path);
+        texture.data = stb_image.stbi_load(file_path, &texture.width, &texture.height, &texture.nr_channels, 0);
+        try texture.generate();
+        return texture;
+    }
+
+    pub fn initFromMemory(allocator: std.mem.Allocator, buffer: *const anyopaque, buffer_len: usize, nearest_neighbor: bool) !@This() {
+        var texture: Texture = initImpl(allocator, nearest_neighbor);
+        texture.data = stb_image.stbi_load_from_memory(buffer, buffer_len, &texture.width, &texture.height, &texture.nr_channels, 0);
+        try texture.generate();
+        return texture;
+    }
+
+    pub fn deinit(self: *@This()) void {
+        if (self.file_path) |file_path| {
+            self.allocator.free(file_path);
+        }
+        stb_image.stbi_image_free(self.data);
+    }
+
+    fn initImpl(allocator: std.mem.Allocator, nearest_neighbor: bool) @This() {
+        var texture: Texture = undefined;
+        texture.allocator = allocator;
+        texture.using_nearest_neighbor = nearest_neighbor;
+        return texture;
+    }
+
+    fn generate(self: *@This()) !void {
+        self.image_format = switch (self.nr_channels) {
+            1 => glad.GL_RED,
+            3 => glad.GL_RGB,
+            4 => glad.GL_RGBA,
+            else => return TextureError.FailedToGenerate,
+        };
+        // Generate opengl texture
+        glad.glGenTextures(1, &self.id);
+        glad.glBindTexture(glad.GL_TEXTURE_2D, self.id);
+        glad.glTexImage2D(glad.GL_TEXTURE_2D, 0, self.internalFormat, self.width, self.height, 0, self.imageFormat, glad.GL_UNSIGNED_BYTE, self.data);
+        glad.glGenerateMipmap(glad.GL_TEXTURE_2D);
+        // Wrap and filter modes
+        glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_WRAP_S, self.wrapS);
+        glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_WRAP_T, self.wrapT);
+        // Defaults to bilinear interpolation
+        glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_MIN_FILTER, glad.GL_LINEAR);
+        glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_MAG_FILTER, glad.GL_LINEAR);
+
+        glad.glBindTexture(glad.GL_TEXTURE_2D, 0);
+    }
 };
 
 pub const TextureCoords = struct {
