@@ -15,6 +15,7 @@ const GLint = glad.GLint;
 const GLuint = glad.GLuint;
 const GLsizei = glad.GLsizei;
 const GLfloat = glad.GLfloat;
+const GLchar = glad.GLchar;
 
 const Vec2 = math.Vec2;
 const Vec2i = math.Vec2i;
@@ -27,36 +28,48 @@ const LinearColor = math.LinearColor;
 
 const String = string.String;
 
+const log = @import("logger.zig").log;
+
 pub const RenderContext = struct {
     res_width: i32 = undefined,
     res_height: i32 = undefined,
 };
 
+const ShaderError = error{
+    FailedToCompile,
+};
+
 pub const Shader = struct {
     id: GLuint,
+
+    const ShaderType = enum {
+        vertex,
+        fragment,
+        program,
+    };
 
     pub fn compileNew(comptime vertex_source: []const u8, comptime fragment_source: []const u8) !Shader {
         // vertex
         var source_string: String = try String.initAndSet(std.heap.page_allocator, vertex_source, .{});
         defer source_string.deinit();
         const vertex: GLuint = glad.glCreateShader(glad.GL_VERTEX_SHADER);
-        glad.glShaderSource(vertex, 1, @alignCast(@ptrCast(source_string.getCString())), null);
+        glad.glShaderSource(vertex, 1, &@alignCast(@ptrCast(source_string.getCString())), null);
         glad.glCompileShader(vertex);
-        // TODO: Check vertex errors
+        if (!checkCompileErrors(vertex, .vertex)) { return ShaderError.FailedToCompile; }
 
         // fragment
         const fragment: GLuint = glad.glCreateShader(glad.GL_FRAGMENT_SHADER);
         try source_string.set(fragment_source, .{});
-        glad.glShaderSource(fragment, 1, @alignCast(@ptrCast(source_string.getCString())), null);
+        glad.glShaderSource(fragment, 1, &@alignCast(@ptrCast(source_string.getCString())), null);
         glad.glCompileShader(fragment);
-        // TODO: Check fragment errors
+        if (!checkCompileErrors(fragment, .fragment)) { return ShaderError.FailedToCompile; }
 
         // attach and link shaders
         const shader: Shader = .{ .id = glad.glCreateProgram() };
         glad.glAttachShader(shader.id, vertex);
         glad.glAttachShader(shader.id, fragment);
         glad.glLinkProgram(shader.id);
-        // TODO: Check link errors
+        if (!checkCompileErrors(shader.id, .program)) { return ShaderError.FailedToCompile; }
 
         glad.glDeleteShader(vertex);
         glad.glDeleteShader(fragment);
@@ -91,6 +104,27 @@ pub const Shader = struct {
             Mat4 => glad.glUniformMatrix4fv(glad.glGetUniformLocation(self.id, name), count, glad.GL_FALSE, @as(*GLfloat, value.data)),
             else => @compileError("Unsupported type for Shader.setUniformArray!"),
         }
+    }
+
+    fn checkCompileErrors(shader_id: GLuint, shader_type: ShaderType) bool {
+        var success: GLint = undefined;
+        var info_log: [1024]GLchar = undefined;
+        if (shader_type == .program) {
+            glad.glGetProgramiv(shader_id, glad.GL_LINK_STATUS, &success);
+            if (success != 0) {
+                glad.glGetProgramInfoLog(shader_id, 1024, null, @ptrCast(&info_log[0]));
+                log(.critical, "Shader type '{}' linking failed!\nInfoLog = {s}", .{shader_type, info_log});
+                return false;
+            }
+        } else {
+            glad.glGetProgramiv(shader_id, glad.GL_COMPILE_STATUS, &success);
+            if (success != 0) {
+                glad.glGetShaderInfoLog(shader_id, 1024, null, &info_log[0]);
+                log(.critical, "Shader type '{}' compilation failed!\nInfoLog = {s}", .{shader_type, info_log});
+                return false;
+            }
+        }
+        return true;
     }
 };
 
