@@ -35,19 +35,19 @@ pub const RenderContext = struct {
 pub const Shader = struct {
     id: GLuint,
 
-    pub fn compileNew(vertex_source: []const u8, fragment_source: []const u8) !Shader {
+    pub fn compileNew(comptime vertex_source: []const u8, comptime fragment_source: []const u8) !Shader {
         // vertex
-        var source_string: String = String.initAndSet(std.heap.page_allocator, vertex_source, .{});
+        var source_string: String = try String.initAndSet(std.heap.page_allocator, vertex_source, .{});
         defer source_string.deinit();
         const vertex: GLuint = glad.glCreateShader(glad.GL_VERTEX_SHADER);
-        glad.glShaderSource(vertex, 1, source_string.getCString(), null);
+        glad.glShaderSource(vertex, 1, @alignCast(@ptrCast(source_string.getCString())), null);
         glad.glCompileShader(vertex);
         // TODO: Check vertex errors
 
         // fragment
         const fragment: GLuint = glad.glCreateShader(glad.GL_FRAGMENT_SHADER);
-        source_string.set(fragment_source, .{});
-        glad.glShaderSource(fragment, 1, source_string.getCString(), null);
+        try source_string.set(fragment_source, .{});
+        glad.glShaderSource(fragment, 1, @alignCast(@ptrCast(source_string.getCString())), null);
         glad.glCompileShader(fragment);
         // TODO: Check fragment errors
 
@@ -75,7 +75,7 @@ pub const Shader = struct {
             Vec2 => glad.glUniform2f(glad.glGetUniformLocation(self.id, name), @as(GLfloat, value.x), @as(GLfloat, value.y)),
             Vec3 => glad.glUniform3f(glad.glGetUniformLocation(self.id, name), @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z)),
             Vec4 => glad.glUniform4f(glad.glGetUniformLocation(self.id, name), @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z), @as(GLfloat, value.w)),
-            Mat4 => glad.glUniformMatrix4fv(glad.glGetUniformLocation(self.id, name), 1, glad.GL_FALSE, @as(*GLfloat, value.data)),
+            Mat4 => glad.glUniformMatrix4fv(glad.glGetUniformLocation(self.id, name), 1, glad.GL_FALSE, @ptrCast(&value.data[0])),
             else => @compileError("Unsupported type for Shader.setUniform!"),
         }
     }
@@ -109,7 +109,7 @@ pub const Texture = struct {
     wrap_s: GLint,
     wrap_t: GLint,
     using_nearest_neighbor: bool,
-    allocator: std.mem.allocator,
+    allocator: std.mem.Allocator,
     file_path: ?[]u8 = null,
 
     pub fn init(allocator: std.mem.Allocator, file_path: []const u8, nearest_neighbor: bool) !@This() {
@@ -121,12 +121,15 @@ pub const Texture = struct {
         return texture;
     }
 
-    pub fn initFromMemory(allocator: std.mem.Allocator, buffer: *const anyopaque, buffer_len: usize, nearest_neighbor: bool) !@This() {
-        var texture: Texture = initImpl(allocator, nearest_neighbor);
-        texture.data = stb_image.stbi_load_from_memory(buffer, buffer_len, &texture.width, &texture.height, &texture.nr_channels, 0);
-        try texture.generate();
-        return texture;
-    }
+    // pub fn initFromMemory(allocator: std.mem.Allocator, buffer: *const anyopaque, buffer_len: usize, nearest_neighbor: bool) !@This() {
+    //     var texture: Texture = initImpl(allocator, nearest_neighbor);
+    //     // const buffer_slice: []const u8 = @as([]u8, @constCast(@ptrCast(buffer)))[0..buffer_len];
+    //     // const buffer_ptr: [*:0]const u8 = @as([*:0]const u8, @constCast(@ptrCast(buffer)));
+    //     // texture.data = stb_image.stbi_load_from_memory(buffer_ptr, @intCast(buffer_len), &texture.width, &texture.height, &texture.nr_channels, 0);
+    //     // texture.data = stb_image.stbi_load_from_memory(@ptrCast(buffer)[0..buffer_len], @intCast(buffer_len), &texture.width, &texture.height, &texture.nr_channels, 0);
+    //     try texture.generate();
+    //     return texture;
+    // }
 
     pub fn deinit(self: *@This()) void {
         if (self.file_path) |file_path| {
@@ -244,13 +247,13 @@ pub const sprite_vertex_shader_source =
     \\uniform mat4 models[100];
     \\uniform mat4 projection;
     \\
-    \\void main() {
+    \\void main() {{
     \\    int sprite_index = int(in_id);
     \\    frag_uv = in_uv;
     \\    frag_color_mod = in_color_mod;
     \\    frag_use_nearest = in_use_nearest;
     \\    gl_Position = projection * models[sprite_index] * vec4(in_pos, 0.0, 1.0);
-    \\}
+    \\}}
 ;
 
 pub const sprite_fragment_shader_source =
@@ -263,19 +266,19 @@ pub const sprite_fragment_shader_source =
     \\
     \\uniform sampler2D u_texture;
     \\
-    \\vec2 apply_nearest_neighbor(vec2 uv, vec2 texture_size) {
+    \\vec2 apply_nearest_neighbor(vec2 uv, vec2 texture_size) {{
     \\    vec2 pixel = uv * texture_size;
     \\    vec2 nearest = floor(pixel + 0.5);
     \\    vec2 dudv = fwidth(pixel);
     \\    pixel = nearest + clamp((pixel - nearest) / dudv, -0.5, 0.5);
     \\    return pixel / texture_size;
-    \\}
+    \\}}
     \\
-    \\void main() {
+    \\void main() {{
     \\    vec2 tex_size = textureSize(u_texture, 0);
     \\    vec2 final_uv = mix(frag_uv, apply_nearest_neighbor(frag_uv, tex_size), frag_use_nearest);
     \\    out_color = frag_color_mod * texture(u_texture, final_uv);
-    \\}
+    \\}}
 ;
 
 const max_sprite_count = 10;
@@ -291,7 +294,7 @@ pub fn init(res_width: i32, res_height: i32) !void {
     glad.glBlendFunc(glad.GL_SRC_ALPHA, glad.GL_ONE_MINUS_SRC_ALPHA);
 
     // Init sprite rendering
-    const vertices: []GLfloat = [_]GLfloat{
+    const vertices: [60]GLfloat = [_]GLfloat{
         //id (1) // positions (2) // texture coordinates (2) // color (4) // using nearest neighbor (1)
         0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,
         0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
@@ -307,32 +310,32 @@ pub fn init(res_width: i32, res_height: i32) !void {
     glad.glGenBuffers(1, &sprite_render_data.vbo);
 
     glad.glBindBuffer(glad.GL_ARRAY_BUFFER, sprite_render_data.vbo);
-    glad.glBufferData(glad.GL_ARRAY_BUFFER, @sizeOf(vertices), vertices, glad.GL_DYNAMIC_DRAW);
+    glad.glBufferData(glad.GL_ARRAY_BUFFER, @sizeOf(@TypeOf(vertices)), @ptrCast(&vertices[0]), glad.GL_DYNAMIC_DRAW);
 
     glad.glBindVertexArray(sprite_render_data.vao);
     // id attribute
     glad.glVertexAttribPointer(0, 1, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), null);
     glad.glEnableVertexAttribArray(0);
     // position attribute
-    glad.glVertexAttribPointer(1, 2, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @sizeOf(GLfloat));
+    glad.glVertexAttribPointer(1, 2, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrCast(&@sizeOf(GLfloat)));
     glad.glEnableVertexAttribArray(1);
     // texture coord attribute
-    glad.glVertexAttribPointer(2, 2, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), 3 * @sizeOf(GLfloat));
+    glad.glVertexAttribPointer(2, 2, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrCast(&(3 * @sizeOf(GLfloat))));
     glad.glEnableVertexAttribArray(2);
     // color attribute
-    glad.glVertexAttribPointer(3, 4, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), 5 * @sizeOf(GLfloat));
+    glad.glVertexAttribPointer(3, 4, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrCast(&(5 * @sizeOf(GLfloat))));
     glad.glEnableVertexAttribArray(3);
     // color attribute
-    glad.glVertexAttribPointer(4, 1, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), 9 * @sizeOf(GLfloat));
+    glad.glVertexAttribPointer(4, 1, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrCast(&(9 * @sizeOf(GLfloat))));
     glad.glEnableVertexAttribArray(4);
 
     glad.glBindBuffer(glad.GL_ARRAY_BUFFER, 0);
     glad.glBindVertexArray(0);
 
-    sprite_render_data.shader = Shader.compileNew(sprite_vertex_shader_source, sprite_fragment_shader_source);
+    sprite_render_data.shader = try Shader.compileNew(sprite_vertex_shader_source, sprite_fragment_shader_source);
     sprite_render_data.shader.use();
     sprite_render_data.resolution = .{ .x = res_width, .y = res_height };
-    sprite_render_data.projection = math.ortho(0.0, sprite_render_data.resolution.x, sprite_render_data.resolution.y, -1.0, 1.0);
+    sprite_render_data.projection = math.ortho(0.0, @floatFromInt(sprite_render_data.resolution.x), @floatFromInt(sprite_render_data.resolution.y), 0.0, -1.0, 1.0);
     sprite_render_data.shader.setUniform("projection", Mat4, sprite_render_data.projection);
 }
 

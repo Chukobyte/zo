@@ -365,17 +365,10 @@ pub inline fn mapToRange(comptime T: type, input: T, input_min: T, input_max: T,
 pub fn ortho(left: f32, right: f32, bottom: f32, top: f32, nearZ: f32, farZ: f32) Mat4 {
     return Mat4{
         .data = [_][4]f32{
-            // First column:
-            2.0 / (right - left), 0.0, 0.0, 0.0,
-            // Second column:
-            0.0, 2.0 / (top - bottom), 0.0, 0.0,
-            // Third column:
-            0.0, 0.0, -2.0 / (farZ - nearZ), 0.0,
-            // Fourth column:
-            - (right + left) / (right - left),
-            - (top + bottom) / (top - bottom),
-            - (farZ + nearZ) / (farZ - nearZ),
-            1.0,
+            .{ 2.0 / (right - left), 0.0, 0.0, 0.0 },
+            .{ 0.0, 2.0 / (top - bottom), 0.0, 0.0 },
+            .{ 0.0, 0.0, -2.0 / (farZ - nearZ), 0.0 },
+            .{ -(right + left) / (right - left), -(top + bottom) / (top - bottom), -(farZ + nearZ) / (farZ - nearZ), 1.0 },
         },
     };
 }
