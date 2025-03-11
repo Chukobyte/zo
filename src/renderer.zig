@@ -60,34 +60,32 @@ pub const Shader = struct {
     }
 
     pub fn use(self: *const Shader) void {
-        _ = self;
+        glad.glUseProgram(self.id);
     }
 
-    pub fn setUniform(self: *const Shader, name: []const u8, comptime T: type, value: T) void {
-        _ = self; _ = name; _ = value;
+    pub fn setUniform(self: *const Shader, name: [:0]const u8, comptime T: type, value: T) void {
         switch (T) {
-            bool =>  {},
-            i32 =>  {},
-            f32 =>  {},
-            Vec2 =>  {},
-            Vec3 =>  {},
-            Vec4 =>  {},
-            Mat4 =>  {},
+            bool => glad.glUniform1i(glad.glGetUniformLocation(self.id, name), @as(GLint, value)),
+            i32 => glad.glUniform1i(glad.glGetUniformLocation(self.id, name), @as(GLint, value)),
+            f32 => glad.glUniform1f(glad.glGetUniformLocation(self.id, name), @as(GLfloat, value)),
+            Vec2 => glad.glUniform2f(glad.glGetUniformLocation(self.id, name), @as(GLfloat, value.x), @as(GLfloat, value.y)),
+            Vec3 => glad.glUniform3f(glad.glGetUniformLocation(self.id, name), @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z)),
+            Vec4 => glad.glUniform4f(glad.glGetUniformLocation(self.id, name), @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z), @as(GLfloat, value.w)),
+            Mat4 => glad.glUniformMatrix4fv(glad.glGetUniformLocation(self.id, name), 1, glad.GL_FALSE, @as(*GLfloat, value.data)),
             else => @compileError("Unsupported type for Shader.setUniform!"),
         }
     }
 
     pub fn setUniformArray(self: *const Shader, name: []const u8, comptime T: type, value: T, count: usize) void {
-        _ = self; _ = name; _ = value; _ = count;
         switch (T) {
-            bool =>  {},
-            i32 =>  {},
-            f32 =>  {},
-            Vec2 =>  {},
-            Vec3 =>  {},
-            Vec4 =>  {},
-            Mat4 =>  {},
-            else => @compileError("Unsupported type for Shader.setUniform!"),
+            bool => glad.glUniform1iv(glad.glGetUniformLocation(self.id, name), count, @as(GLint, value)),
+            i32 => glad.glUniform1iv(glad.glGetUniformLocation(self.id, name), count, @as(GLint, value)),
+            f32 => glad.glUniform1fv(glad.glGetUniformLocation(self.id, name), count, @as(GLfloat, value)),
+            Vec2 => glad.glUniform2fv(glad.glGetUniformLocation(self.id, name), count, @as(GLfloat, value.x), @as(GLfloat, value.y)),
+            Vec3 => glad.glUniform3fv(glad.glGetUniformLocation(self.id, name), count, @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z)),
+            Vec4 => glad.glUniform4fv(glad.glGetUniformLocation(self.id, name), count, @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z), @as(GLfloat, value.w)),
+            Mat4 => glad.glUniformMatrix4fv(glad.glGetUniformLocation(self.id, name), count, glad.GL_FALSE, @as(*GLfloat, value.data)),
+            else => @compileError("Unsupported type for Shader.setUniformArray!"),
         }
     }
 };
