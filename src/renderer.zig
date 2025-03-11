@@ -5,6 +5,7 @@ pub const glad = @cImport({
 });
 
 const math = @import("math.zig");
+const string = @import("string.zig");
 
 const GLint = glad.GLint;
 const GLuint = glad.GLuint;
@@ -20,6 +21,8 @@ const Transform2D = math.Transform2D;
 const Mat4 = math.Mat4;
 const LinearColor = math.LinearColor;
 
+const String = string.String;
+
 pub const RenderContext = struct {
     res_width: i32 = undefined,
     res_height: i32 = undefined,
@@ -28,9 +31,32 @@ pub const RenderContext = struct {
 pub const Shader = struct {
     id: GLuint,
 
-    pub fn compileNew(vertex_source: []const u8, fragment_source: []const u8) Shader {
-        _ = vertex_source; _ = fragment_source;
-        return Shader{ .id = 0 }; // TODO: Implement
+    pub fn compileNew(vertex_source: []const u8, fragment_source: []const u8) !Shader {
+        // vertex
+        var source_string: String = String.initAndSet(std.heap.page_allocator, vertex_source, .{});
+        defer source_string.deinit();
+        const vertex: GLuint = glad.glCreateShader(glad.GL_VERTEX_SHADER);
+        glad.glShaderSource(vertex, 1, source_string.getCString(), null);
+        glad.glCompileShader(vertex);
+        // TODO: Check vertex errors
+
+        // fragment
+        const fragment: GLuint = glad.glCreateShader(glad.GL_FRAGMENT_SHADER);
+        source_string.set(fragment_source, .{});
+        glad.glShaderSource(fragment, 1, source_string.getCString(), null);
+        glad.glCompileShader(fragment);
+        // TODO: Check fragment errors
+
+        // attach and link shaders
+        const shader: Shader = .{ .id = glad.glCreateProgram() };
+        glad.glAttachShader(shader.id, vertex);
+        glad.glAttachShader(shader.id, fragment);
+        glad.glLinkProgram(shader.id);
+        // TODO: Check link errors
+
+        glad.glDeleteShader(vertex);
+        glad.glDeleteShader(fragment);
+        return shader;
     }
 
     pub fn use(self: *const Shader) void {
