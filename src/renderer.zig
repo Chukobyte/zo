@@ -50,17 +50,18 @@ pub const Shader = struct {
 
     pub fn compileNew(comptime vertex_source: []const u8, comptime fragment_source: []const u8) !Shader {
         // vertex
-        var source_string: String = try String.initAndSet(std.heap.page_allocator, vertex_source, .{});
-        defer source_string.deinit();
+        var source_string_v: String = try String.initAndSet(std.heap.page_allocator, vertex_source, .{});
+        defer source_string_v.deinit();
         const vertex: GLuint = glad.glCreateShader(glad.GL_VERTEX_SHADER);
-        glad.glShaderSource(vertex, 1, &@alignCast(@ptrCast(source_string.getCString())), null);
+        glad.glShaderSource(vertex, 1, &@alignCast(@ptrCast(source_string_v.getCString())), null);
         glad.glCompileShader(vertex);
         if (!checkCompileErrors(vertex, .vertex)) { return ShaderError.FailedToCompile; }
 
         // fragment
         const fragment: GLuint = glad.glCreateShader(glad.GL_FRAGMENT_SHADER);
-        try source_string.set(fragment_source, .{});
-        glad.glShaderSource(fragment, 1, &@alignCast(@ptrCast(source_string.getCString())), null);
+        var source_string_f: String = try String.initAndSet(std.heap.page_allocator, fragment_source, .{});
+        defer source_string_f.deinit();
+        glad.glShaderSource(fragment, 1, &@alignCast(@ptrCast(source_string_f.getCString())), null);
         glad.glCompileShader(fragment);
         if (!checkCompileErrors(fragment, .fragment)) { return ShaderError.FailedToCompile; }
 
@@ -111,15 +112,15 @@ pub const Shader = struct {
         var info_log: [1024]GLchar = undefined;
         if (shader_type == .program) {
             glad.glGetProgramiv(shader_id, glad.GL_LINK_STATUS, &success);
-            if (success != 0) {
-                glad.glGetProgramInfoLog(shader_id, 1024, null, @ptrCast(&info_log[0]));
+            if (success == 0) {
+                glad.glGetProgramInfoLog(shader_id, info_log.len, null, &info_log[0]);
                 log(.critical, "Shader type '{}' linking failed!\nInfoLog = {s}", .{shader_type, info_log});
                 return false;
             }
         } else {
             glad.glGetProgramiv(shader_id, glad.GL_COMPILE_STATUS, &success);
-            if (success != 0) {
-                glad.glGetShaderInfoLog(shader_id, 1024, null, &info_log[0]);
+            if (success == 0) {
+                glad.glGetShaderInfoLog(shader_id, info_log.len, null, &info_log[0]);
                 log(.critical, "Shader type '{}' compilation failed!\nInfoLog = {s}", .{shader_type, info_log});
                 return false;
             }
