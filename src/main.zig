@@ -54,7 +54,7 @@ pub fn main() !void {
             .source_rect = .{ .x = 0.0, .y = 0.0, .w = 32.0, .h = 32.0 },
             .dest_size = .{ .x = 32.0, .y = 32.0 },
             .transform = .{
-                .position = .{ .x = 100.0, .y = 100.0 },
+                .position = .{ .x = 200.0, .y = 200.0 },
                 .scale = .{ .x = 5.0, .y = 5.0 },
             }
         });

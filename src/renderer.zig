@@ -401,9 +401,9 @@ pub fn init(res_width: i32, res_height: i32) !void {
     glad.glBindBuffer(glad.GL_ARRAY_BUFFER, 0);
     glad.glBindVertexArray(0);
 
-    sprite_render_data.shader = try Shader.compileNew(sprite_vertex_shader_source, sprite_fragment_shader_source);
     sprite_render_data.resolution = .{ .x = res_width, .y = res_height };
     sprite_render_data.projection = math.ortho(0.0, @floatFromInt(sprite_render_data.resolution.x), @floatFromInt(sprite_render_data.resolution.y), 0.0, -1.0, 1.0);
+    sprite_render_data.shader = try Shader.compileNew(sprite_vertex_shader_source, sprite_fragment_shader_source);
     sprite_render_data.shader.use();
     sprite_render_data.shader.setUniform("u_texture", i32, 0);
     sprite_render_data.shader.setUniform("projection", Mat4, sprite_render_data.projection);
@@ -420,16 +420,10 @@ pub fn drawSprite(p: *const DrawSpriteParams) void {
     var models: [max_sprite_count]Mat4 = undefined;
     const number_of_sprites: usize = 1;
     for (0..number_of_sprites) |i| {
-        // const model_offset = i * 16;
-        // TODO: Clean up math and how matrices operations are applied and multiplied
         var model: Mat4 = Mat4.Identity;
-        model.translate(.{ .x = p.transform.position.x, .y = p.transform.position.y });
-        var t_model = model;
-        model.rotate_z(std.math.degreesToRadians(p.transform.rotation));
-        var r_model = model;
-        model.scale(.{ .x = p.transform.scale.x * p.dest_size.x, .y = p.transform.scale.y * p.dest_size.y, .z = 1.0 });
-        var s_model = model;
-        model = t_model.mul(&r_model).mul(&s_model);
+        model.translate2(.{ .x = p.transform.position.x, .y = p.transform.position.y });
+        model.rotateZ2(std.math.degreesToRadians(p.transform.rotation));
+        model.scale2(.{ .x = p.transform.scale.x * p.dest_size.x, .y = p.transform.scale.y * p.dest_size.y, .z = 1.0 });
 
         models[i] = model;
 

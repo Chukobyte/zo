@@ -221,6 +221,7 @@ pub fn Matrix4(comptime T: type) type {
             };
         }
 
+        /// Multiplies and returns a new matrix
         pub fn mul(a: *const @This(), b: *const @This()) @This() {
             var result: [4][4]T = undefined;
             for (0..4) |i| {
@@ -235,13 +236,37 @@ pub fn Matrix4(comptime T: type) type {
             return @This(){ .data = result };
         }
 
+        /// Multiplies in place
+        pub fn mul2(self: *@This(), b: *const @This()) void {
+            var result: [4][4]T = undefined;
+            for (0..4) |i| {
+                for (0..4) |j| {
+                    var sum: T = @as(T, 0);
+                    for (0..4) |k| {
+                        sum += self.data[i][k] * b.data[k][j];
+                    }
+                    result[i][j] = sum;
+                }
+            }
+            self.data = result;
+        }
+
+        /// Overrides translation
         pub fn translate(self: *@This(), v: Vec3) void {
             self.data[0][3] = v.x;
             self.data[1][3] = v.y;
             self.data[2][3] = v.z;
         }
 
-        pub fn rotate_z(self: *@This(), angle_rad: f32) void {
+        /// Translates and multiplies
+        pub fn translate2(self: *@This(), v: Vec3) void {
+            var transMat = @This().Identity;
+            transMat.translate(v);
+            self.* = self.mul(&transMat);
+        }
+
+        /// Override rotation on z axis
+        pub fn rotateZ(self: *@This(), angle_rad: f32) void {
             const c = std.math.cos(angle_rad);
             const s = std.math.sin(angle_rad);
             self.data[0][0] = c;
@@ -250,10 +275,25 @@ pub fn Matrix4(comptime T: type) type {
             self.data[1][1] = c;
         }
 
+        /// Rotate along z axis and multiply
+        pub fn rotateZ2(self: *@This(), angle_rad: f32) void {
+            var rotMat = @This().Identity;
+            rotMat.rotateZ(angle_rad);
+            self.mul2(&rotMat);
+        }
+
+        /// Overides scale
         pub fn scale(self: *@This(), v: Vec3) void {
             self.data[0][0] = v.x;
             self.data[1][1] = v.y;
             self.data[2][2] = v.z;
+        }
+
+        /// Scales and muliplies
+        pub fn scale2(self: *@This(), v: Vec3) void {
+            var scaleMat = @This().Identity;
+            scaleMat.scale(v);
+            self.mul2(&scaleMat);
         }
 
         pub fn determinant(self: *const @This()) f32 {
