@@ -378,10 +378,11 @@ pub fn init(res_width: i32, res_height: i32) !void {
     glad.glGenVertexArrays(1, &sprite_render_data.vao);
     glad.glGenBuffers(1, &sprite_render_data.vbo);
 
+    glad.glBindVertexArray(sprite_render_data.vao);
+
     glad.glBindBuffer(glad.GL_ARRAY_BUFFER, sprite_render_data.vbo);
     glad.glBufferData(glad.GL_ARRAY_BUFFER, @sizeOf(@TypeOf(vertices)), @ptrCast(&vertices[0]), glad.GL_DYNAMIC_DRAW);
 
-    glad.glBindVertexArray(sprite_render_data.vao);
     // id attribute
     glad.glVertexAttribPointer(0, 1, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), null);
     glad.glEnableVertexAttribArray(0);
@@ -416,6 +417,14 @@ pub fn drawSprite(p: *const DrawSpriteParams) void {
 
     glad.glBindVertexArray(sprite_render_data.vao);
     glad.glBindBuffer(glad.GL_ARRAY_BUFFER, sprite_render_data.vbo);
+
+    const Static = struct {
+        var has_run: bool = false;
+    };
+    if (!Static.has_run) {
+        log(.info, "sprite_render_data.vao = {}", .{sprite_render_data.vao});
+        Static.has_run = true;
+    }
 
     var models: [max_sprite_count]Mat4 = undefined;
     const number_of_sprites: usize = 1;
