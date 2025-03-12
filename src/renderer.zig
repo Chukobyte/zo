@@ -418,14 +418,6 @@ pub fn drawSprite(p: *const DrawSpriteParams) void {
     glad.glBindVertexArray(sprite_render_data.vao);
     glad.glBindBuffer(glad.GL_ARRAY_BUFFER, sprite_render_data.vbo);
 
-    const Static = struct {
-        var has_run: bool = false;
-    };
-    if (!Static.has_run) {
-        log(.info, "sprite_render_data.vao = {}", .{sprite_render_data.vao});
-        Static.has_run = true;
-    }
-
     var models: [max_sprite_count]Mat4 = undefined;
     const number_of_sprites: usize = 1;
     for (0..number_of_sprites) |i| {
