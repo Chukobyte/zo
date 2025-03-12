@@ -25,8 +25,8 @@ pub fn main() !void {
     try renderer.init(config.window_width, config.window_height);
     defer renderer.deinit();
 
-    // var test_texture: Texture = try Texture.initFromMemory(std.heap.page_allocator, static_assets.seika_idle_texture.ptr, static_assets.seika_idle_texture.len, true);
-    // defer test_texture.deinit();
+    var test_texture: Texture = try Texture.initFromMemory(std.heap.page_allocator, static_assets.seika_idle_texture.ptr, static_assets.seika_idle_texture.len, true);
+    defer test_texture.deinit();
 
     var is_running = true;
 

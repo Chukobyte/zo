@@ -167,12 +167,12 @@ pub const Texture = struct {
     width: GLsizei,
     height: GLsizei,
     nr_channels: i32,
-    internal_format: GLint,
-    image_format: GLuint,
-    wrap_s: GLint,
-    wrap_t: GLint,
-    using_nearest_neighbor: bool,
     allocator: std.mem.Allocator,
+    image_format: GLuint,
+    internal_format: GLint = glad.GL_RGBA,
+    wrap_s: GLint = glad.GL_CLAMP_TO_BORDER,
+    wrap_t: GLint = glad.GL_CLAMP_TO_BORDER,
+    using_nearest_neighbor: bool = true,
     file_path: ?[]u8 = null,
 
     pub fn init(allocator: std.mem.Allocator, file_path: []const u8, nearest_neighbor: bool) !@This() {
@@ -196,17 +196,15 @@ pub const Texture = struct {
         if (self.file_path) |file_path| {
             self.allocator.free(file_path);
         }
-        // stb_image.stbi_image_free(self.data);
+        if (self.data != null) {
+            stb_image.stbi_image_free(self.data);
+        }
     }
 
     fn initImpl(allocator: std.mem.Allocator, nearest_neighbor: bool) @This() {
-        var texture: Texture = undefined;
+        var texture: Texture = .{ .id = undefined, .data = undefined, .width = undefined, .height = undefined, .nr_channels = undefined, .allocator = undefined, .image_format = undefined  };
         texture.allocator = allocator;
         texture.using_nearest_neighbor = nearest_neighbor;
-        // TODO: Maybe set defaults?
-        texture.internal_format = glad.GL_RGBA;
-        texture.wrap_s = glad.GL_CLAMP_TO_BORDER;
-        texture.wrap_t = glad.GL_CLAMP_TO_BORDER;
         return texture;
     }
 
