@@ -333,13 +333,11 @@ pub fn init(h_instance: HINSTANCE, h_prev_instance: HINSTANCE, cmd_line: [*c]u8,
 // Window interface
 
 pub fn createWindow(comptime title: []const u8, pos_x: i32, pos_y: i32, width: i32, height: i32) !void {
-    const style = win.WS_OVERLAPPEDWINDOW;
-
     w32_data.hwnd = win.CreateWindowExW(
         0,
         std.unicode.utf8ToUtf16LeStringLiteral(class_name),
         std.unicode.utf8ToUtf16LeStringLiteral(title),
-        style,
+        win.WS_OVERLAPPEDWINDOW,
         @intCast(pos_x),
         @intCast(pos_y),
         width,
@@ -355,10 +353,11 @@ pub fn createWindow(comptime title: []const u8, pos_x: i32, pos_y: i32, width: i
         return InitializeError.Win32Window;
     }
 
+    _ = win.ShowWindow(w32_data.hwnd, w32_data.cmd_show);
+
     try openglInit(w32_data.hwnd);
     updateWindowSize(width, height);
 
-    _ = win.ShowWindow(w32_data.hwnd, w32_data.cmd_show);
     window_is_active = true;
 }
 
