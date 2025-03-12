@@ -121,6 +121,7 @@ pub const Shader = struct {
             Vec2 => glad.glUniform2f(glad.glGetUniformLocation(self.id, name), @as(GLfloat, value.x), @as(GLfloat, value.y)),
             Vec3 => glad.glUniform3f(glad.glGetUniformLocation(self.id, name), @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z)),
             Vec4 => glad.glUniform4f(glad.glGetUniformLocation(self.id, name), @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z), @as(GLfloat, value.w)),
+            LinearColor => glad.glUniform4f(glad.glGetUniformLocation(self.id, name), @as(GLfloat, value.r), @as(GLfloat, value.g), @as(GLfloat, value.b), @as(GLfloat, value.a)),
             Mat4 => glad.glUniformMatrix4fv(glad.glGetUniformLocation(self.id, name), 1, glad.GL_FALSE, @as(*const GLfloat, &value.data[0][0])),
             else => @compileError("Unsupported type for Shader.setUniform!"),
         }
@@ -134,6 +135,7 @@ pub const Shader = struct {
             []Vec2 => glad.glUniform2fv(glad.glGetUniformLocation(self.id, name), @intCast(count), @as(GLfloat, value.x), @as(GLfloat, value.y)),
             []Vec3 => glad.glUniform3fv(glad.glGetUniformLocation(self.id, name), @intCast(count), @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z)),
             []Vec4 => glad.glUniform4fv(glad.glGetUniformLocation(self.id, name), @intCast(count), @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z), @as(GLfloat, value.w)),
+            []LinearColor => glad.glUniform4fv(glad.glGetUniformLocation(self.id, name), @intCast(count), @as(GLfloat, value.r), @as(GLfloat, value.g), @as(GLfloat, value.b), @as(GLfloat, value.a)),
             []Mat4 => glad.glUniformMatrix4fv(glad.glGetUniformLocation(self.id, name), @intCast(count), glad.GL_FALSE, @as(*const GLfloat, &value[0].data[0][0])),
             else => @compileError("Unsupported type for Shader.setUniformArray!"),
         }
@@ -520,15 +522,68 @@ const FontRenderer = struct {
             return InitializeError.FreeType;
         }
         render_data.resolution = .{ .x = res_width, .y = res_height };
+        render_data.projection = math.ortho(0.0, @floatFromInt(render_data.resolution.x), @floatFromInt(-render_data.resolution.y), 0.0, -1.0, 1.0);
         render_data.shader = try Shader.compileNew(font_vertex_shader_source, font_fragment_shader_source);
+        render_data.shader.use();
+        render_data.shader.setUniform("text_value", i32, 0);
+        render_data.shader.setUniform("projection", Mat4, render_data.projection);
     }
 
     pub fn deinit() void {
-        ft.FT_Done_FreeType(*ft_instance);
+        _ = ft.FT_Done_FreeType(ft_instance);
     }
 
     pub fn drawText(p: *const DrawTextParams) void {
-        _ = p;
+        glad.glActiveTexture(glad.GL_TEXTURE0);
+        glad.glBindVertexArray(render_data.vao);
+
+        render_data.shader.use();
+        render_data.shader.setUniform("text_color", LinearColor, p.color);
+
+        glad.glActiveTexture(glad.GL_TEXTURE0);
+
+        // Iterate over each character in the text.
+        var x: f32 = p.position.x;
+        const y: f32 = p.position.y;
+        for (p.text) |c| {
+            // Since our characters array is indexed by ASCII code, c is used directly.
+            const ch = p.font.characters[c];
+            // Compute the position of the quad.
+            // Note: The original C code inverts the y coordinate (using -y)
+            // because the orthographic projection was flipped.
+            const x_pos = x + ch.bearing.x * p.scale;
+            const y_pos = -y - ((ch.size.y - ch.bearing.y) * p.scale);
+            const w = ch.size.x * p.scale;
+            const h = ch.size.y * p.scale;
+
+            // Create the vertex data for the quad (6 vertices, each with 4 components: x, y, u, v).
+            var verts: [6][4]f32 = .{
+                .{ x_pos,       y_pos + h, 0.0, 0.0 },
+                .{ x_pos,       y_pos,     0.0, 1.0 },
+                .{ x_pos + w,   y_pos,     1.0, 1.0 },
+
+                .{ x_pos,       y_pos + h, 0.0, 0.0 },
+                .{ x_pos + w,   y_pos,     1.0, 1.0 },
+                .{ x_pos + w,   y_pos + h, 1.0, 0.0 },
+            };
+
+            // Bind the glyph's texture.
+            glad.glBindTexture(glad.GL_TEXTURE_2D, @intCast(ch.texture_id));
+            // Update the VBO with the new vertex data.
+            glad.glBindBuffer(glad.GL_ARRAY_BUFFER, p.font.vbo);
+            glad.glBufferSubData(glad.GL_ARRAY_BUFFER, 0, @sizeOf(verts), &verts);
+            // Render the quad.
+            glad.glDrawArrays(glad.GL_TRIANGLES, 0, 6);
+            // Advance the cursor for the next glyph.
+            // (ch.advance >> 6) converts from 1/64 pixels to pixels.
+            const advance_amount: u32 = @intCast(ch.advance >> 6);
+            const advance_total: f32 = @floatCast(advance_amount);
+            x += advance_total * p.scale;
+        }
+
+        glad.glBindBuffer(glad.GL_ARRAY_BUFFER, 0);
+        glad.glBindVertexArray(0);
+        glad.glBindTexture(glad.GL_TEXTURE_2D, 0);
     }
 };
 
