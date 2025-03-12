@@ -376,10 +376,9 @@ pub fn init(res_width: i32, res_height: i32) !void {
 
     // Initialize render data
     glad.glGenVertexArrays(1, &sprite_render_data.vao);
-    glad.glGenBuffers(1, &sprite_render_data.vbo);
-
     glad.glBindVertexArray(sprite_render_data.vao);
 
+    glad.glGenBuffers(1, &sprite_render_data.vbo);
     glad.glBindBuffer(glad.GL_ARRAY_BUFFER, sprite_render_data.vbo);
     glad.glBufferData(glad.GL_ARRAY_BUFFER, @sizeOf(@TypeOf(vertices)), @ptrCast(&vertices[0]), glad.GL_DYNAMIC_DRAW);
 
