@@ -16,6 +16,7 @@ const GLuint = glad.GLuint;
 const GLsizei = glad.GLsizei;
 const GLfloat = glad.GLfloat;
 const GLchar = glad.GLchar;
+const GLenum = glad.GLenum;
 
 const Vec2 = math.Vec2;
 const Vec2i = math.Vec2i;
@@ -38,6 +39,33 @@ pub const RenderContext = struct {
 const ShaderError = error{
     FailedToCompile,
 };
+
+fn printOpenGLErrors(context: ?[]const u8) void {
+    // Loop indefinitely until glGetError returns GL_NO_ERROR.
+    while (true) {
+        // Get the current OpenGL error.
+        const err: GLenum = glad.glGetError();
+        if (err == glad.GL_NO_ERROR) break;
+
+        // If context is provided, log it.
+        if (context) |con| {
+            log(.critical, "context = {s}", .{con});
+        }
+
+        // Log the error code.
+        log(.critical, "err = {d}", .{err});
+
+        // Print a string description of the error.
+        switch (err) {
+            glad.GL_NO_ERROR => log(.critical, "GL_NO_ERROR", .{}),
+            glad.GL_INVALID_ENUM => log(.critical, "GL_INVALID_ENUM", .{}),
+            glad.GL_INVALID_VALUE => log(.critical, "GL_INVALID_VALUE", .{}),
+            glad.GL_INVALID_OPERATION => log(.critical, "GL_INVALID_OPERATION", .{}),
+            glad.GL_INVALID_FRAMEBUFFER_OPERATION => log(.critical, "GL_INVALID_FRAMEBUFFER_OPERATION", .{}),
+            else => log(.critical, "Not able to find error type!", .{}),
+        }
+    }
+}
 
 pub const Shader = struct {
     id: GLuint,
@@ -118,7 +146,7 @@ pub const Shader = struct {
                 return false;
             }
         } else {
-            glad.glGetProgramiv(shader_id, glad.GL_COMPILE_STATUS, &success);
+            glad.glGetShaderiv(shader_id, glad.GL_COMPILE_STATUS, &success);
             if (success == 0) {
                 glad.glGetShaderInfoLog(shader_id, info_log.len, null, &info_log[0]);
                 log(.critical, "Shader type '{}' compilation failed!\nInfoLog = {s}", .{shader_type, info_log});
@@ -168,13 +196,17 @@ pub const Texture = struct {
         if (self.file_path) |file_path| {
             self.allocator.free(file_path);
         }
-        stb_image.stbi_image_free(self.data);
+        // stb_image.stbi_image_free(self.data);
     }
 
     fn initImpl(allocator: std.mem.Allocator, nearest_neighbor: bool) @This() {
         var texture: Texture = undefined;
         texture.allocator = allocator;
         texture.using_nearest_neighbor = nearest_neighbor;
+        // TODO: Maybe set defaults?
+        texture.internal_format = glad.GL_RGBA;
+        texture.wrap_s = glad.GL_CLAMP_TO_BORDER;
+        texture.wrap_t = glad.GL_CLAMP_TO_BORDER;
         return texture;
     }
 
