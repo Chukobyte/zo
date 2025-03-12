@@ -176,23 +176,24 @@ pub const Vec4f = Vec4;
 pub const Vec4i = Vector4(i32);
 pub const Vec4u = Vector4(u32);
 
-// Matrix4
+/// Matrix4
 pub fn Matrix4(comptime T: type) type {
     return struct {
-        data: [4][4]T, // row-major order
+        /// data[column][row] in column-major order
+        data: [4][4]T, // column-major order
 
         pub const Identity = @This(){
             .data = [_][4]T{
-                .{ @as(T, 1), @as(T, 0), @as(T, 0), @as(T, 0) },
-                .{ @as(T, 0), @as(T, 1), @as(T, 0), @as(T, 0) },
-                .{ @as(T, 0), @as(T, 0), @as(T, 1), @as(T, 0) },
-                .{ @as(T, 0), @as(T, 0), @as(T, 0), @as(T, 1) },
+                .{ @as(T, 1), @as(T, 0), @as(T, 0), @as(T, 0) }, // Column 0
+                .{ @as(T, 0), @as(T, 1), @as(T, 0), @as(T, 0) }, // Column 1
+                .{ @as(T, 0), @as(T, 0), @as(T, 1), @as(T, 0) }, // Column 2
+                .{ @as(T, 0), @as(T, 0), @as(T, 0), @as(T, 1) }, // Column 3
             },
         };
 
         pub fn equals(a: *const @This(), b: *const @This()) bool {
-            for (a.data, 0..4) |row, i| {
-                for (row, 0..4) |elem, j| {
+            for (a.data, 0..4) |col, i| {
+                for (col, 0..4) |elem, j| {
                     if (elem != b.data[i][j]) return false;
                 }
             }
@@ -202,10 +203,10 @@ pub fn Matrix4(comptime T: type) type {
         pub fn add(a: *const @This(), b: *const @This()) @This() {
             return @This(){
                 .data = [_][4]T{
-                    a.data[0][0] + b.data[0][0], a.data[0][1] + b.data[0][1], a.data[0][2] + b.data[0][2], a.data[0][3] + b.data[0][3],
-                    a.data[1][0] + b.data[1][0], a.data[1][1] + b.data[1][1], a.data[1][2] + b.data[1][2], a.data[1][3] + b.data[1][3],
-                    a.data[2][0] + b.data[2][0], a.data[2][1] + b.data[2][1], a.data[2][2] + b.data[2][2], a.data[2][3] + b.data[2][3],
-                    a.data[3][0] + b.data[3][0], a.data[3][1] + b.data[3][1], a.data[3][2] + b.data[3][2], a.data[3][3] + b.data[3][3],
+                    .{ a.data[0][0] + b.data[0][0], a.data[0][1] + b.data[0][1], a.data[0][2] + b.data[0][2], a.data[0][3] + b.data[0][3] },
+                    .{ a.data[1][0] + b.data[1][0], a.data[1][1] + b.data[1][1], a.data[1][2] + b.data[1][2], a.data[1][3] + b.data[1][3] },
+                    .{ a.data[2][0] + b.data[2][0], a.data[2][1] + b.data[2][1], a.data[2][2] + b.data[2][2], a.data[2][3] + b.data[2][3] },
+                    .{ a.data[3][0] + b.data[3][0], a.data[3][1] + b.data[3][1], a.data[3][2] + b.data[3][2], a.data[3][3] + b.data[3][3] },
                 },
             };
         }
@@ -213,83 +214,74 @@ pub fn Matrix4(comptime T: type) type {
         pub fn sub(a: *const @This(), b: *const @This()) @This() {
             return @This(){
                 .data = [_][4]T{
-                    a.data[0][0] - b.data[0][0], a.data[0][1] - b.data[0][1], a.data[0][2] - b.data[0][2], a.data[0][3] - b.data[0][3],
-                    a.data[1][0] - b.data[1][0], a.data[1][1] - b.data[1][1], a.data[1][2] - b.data[1][2], a.data[1][3] - b.data[1][3],
-                    a.data[2][0] - b.data[2][0], a.data[2][1] - b.data[2][1], a.data[2][2] - b.data[2][2], a.data[2][3] - b.data[2][3],
-                    a.data[3][0] - b.data[3][0], a.data[3][1] - b.data[3][1], a.data[3][2] - b.data[3][2], a.data[3][3] - b.data[3][3],
+                    .{ a.data[0][0] - b.data[0][0], a.data[0][1] - b.data[0][1], a.data[0][2] - b.data[0][2], a.data[0][3] - b.data[0][3] },
+                    .{ a.data[1][0] - b.data[1][0], a.data[1][1] - b.data[1][1], a.data[1][2] - b.data[1][2], a.data[1][3] - b.data[1][3] },
+                    .{ a.data[2][0] - b.data[2][0], a.data[2][1] - b.data[2][1], a.data[2][2] - b.data[2][2], a.data[2][3] - b.data[2][3] },
+                    .{ a.data[3][0] - b.data[3][0], a.data[3][1] - b.data[3][1], a.data[3][2] - b.data[3][2], a.data[3][3] - b.data[3][3] },
                 },
             };
         }
 
-        /// Multiplies and returns a new matrix
         pub fn mul(a: *const @This(), b: *const @This()) @This() {
             var result: [4][4]T = undefined;
-            for (0..4) |i| {
-                for (0..4) |j| {
+            for (0..4) |c| {
+                for (0..4) |r| {
                     var sum: T = @as(T, 0);
                     for (0..4) |k| {
-                        sum += a.data[i][k] * b.data[k][j];
+                        // a.data[k][r] is element (r,k) of a; b.data[c][k] is element (k,c) of b.
+                        sum += a.data[k][r] * b.data[c][k];
                     }
-                    result[i][j] = sum;
+                    result[c][r] = sum;
                 }
             }
             return @This(){ .data = result };
         }
 
-        /// Multiplies in place
+
+        /// In-place multiplication: self = self * b
         pub fn mul2(self: *@This(), b: *const @This()) void {
-            var result: [4][4]T = undefined;
-            for (0..4) |i| {
-                for (0..4) |j| {
-                    var sum: T = @as(T, 0);
-                    for (0..4) |k| {
-                        sum += self.data[i][k] * b.data[k][j];
-                    }
-                    result[i][j] = sum;
-                }
-            }
-            self.data = result;
+            self.* = self.mul(b);
         }
 
-        /// Overrides translation
+        /// Translation: For column-major, translation is stored in the fourth column.
         pub fn translate(self: *@This(), v: Vec3) void {
-            self.data[0][3] = v.x;
-            self.data[1][3] = v.y;
-            self.data[2][3] = v.z;
+            self.data[3][0] = v.x;
+            self.data[3][1] = v.y;
+            self.data[3][2] = v.z;
         }
 
-        /// Translates and multiplies
+        /// Multiply self by a translation matrix.
         pub fn translate2(self: *@This(), v: Vec3) void {
             var transMat = @This().Identity;
             transMat.translate(v);
-            self.* = self.mul(&transMat);
+            self.mul2(&transMat);
         }
 
-        /// Override rotation on z axis
+        /// Rotation along the Z axis.
         pub fn rotateZ(self: *@This(), angle_rad: f32) void {
             const c = std.math.cos(angle_rad);
             const s = std.math.sin(angle_rad);
             self.data[0][0] = c;
-            self.data[0][1] = -s;
-            self.data[1][0] = s;
+            self.data[0][1] = s;
+            self.data[1][0] = -s;
             self.data[1][1] = c;
         }
 
-        /// Rotate along z axis and multiply
+        /// Rotate along the Z axis and multiply
         pub fn rotateZ2(self: *@This(), angle_rad: f32) void {
             var rotMat = @This().Identity;
             rotMat.rotateZ(angle_rad);
             self.mul2(&rotMat);
         }
 
-        /// Overides scale
+        /// Scale
         pub fn scale(self: *@This(), v: Vec3) void {
             self.data[0][0] = v.x;
             self.data[1][1] = v.y;
             self.data[2][2] = v.z;
         }
 
-        /// Scales and muliplies
+        /// Scale and multiply
         pub fn scale2(self: *@This(), v: Vec3) void {
             var scaleMat = @This().Identity;
             scaleMat.scale(v);
@@ -297,38 +289,36 @@ pub fn Matrix4(comptime T: type) type {
         }
 
         pub fn determinant(self: *const @This()) f32 {
-            const Helper = struct {
-                // Helper for 3x3 determinant.
+            const Local = struct {
                 fn det3(m: [3][3]f32) f32 {
                     return m[0][0]*(m[1][1]*m[2][2] - m[1][2]*m[2][1])
                         - m[0][1]*(m[1][0]*m[2][2] - m[1][2]*m[2][0])
                         + m[0][2]*(m[1][0]*m[2][1] - m[1][1]*m[2][0]);
                 }
             };
-
             var m0: [3][3]f32 = undefined;
-            m0[0] = .{ self.data[1][1], self.data[1][2], self.data[1][3] };
-            m0[1] = .{ self.data[2][1], self.data[2][2], self.data[2][3] };
-            m0[2] = .{ self.data[3][1], self.data[3][2], self.data[3][3] };
-            const det0 = self.data[0][0] * Helper.det3(m0);
+            m0[0] = .{ self.data[1][0], self.data[1][1], self.data[1][2] };
+            m0[1] = .{ self.data[2][0], self.data[2][1], self.data[2][2] };
+            m0[2] = .{ self.data[3][0], self.data[3][1], self.data[3][2] };
+            const det0 = self.data[0][0] * Local.det3(m0);
 
             var m1: [3][3]f32 = undefined;
-            m1[0] = .{ self.data[1][0], self.data[1][2], self.data[1][3] };
-            m1[1] = .{ self.data[2][0], self.data[2][2], self.data[2][3] };
-            m1[2] = .{ self.data[3][0], self.data[3][2], self.data[3][3] };
-            const det1 = self.data[0][1] * Helper.det3(m1);
+            m1[0] = .{ self.data[1][0], self.data[1][1], self.data[1][3] };
+            m1[1] = .{ self.data[2][0], self.data[2][1], self.data[2][3] };
+            m1[2] = .{ self.data[3][0], self.data[3][1], self.data[3][3] };
+            const det1 = self.data[0][1] * Local.det3(m1);
 
             var m2: [3][3]f32 = undefined;
-            m2[0] = .{ self.data[1][0], self.data[1][1], self.data[1][3] };
-            m2[1] = .{ self.data[2][0], self.data[2][1], self.data[2][3] };
-            m2[2] = .{ self.data[3][0], self.data[3][1], self.data[3][3] };
-            const det2 = self.data[0][2] * Helper.det3(m2);
+            m2[0] = .{ self.data[1][0], self.data[1][2], self.data[1][3] };
+            m2[1] = .{ self.data[2][0], self.data[2][2], self.data[2][3] };
+            m2[2] = .{ self.data[3][0], self.data[3][2], self.data[3][3] };
+            const det2 = self.data[0][2] * Local.det3(m2);
 
             var m3: [3][3]f32 = undefined;
-            m3[0] = .{ self.data[1][0], self.data[1][1], self.data[1][2] };
-            m3[1] = .{ self.data[2][0], self.data[2][1], self.data[2][2] };
-            m3[2] = .{ self.data[3][0], self.data[3][1], self.data[3][2] };
-            const det3_val = self.data[0][3] * Helper.det3(m3);
+            m3[0] = .{ self.data[1][1], self.data[1][2], self.data[1][3] };
+            m3[1] = .{ self.data[2][1], self.data[2][2], self.data[2][3] };
+            m3[2] = .{ self.data[3][1], self.data[3][2], self.data[3][3] };
+            const det3_val = self.data[0][3] * Local.det3(m3);
 
             return det0 - det1 + det2 - det3_val;
         }
@@ -398,10 +388,12 @@ pub const LinearColor = struct {
     a: f32 = 1.0,
 };
 
+/// Map a value from one range to another
 pub inline fn mapToRange(comptime T: type, input: T, input_min: T, input_max: T, output_min: T, output_max: T) T {
     return (((input - input_min) / (input_max - input_min)) * (output_max - output_min) + output_min);
 }
 
+/// Creates an orthographic projection matrix
 pub fn ortho(left: f32, right: f32, bottom: f32, top: f32, nearZ: f32, farZ: f32) Mat4 {
     return Mat4{
         .data = [_][4]f32{
