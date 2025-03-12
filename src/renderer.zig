@@ -462,7 +462,7 @@ pub fn drawSprite(p: *const DrawSpriteParams) void {
         glad.glActiveTexture(glad.GL_TEXTURE0);
         glad.glBindTexture(glad.GL_TEXTURE_2D, p.texture.id);
 
-        glad.glBufferData(glad.GL_ARRAY_BUFFER, @sizeOf(verts), &verts, glad.GL_DYNAMIC_DRAW);
+        glad.glBufferData(glad.GL_ARRAY_BUFFER, @sizeOf(@TypeOf(verts)), &verts, glad.GL_DYNAMIC_DRAW);
         glad.glDrawArrays(glad.GL_TRIANGLES, 0, @as(GLsizei, number_of_sprites * number_of_vertices));
 
         glad.glBindVertexArray(0);
