@@ -361,7 +361,7 @@ pub fn init(res_width: i32, res_height: i32) !void {
     glad.glBlendFunc(glad.GL_SRC_ALPHA, glad.GL_ONE_MINUS_SRC_ALPHA);
 
     // Init sprite rendering
-    const vertices: [60]GLfloat = [_]GLfloat{
+    const vertices: [verts_stride * number_of_vertices]GLfloat = .{
         //id (1) // positions (2) // texture coordinates (2) // color (4) // using nearest neighbor (1)
         0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,
         0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
