@@ -443,7 +443,7 @@ pub fn drawSprite(p: *const DrawSpriteParams) void {
         sprite_render_data.shader.setUniformArray("models", []Mat4, &models, number_of_sprites);
 
         // Create vertex data for the sprite.
-        var verts: [verts_stride * number_of_vertices]GLfloat = undefined;
+        var verts: [vertex_buffer_size]GLfloat = undefined;
         for (0..number_of_vertices) |j| {
             var use_s_min: bool = false;
             var use_t_min: bool = false;
