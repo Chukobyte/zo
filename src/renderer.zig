@@ -392,7 +392,7 @@ pub fn init(res_width: i32, res_height: i32) !void {
     // color attribute
     glad.glVertexAttribPointer(3, 4, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrFromInt(5 * @sizeOf(GLfloat)));
     glad.glEnableVertexAttribArray(3);
-    // color attribute
+    // using nearest neighbor attribute
     glad.glVertexAttribPointer(4, 1, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrFromInt(9 * @sizeOf(GLfloat)));
     glad.glEnableVertexAttribArray(4);
 
@@ -444,22 +444,22 @@ pub fn drawSprite(p: *const DrawSpriteParams) void {
         // Create vertex data for the sprite.
         var verts: [verts_stride * number_of_vertices]GLfloat = undefined;
         for (0..number_of_vertices) |j| {
-            var isSMin: bool = false;
-            var isTMin: bool = false;
+            var use_s_min: bool = false;
+            var use_t_min: bool = false;
             if (determinate >= 0.0) {
-                isSMin = (j == 0 or j == 2 or j == 3);
-                isTMin = (j == 1 or j == 2 or j == 5);
+                use_s_min = (j == 0 or j == 2 or j == 3);
+                use_t_min = (j == 1 or j == 2 or j == 5);
             } else {
-                isSMin = (j == 1 or j == 2 or j == 5);
-                isTMin = (j == 0 or j == 2 or j == 3);
+                use_s_min = (j == 1 or j == 2 or j == 5);
+                use_t_min = (j == 0 or j == 2 or j == 3);
             }
             // Compute the offset (row) in the vertex array.
             const row: usize = (j * verts_stride) + (i * verts_stride * number_of_vertices);
             verts[row + 0] = model_id;
-            verts[row + 1] = if (isSMin) 0.0 else 1.0;
-            verts[row + 2] = if (isTMin) 0.0 else 1.0;
-            verts[row + 3] = if (isSMin) texture_coords.s_min else texture_coords.s_max;
-            verts[row + 4] = if (isTMin) texture_coords.t_min else texture_coords.t_max;
+            verts[row + 1] = if (use_s_min) 0.0 else 1.0;
+            verts[row + 2] = if (use_t_min) 0.0 else 1.0;
+            verts[row + 3] = if (use_s_min) texture_coords.s_min else texture_coords.s_max;
+            verts[row + 4] = if (use_t_min) texture_coords.t_min else texture_coords.t_max;
             verts[row + 5] = @as(GLfloat, p.color.r);
             verts[row + 6] = @as(GLfloat, p.color.g);
             verts[row + 7] = @as(GLfloat, p.color.b);

@@ -50,7 +50,7 @@ pub fn main() !void {
             .dest_size = .{ .x = 32.0, .y = 32.0 },
             .transform = .{
                 .position = .{ .x = 100.0, .y = 100.0 },
-                .scale = .{ .x = 10.0, .y = 10.0 },
+                .scale = .{ .x = 5.0, .y = 5.0 },
             }
         });
 
