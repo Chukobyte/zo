@@ -54,6 +54,7 @@ const Win32Data = struct {
 };
 
 const InitializeError = error {
+    Win32Window,
     OpenGL,
 };
 
@@ -221,9 +222,8 @@ pub fn opengl_init(hwnd: HWND) !void {
     const wglGetExtensionsStringEXT: PFNWGLGETEXTENSIONSSTRINGEXTPROC = @constCast(@ptrCast(extPtr));
     const extStr = wglGetExtensionsStringEXT();
     if (std.mem.indexOf(u8, cStringToSlice(extStr), "WGL_EXT_swap_control") != null) {
-        const swapFuncPtr = win.wglGetProcAddress("wglSwapIntervalEXT");
-        if (swapFuncPtr) |funcPtr| {
-            const wglSwapIntervalEXT: PFNWGLSWAPINTERVALEXTPROC = @constCast(@ptrCast(funcPtr));
+        if (win.wglGetProcAddress("wglSwapIntervalEXT")) |swapFuncPtr| {
+            const wglSwapIntervalEXT: PFNWGLSWAPINTERVALEXTPROC = @constCast(@ptrCast(swapFuncPtr));
             if (wglSwapIntervalEXT(1)) {
                 log(.debug, "VSync enabled", .{});
             } else {
@@ -332,7 +332,7 @@ pub fn init(h_instance: HINSTANCE, h_prev_instance: HINSTANCE, cmd_line: [*c]u8,
 
 // Window interface
 
-pub fn create_window(comptime title: []const u8, pos_x: i32, pos_y: i32, width: i32, height: i32) void {
+pub fn create_window(comptime title: []const u8, pos_x: i32, pos_y: i32, width: i32, height: i32) !void {
     const style = win.WS_OVERLAPPEDWINDOW;
 
     w32_data.hwnd = win.CreateWindowExW(
@@ -352,10 +352,10 @@ pub fn create_window(comptime title: []const u8, pos_x: i32, pos_y: i32, width: 
 
     if (w32_data.hwnd == null) {
         _ = win.MessageBoxA(null, "Window Creation Failed!", "Error", win.MB_ICONEXCLAMATION | win.MB_OK);
-        unreachable;
+        return InitializeError.Win32Window;
     }
 
-    opengl_init(w32_data.hwnd) catch unreachable;
+    try opengl_init(w32_data.hwnd);
 
     _ = win.ShowWindow(w32_data.hwnd, w32_data.cmd_show);
     window_is_active = true;

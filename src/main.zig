@@ -21,7 +21,7 @@ const GameConfig = struct {
 const config: GameConfig = .{};
 
 pub fn main() !void {
-    window.create(config.name, config.window_pos.x, config.window_pos.y, config.window_width, config.window_height);
+    try window.create(config.name, config.window_pos.x, config.window_pos.y, config.window_width, config.window_height);
     try renderer.init(config.window_width, config.window_height);
     defer renderer.deinit();
 
