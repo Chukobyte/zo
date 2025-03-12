@@ -122,15 +122,15 @@ pub const Shader = struct {
         }
     }
 
-    pub fn setUniformArray(self: *const Shader, name: []const u8, comptime T: type, value: T, count: usize) void {
+    pub fn setUniformArray(self: *const Shader, name: [:0]const u8, comptime T: type, value: T, count: usize) void {
         switch (T) {
-            bool => glad.glUniform1iv(glad.glGetUniformLocation(self.id, name), count, @as(GLint, value)),
-            i32 => glad.glUniform1iv(glad.glGetUniformLocation(self.id, name), count, @as(GLint, value)),
-            f32 => glad.glUniform1fv(glad.glGetUniformLocation(self.id, name), count, @as(GLfloat, value)),
-            Vec2 => glad.glUniform2fv(glad.glGetUniformLocation(self.id, name), count, @as(GLfloat, value.x), @as(GLfloat, value.y)),
-            Vec3 => glad.glUniform3fv(glad.glGetUniformLocation(self.id, name), count, @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z)),
-            Vec4 => glad.glUniform4fv(glad.glGetUniformLocation(self.id, name), count, @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z), @as(GLfloat, value.w)),
-            Mat4 => glad.glUniformMatrix4fv(glad.glGetUniformLocation(self.id, name), count, glad.GL_FALSE, @as(*GLfloat, value.data)),
+            []bool => glad.glUniform1iv(glad.glGetUniformLocation(self.id, name), @intCast(count), @as(GLint, value)),
+            []i32 => glad.glUniform1iv(glad.glGetUniformLocation(self.id, name), @intCast(count), @as(GLint, value)),
+            []f32 => glad.glUniform1fv(glad.glGetUniformLocation(self.id, name), @intCast(count), @as(GLfloat, value)),
+            []Vec2 => glad.glUniform2fv(glad.glGetUniformLocation(self.id, name), @intCast(count), @as(GLfloat, value.x), @as(GLfloat, value.y)),
+            []Vec3 => glad.glUniform3fv(glad.glGetUniformLocation(self.id, name), @intCast(count), @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z)),
+            []Vec4 => glad.glUniform4fv(glad.glGetUniformLocation(self.id, name), @intCast(count), @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z), @as(GLfloat, value.w)),
+            []Mat4 => glad.glUniformMatrix4fv(glad.glGetUniformLocation(self.id, name), @intCast(count), glad.GL_FALSE, @as(*[4]GLfloat, &value[0].data[0])),
             else => @compileError("Unsupported type for Shader.setUniformArray!"),
         }
     }
@@ -239,11 +239,15 @@ pub const TextureCoords = struct {
 
     pub fn generate(texture: *const Texture, draw_source: *const Rect2, flip_h: bool, flip_v: bool) @This() {
         var texture_coords = @This(){};
-        if (texture.width != draw_source.w or texture.height != draw_source.h) {
-            texture_coords.s_min = (draw_source.x + 0.5) / texture.width;
-            texture_coords.s_max = (draw_source.x + draw_source.w - 0.5) / texture.width;
-            texture_coords.t_min = (draw_source.y + 0.5) / texture.height;
-            texture_coords.t_max = (draw_source.y + draw_source.h - 0.5) / texture.height;
+        const width: usize = @intFromFloat(draw_source.w);
+        const height: usize = @intFromFloat(draw_source.h);
+        if (texture.width != width or texture.height != height) {
+            const f_width: f32 = @floatFromInt(texture.width);
+            const f_height: f32 = @floatFromInt(texture.height);
+            texture_coords.s_min = (draw_source.x + 0.5) / f_width;
+            texture_coords.s_max = (draw_source.x + draw_source.w - 0.5) / f_width;
+            texture_coords.t_min = (draw_source.y + 0.5) / f_height;
+            texture_coords.t_max = (draw_source.y + draw_source.h - 0.5) / f_height;
         }
         if (flip_h) {
             const temp_s_min = texture_coords.s_min;
@@ -286,7 +290,7 @@ pub const DrawSpriteParams = struct {
     source_rect: Rect2,
     dest_size: Vec2,
     transform: Transform2D,
-    color: LinearColor = .{ 1.0, 1.0, 1.0, 1.0 },
+    color: LinearColor = .{ .r = 1.0, .g = 1.0, .b = 1.0 },
     flip_h: bool = false,
     flip_v: bool = false,
     z_index: i32 = 0,
@@ -406,29 +410,28 @@ pub fn deinit() void {}
 
 // TODO: Fix
 pub fn drawSprite(p: *const DrawSpriteParams) void {
-    glad.glDepthMask(false);
+    glad.glDepthMask(glad.GL_FALSE);
 
     glad.glBindVertexArray(sprite_render_data.vao);
     glad.glBindBuffer(glad.GL_ARRAY_BUFFER, sprite_render_data.vbo);
 
-    var models: [max_sprite_count * 16]Mat4 = undefined;
+    var models: [max_sprite_count]Mat4 = undefined;
     const number_of_sprites: usize = 1;
     for (0..number_of_sprites) |i| {
-        const model_offset = i * 16;
+        // const model_offset = i * 16;
         var model: Mat4 = Mat4.Identity;
         model.translate(.{ .x = p.transform.position.x, .y = p.transform.position.y });
-        model.rotate_z(p.transform.rotation * (std.math.pi / 180));
+        model.rotate_z(p.transform.rotation * (std.math.pi / 180.0));
         model.scale(.{ .x = p.transform.scale.x * p.dest_size.x, .y = p.transform.scale.y * p.dest_size.y, .z = 1.0 });
+        models[i] = model;
 
         sprite_render_data.shader.use();
 
         const model_id: f32 = @floatFromInt(i);
         const determinate: f32 = model.determinant();
-        const texture_coords: TextureCoords = TextureCoords.generate(p.texture, p.source_rect, p.flip_h, p.flip_v);
+        const texture_coords: TextureCoords = TextureCoords.generate(p.texture, &p.source_rect, p.flip_h, p.flip_v);
 
-        std.mem.copy(f32, models[model_offset .. model_offset + 16], model.data[0..]);
-
-        sprite_render_data.shader.setUniformArray("models", Mat4, models, number_of_sprites);
+        sprite_render_data.shader.setUniformArray("models", []Mat4, &models, number_of_sprites);
 
         // Create vertex data for the sprite.
         var verts: [verts_stride * number_of_vertices]GLfloat = undefined;
@@ -453,7 +456,7 @@ pub fn drawSprite(p: *const DrawSpriteParams) void {
             verts[row + 6] = @as(GLfloat, p.color.g);
             verts[row + 7] = @as(GLfloat, p.color.b);
             verts[row + 8] = @as(GLfloat, p.color.a);
-            verts[row + 9] = @floatFromInt(p.texture.applyNearestNeighbor);
+            verts[row + 9] = if(p.texture.using_nearest_neighbor) 1.0 else 0.0;
         }
 
         glad.glActiveTexture(glad.GL_TEXTURE0);

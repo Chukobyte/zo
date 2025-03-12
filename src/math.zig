@@ -183,10 +183,10 @@ pub fn Matrix4(comptime T: type) type {
 
         pub const Identity = @This(){
             .data = [_][4]T{
-                @as(T, 1), @as(T, 0), @as(T, 0), @as(T, 0),
-                @as(T, 0), @as(T, 1), @as(T, 0), @as(T, 0),
-                @as(T, 0), @as(T, 0), @as(T, 1), @as(T, 0),
-                @as(T, 0), @as(T, 0), @as(T, 0), @as(T, 1),
+                .{ @as(T, 1), @as(T, 0), @as(T, 0), @as(T, 0) },
+                .{ @as(T, 0), @as(T, 1), @as(T, 0), @as(T, 0) },
+                .{ @as(T, 0), @as(T, 0), @as(T, 1), @as(T, 0) },
+                .{ @as(T, 0), @as(T, 0), @as(T, 0), @as(T, 1) },
             },
         };
 

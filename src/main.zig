@@ -44,6 +44,15 @@ pub fn main() !void {
             is_running = false;
         }
 
+        // renderer.drawSprite(&.{
+        //     .texture = &test_texture,
+        //     .source_rect = .{ .x = 0.0, .y = 0.0, .w = 32.0, .h = 32.0 },
+        //     .dest_size = .{ .x = 32.0, .y = 32.0 },
+        //     .transform = .{
+        //         .position = .{ .x = 300.0, .y = 300.0 },
+        //     }
+        // });
+
         window.swap();
     }
 }
