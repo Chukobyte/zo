@@ -407,8 +407,6 @@ pub fn init(res_width: i32, res_height: i32) !void {
     sprite_render_data.shader.use();
     sprite_render_data.shader.setUniform("u_texture", i32, 0);
     sprite_render_data.shader.setUniform("projection", Mat4, sprite_render_data.projection);
-
-    glad.glViewport(0, 0, res_width, res_height);
 }
 
 pub fn deinit() void {}

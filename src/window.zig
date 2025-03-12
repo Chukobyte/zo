@@ -8,22 +8,26 @@ const native_window = switch (builtin.os.tag) {
 
 const LinearColor = @import("math.zig").LinearColor;
 
-pub fn create(comptime title: []const u8, pos_x: i32, pos_y: i32, width: i32, height: i32) !void {
-    try native_window.create_window(title, pos_x, pos_y, width, height);
+pub inline fn create(comptime title: []const u8, pos_x: i32, pos_y: i32, width: i32, height: i32) !void {
+    try native_window.createWindow(title, pos_x, pos_y, width, height);
 }
 
-pub fn update() void {
-    native_window.update_window();
+pub inline fn update() void {
+    native_window.updateWindow();
 }
 
-pub fn clear(color: LinearColor) void {
-    native_window.clear_window(color);
+pub inline fn updateSize(width: i32, height: i32) void {
+    native_window.updateWindowSize(width, height);
 }
 
-pub fn swap() void {
-    native_window.swap_window();
+pub inline fn clear(color: LinearColor) void {
+    native_window.clearWindow(color);
 }
 
-pub fn is_active() bool  {
-    return native_window.is_window_active();
+pub inline fn swap() void {
+    native_window.swapWindow();
+}
+
+pub inline fn isActive() bool  {
+    return native_window.isWindowActive();
 }

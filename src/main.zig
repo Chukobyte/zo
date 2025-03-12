@@ -35,7 +35,7 @@ pub fn main() !void {
 
     var is_running = true;
 
-    while (window.is_active() and is_running) {
+    while (window.isActive() and is_running) {
         window.clear(.{ .r = 0.25, .g = 0.25, .b = 0.25 });
 
         input.new_frame();

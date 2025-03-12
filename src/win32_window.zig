@@ -168,7 +168,7 @@ fn cStringToSlice(cstr: [*c]const u8) []const u8 {
     return cstr[0..len];
 }
 
-pub fn opengl_init(hwnd: HWND) !void {
+pub fn openglInit(hwnd: HWND) !void {
     // Setup PIXELFORMATDESCRIPTOR (zero-initialize if needed)
     var pfd: win.PIXELFORMATDESCRIPTOR = undefined;
     pfd.nSize = @intCast(@sizeOf(win.PIXELFORMATDESCRIPTOR));
@@ -239,7 +239,7 @@ pub fn opengl_init(hwnd: HWND) !void {
     is_opengl_initialized = true;
 }
 
-fn win_proc(
+fn winProc(
     hwnd: HWND,
     msg: u32,
     w_param: WPARAM,
@@ -316,7 +316,7 @@ pub fn init(h_instance: HINSTANCE, h_prev_instance: HINSTANCE, cmd_line: [*c]u8,
     w32_data.cmd_show = cmd_show;
 
     const window_class = win.WNDCLASSW{
-        .lpfnWndProc = win_proc,
+        .lpfnWndProc = winProc,
         .hInstance = h_instance,
         .hCursor = null,
         .hIcon = null,
@@ -332,7 +332,7 @@ pub fn init(h_instance: HINSTANCE, h_prev_instance: HINSTANCE, cmd_line: [*c]u8,
 
 // Window interface
 
-pub fn create_window(comptime title: []const u8, pos_x: i32, pos_y: i32, width: i32, height: i32) !void {
+pub fn createWindow(comptime title: []const u8, pos_x: i32, pos_y: i32, width: i32, height: i32) !void {
     const style = win.WS_OVERLAPPEDWINDOW;
 
     w32_data.hwnd = win.CreateWindowExW(
@@ -355,13 +355,14 @@ pub fn create_window(comptime title: []const u8, pos_x: i32, pos_y: i32, width: 
         return InitializeError.Win32Window;
     }
 
-    try opengl_init(w32_data.hwnd);
+    try openglInit(w32_data.hwnd);
+    updateWindowSize(width, height);
 
     _ = win.ShowWindow(w32_data.hwnd, w32_data.cmd_show);
     window_is_active = true;
 }
 
-pub fn update_window() void {
+pub fn updateWindow() void {
     var msg: win.MSG = .{};
     while (win.PeekMessageW(&msg, null, 0, 0, win.PM_REMOVE) > 0) {
         _ = win.TranslateMessage(&msg);
@@ -369,15 +370,19 @@ pub fn update_window() void {
     }
 }
 
-pub fn clear_window(color: LinearColor) void {
+pub fn updateWindowSize(width: i32, height: i32) void {
+    glad.glViewport(0, 0, width, height);
+}
+
+pub fn clearWindow(color: LinearColor) void {
     glad.glClearColor(color.r, color.g, color.b, color.a);
     glad.glClear(glad.GL_COLOR_BUFFER_BIT | glad.GL_DEPTH_BUFFER_BIT);
 }
 
-pub fn swap_window() void {
+pub fn swapWindow() void {
     _ = win.SwapBuffers(w32_data.hdc);
 }
 
-pub fn is_window_active() bool {
+pub fn isWindowActive() bool {
     return window_is_active;
 }
