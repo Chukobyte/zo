@@ -8,6 +8,10 @@ pub const stb_image = @cImport({
     @cInclude("stb_image/stb_image.h");
 });
 
+pub const ft = @cImport({
+    @cInclude("freetype/freetype.h");
+});
+
 const math = @import("math.zig");
 const string = @import("string.zig");
 
@@ -498,18 +502,30 @@ const FontRenderer = struct {
         \\uniform vec4 text_color;
         \\
         \\void main() {{
-        \\    vec4 sampled = vec4(1.0f, 1.0f, 1.0f, texture(textValue, texCoords).r);
+        \\    vec4 sampled = vec4(1.0f, 1.0f, 1.0f, texture(text_value, tex_coords).r);
         \\    color = text_color * sampled;
         \\}}
         ;
 
+    const InitializeError = error {
+        FreeType,
+    };
+
     var render_data: RenderData = .{};
+    var ft_instance: ft.FT_Library = undefined;
 
     pub fn init(res_width: i32, res_height: i32) !void {
-        _ = res_width; _ = res_height;
+        if (ft.FT_Init_FreeType(&ft_instance) != 0) {
+            log(.critical, "Unable to initialize FreeType library!", .{});
+            return InitializeError.FreeType;
+        }
+        render_data.resolution = .{ .x = res_width, .y = res_height };
+        render_data.shader = try Shader.compileNew(font_vertex_shader_source, font_fragment_shader_source);
     }
 
-    pub fn deinit() void {}
+    pub fn deinit() void {
+        ft.FT_Done_FreeType(*ft_instance);
+    }
 
     pub fn drawText(p: *const DrawTextParams) void {
         _ = p;
