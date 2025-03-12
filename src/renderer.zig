@@ -135,12 +135,12 @@ const TextureError = error{
 
 pub const Texture = struct {
     id: GLuint,
-    data: []u8,
+    data: [*c]u8,
     width: GLsizei,
     height: GLsizei,
     nr_channels: i32,
     internal_format: GLint,
-    image_format: GLint,
+    image_format: GLuint,
     wrap_s: GLint,
     wrap_t: GLint,
     using_nearest_neighbor: bool,
@@ -151,20 +151,18 @@ pub const Texture = struct {
         var texture: Texture = initImpl(allocator, nearest_neighbor);
         texture.file_path = texture.allocator.alloc(u8, file_path.len);
         std.mem.copyForwards(u8, texture.file_path, file_path);
-        texture.data = stb_image.stbi_load(file_path, &texture.width, &texture.height, &texture.nr_channels, 0);
+        texture.data = stb_image.stbi_load(&file_path[0], &texture.width, &texture.height, &texture.nr_channels, 0);
         try texture.generate();
         return texture;
     }
 
-    // pub fn initFromMemory(allocator: std.mem.Allocator, buffer: *const anyopaque, buffer_len: usize, nearest_neighbor: bool) !@This() {
-    //     var texture: Texture = initImpl(allocator, nearest_neighbor);
-    //     // const buffer_slice: []const u8 = @as([]u8, @constCast(@ptrCast(buffer)))[0..buffer_len];
-    //     // const buffer_ptr: [*:0]const u8 = @as([*:0]const u8, @constCast(@ptrCast(buffer)));
-    //     // texture.data = stb_image.stbi_load_from_memory(buffer_ptr, @intCast(buffer_len), &texture.width, &texture.height, &texture.nr_channels, 0);
-    //     // texture.data = stb_image.stbi_load_from_memory(@ptrCast(buffer)[0..buffer_len], @intCast(buffer_len), &texture.width, &texture.height, &texture.nr_channels, 0);
-    //     try texture.generate();
-    //     return texture;
-    // }
+    pub fn initFromMemory(allocator: std.mem.Allocator, buffer: *const anyopaque, buffer_len: usize, nearest_neighbor: bool) !@This() {
+        var texture: Texture = initImpl(allocator, nearest_neighbor);
+        const buffer_raw: [*c]const u8 = @alignCast(@ptrCast(buffer));
+        texture.data = stb_image.stbi_load_from_memory(&buffer_raw[0], @intCast(buffer_len), &texture.width, &texture.height, &texture.nr_channels, 0);
+        try texture.generate();
+        return texture;
+    }
 
     pub fn deinit(self: *@This()) void {
         if (self.file_path) |file_path| {
@@ -190,11 +188,11 @@ pub const Texture = struct {
         // Generate opengl texture
         glad.glGenTextures(1, &self.id);
         glad.glBindTexture(glad.GL_TEXTURE_2D, self.id);
-        glad.glTexImage2D(glad.GL_TEXTURE_2D, 0, self.internalFormat, self.width, self.height, 0, self.imageFormat, glad.GL_UNSIGNED_BYTE, self.data);
+        glad.glTexImage2D(glad.GL_TEXTURE_2D, 0, self.internal_format, self.width, self.height, 0, self.image_format, glad.GL_UNSIGNED_BYTE, self.data);
         glad.glGenerateMipmap(glad.GL_TEXTURE_2D);
         // Wrap and filter modes
-        glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_WRAP_S, self.wrapS);
-        glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_WRAP_T, self.wrapT);
+        glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_WRAP_S, self.wrap_s);
+        glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_WRAP_T, self.wrap_t);
         // Defaults to bilinear interpolation
         glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_MIN_FILTER, glad.GL_LINEAR);
         glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_MAG_FILTER, glad.GL_LINEAR);
