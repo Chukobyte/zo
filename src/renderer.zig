@@ -465,6 +465,57 @@ const SpriteRenderer = struct {
     }
 };
 
+pub const DrawTextParams = struct {
+    text: []const u8,
+    font: *Font,
+    position: Vec2,
+    scale: f32,
+    color: LinearColor,
+};
+
+const FontRenderer = struct {
+    const font_vertex_shader_source =
+        \\#version 330 core
+        \\layout (location = 0) in vec4 vertex; // (pos, tex)
+        \\
+        \\out vec2 tex_coords;
+        \\
+        \\uniform mat4 projection;
+        \\
+        \\void main() {{
+        \\    gl_Position = projection * vec4(vertex.xy, 0.0f, 1.0f);
+        \\    tex_coords = vertex.zw;
+        \\}}
+        ;
+
+    const font_fragment_shader_source =
+        \\#version 330 core
+        \\in vec2 tex_coords;
+        \\
+        \\out vec4 color;
+        \\
+        \\uniform sampler2D text_value;
+        \\uniform vec4 text_color;
+        \\
+        \\void main() {{
+        \\    vec4 sampled = vec4(1.0f, 1.0f, 1.0f, texture(textValue, texCoords).r);
+        \\    color = text_color * sampled;
+        \\}}
+        ;
+
+    var render_data: RenderData = .{};
+
+    pub fn init(res_width: i32, res_height: i32) !void {
+        _ = res_width; _ = res_height;
+    }
+
+    pub fn deinit() void {}
+
+    pub fn drawText(p: *const DrawTextParams) void {
+        _ = p;
+    }
+};
+
 var render_context: RenderContext = .{};
 
 pub fn init(res_width: i32, res_height: i32) !void {
@@ -475,12 +526,18 @@ pub fn init(res_width: i32, res_height: i32) !void {
     glad.glBlendFunc(glad.GL_SRC_ALPHA, glad.GL_ONE_MINUS_SRC_ALPHA);
 
     try SpriteRenderer.init(res_width, res_height);
+    try FontRenderer.init(res_width, res_height);
 }
 
 pub fn deinit() void {
     SpriteRenderer.deinit();
+    FontRenderer.deinit();
 }
 
 pub inline fn drawSprite(p: *const DrawSpriteParams) void {
     SpriteRenderer.drawSprite(p);
+}
+
+pub inline fn drawText(p: *const DrawTextParams) void {
+    FontRenderer.drawText(p);
 }
