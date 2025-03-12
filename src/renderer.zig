@@ -175,6 +175,8 @@ pub const Texture = struct {
     using_nearest_neighbor: bool = true,
     file_path: ?[]u8 = null,
 
+    const EmptyTexture: Texture = .{ .id = undefined, .data = undefined, .width = undefined, .height = undefined, .nr_channels = undefined, .allocator = undefined, .image_format = undefined  };
+
     pub fn init(allocator: std.mem.Allocator, file_path: []const u8, nearest_neighbor: bool) !@This() {
         var texture: Texture = initImpl(allocator, nearest_neighbor);
         texture.file_path = texture.allocator.alloc(u8, file_path.len);
@@ -202,7 +204,7 @@ pub const Texture = struct {
     }
 
     fn initImpl(allocator: std.mem.Allocator, nearest_neighbor: bool) @This() {
-        var texture: Texture = .{ .id = undefined, .data = undefined, .width = undefined, .height = undefined, .nr_channels = undefined, .allocator = undefined, .image_format = undefined  };
+        var texture: Texture = Texture.EmptyTexture;
         texture.allocator = allocator;
         texture.using_nearest_neighbor = nearest_neighbor;
         return texture;
@@ -425,7 +427,7 @@ pub fn drawSprite(p: *const DrawSpriteParams) void {
         var model: Mat4 = Mat4.Identity;
         model.translate(.{ .x = p.transform.position.x, .y = p.transform.position.y });
         var t_model = model;
-        model.rotate_z(p.transform.rotation * (std.math.pi / 180.0));
+        model.rotate_z(std.math.degreesToRadians(p.transform.rotation));
         var r_model = model;
         model.scale(.{ .x = p.transform.scale.x * p.dest_size.x, .y = p.transform.scale.y * p.dest_size.y, .z = 1.0 });
         var s_model = model;

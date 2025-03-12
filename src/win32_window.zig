@@ -12,6 +12,8 @@ pub const glad = @cImport({
     @cInclude("glad/glad.h");
 });
 
+const log = @import("logger.zig").log;
+
 const LinearColor = math.LinearColor;
 
 pub const WINAPI: std.builtin.CallingConvention = .winapi;
@@ -49,6 +51,10 @@ const Win32Data = struct {
     hwnd: HWND = undefined,
     hdc: HDC = undefined,
     cmd_show: i32 = undefined,
+};
+
+const InitializeError = error {
+    OpenGL,
 };
 
 const main_window: Window = {};
@@ -203,10 +209,11 @@ pub fn opengl_init(hwnd: HWND) !void {
     _ = win.wglMakeCurrent(hdc, hglrc);
 
     // Load OpenGL function pointers with GLAD.
-    if (glad.gladLoadGL() != 0) {
-        // ska_logger_error("Could not initialize GLAD!");
+    if (glad.gladLoadGL() == 0) {
+        log(.critical, "Glad failed to load!  Error = {}", .{glad.glGetError()});
+        return InitializeError.OpenGL;
     } else {
-        // ska_logger_debug("OpenGL Version %d", glad.GLVersion.major);
+        log(.debug, "OpenGL Version {d}", .{glad.GLVersion.major});
     }
 
     // Enable VSync if supported.
@@ -214,24 +221,19 @@ pub fn opengl_init(hwnd: HWND) !void {
     const wglGetExtensionsStringEXT: PFNWGLGETEXTENSIONSSTRINGEXTPROC = @constCast(@ptrCast(extPtr));
     const extStr = wglGetExtensionsStringEXT();
     if (std.mem.indexOf(u8, cStringToSlice(extStr), "WGL_EXT_swap_control") != null) {
-        const swapPtr = win.wglGetProcAddress("wglSwapIntervalEXT");
-        const wglSwapIntervalEXT: PFNWGLSWAPINTERVALEXTPROC = @constCast(@ptrCast(swapPtr));
-        if (wglSwapIntervalEXT(1)) {
-            // ska_logger_debug("VSynch enabled");
+        const swapFuncPtr = win.wglGetProcAddress("wglSwapIntervalEXT");
+        if (swapFuncPtr) |funcPtr| {
+            const wglSwapIntervalEXT: PFNWGLSWAPINTERVALEXTPROC = @constCast(@ptrCast(funcPtr));
+            if (wglSwapIntervalEXT(1)) {
+                log(.debug, "VSync enabled", .{});
             } else {
-            // ska_logger_error("Could not enable VSynch");
+                log(.critical, "Could not enable vsync", .{});
+            }
+        } else {
+            log(.critical, "wglSwapIntervalEXT not found", .{});
         }
-        // if (wglSwapIntervalEXT != null) {
-        //     if (wglSwapIntervalEXT(1)) {
-        //         // ska_logger_debug("VSynch enabled");
-        //     } else {
-        //         // ska_logger_error("Could not enable VSynch");
-        //     }
-        // } else {
-        //     // ska_logger_error("wglSwapIntervalEXT not found");
-        // }
     } else {
-        // ska_logger_error("WGL_EXT_swap_control not supported");
+        log(.critical, "WGL_EXT_swap_control not supported", .{});
     }
 
     is_opengl_initialized = true;
