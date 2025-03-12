@@ -13,7 +13,7 @@ const Texture = renderer.Texture;
 
 const GameConfig = struct {
     name: []const u8 = "Test Game",
-    window_pos: Vec2 = .{ .x = 300, .y = 300 },
+    window_pos: Vec2 = .{ .x = 100, .y = 100 },
     window_width: i32 = 800,
     window_height: i32 = 600,
 };
