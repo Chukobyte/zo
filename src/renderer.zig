@@ -130,7 +130,7 @@ pub const Shader = struct {
             []Vec2 => glad.glUniform2fv(glad.glGetUniformLocation(self.id, name), @intCast(count), @as(GLfloat, value.x), @as(GLfloat, value.y)),
             []Vec3 => glad.glUniform3fv(glad.glGetUniformLocation(self.id, name), @intCast(count), @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z)),
             []Vec4 => glad.glUniform4fv(glad.glGetUniformLocation(self.id, name), @intCast(count), @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z), @as(GLfloat, value.w)),
-            []Mat4 => glad.glUniformMatrix4fv(glad.glGetUniformLocation(self.id, name), @intCast(count), glad.GL_FALSE, @as(*[4]GLfloat, &value[0].data[0])),
+            []Mat4 => glad.glUniformMatrix4fv(glad.glGetUniformLocation(self.id, name), @intCast(count), glad.GL_FALSE, @as(*const GLfloat, &value[0].data[0][0])),
             else => @compileError("Unsupported type for Shader.setUniformArray!"),
         }
     }
@@ -384,16 +384,16 @@ pub fn init(res_width: i32, res_height: i32) !void {
     glad.glVertexAttribPointer(0, 1, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), null);
     glad.glEnableVertexAttribArray(0);
     // position attribute
-    glad.glVertexAttribPointer(1, 2, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrCast(&@sizeOf(GLfloat)));
+    glad.glVertexAttribPointer(1, 2, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrFromInt(@sizeOf(GLfloat)));
     glad.glEnableVertexAttribArray(1);
     // texture coord attribute
-    glad.glVertexAttribPointer(2, 2, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrCast(&(3 * @sizeOf(GLfloat))));
+    glad.glVertexAttribPointer(2, 2, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrFromInt(3 * @sizeOf(GLfloat)));
     glad.glEnableVertexAttribArray(2);
     // color attribute
-    glad.glVertexAttribPointer(3, 4, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrCast(&(5 * @sizeOf(GLfloat))));
+    glad.glVertexAttribPointer(3, 4, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrFromInt(5 * @sizeOf(GLfloat)));
     glad.glEnableVertexAttribArray(3);
     // color attribute
-    glad.glVertexAttribPointer(4, 1, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrCast(&(9 * @sizeOf(GLfloat))));
+    glad.glVertexAttribPointer(4, 1, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrFromInt(9 * @sizeOf(GLfloat)));
     glad.glEnableVertexAttribArray(4);
 
     glad.glBindBuffer(glad.GL_ARRAY_BUFFER, 0);
@@ -403,7 +403,10 @@ pub fn init(res_width: i32, res_height: i32) !void {
     sprite_render_data.resolution = .{ .x = res_width, .y = res_height };
     sprite_render_data.projection = math.ortho(0.0, @floatFromInt(sprite_render_data.resolution.x), @floatFromInt(sprite_render_data.resolution.y), 0.0, -1.0, 1.0);
     sprite_render_data.shader.use();
+    sprite_render_data.shader.setUniform("u_texture", i32, 0);
     sprite_render_data.shader.setUniform("projection", Mat4, sprite_render_data.projection);
+
+    glad.glViewport(0, 0, res_width, res_height);
 }
 
 pub fn deinit() void {}
@@ -418,10 +421,16 @@ pub fn drawSprite(p: *const DrawSpriteParams) void {
     const number_of_sprites: usize = 1;
     for (0..number_of_sprites) |i| {
         // const model_offset = i * 16;
+        // TODO: Clean up math and how matrices operations are applied and multiplied
         var model: Mat4 = Mat4.Identity;
         model.translate(.{ .x = p.transform.position.x, .y = p.transform.position.y });
+        var t_model = model;
         model.rotate_z(p.transform.rotation * (std.math.pi / 180.0));
+        var r_model = model;
         model.scale(.{ .x = p.transform.scale.x * p.dest_size.x, .y = p.transform.scale.y * p.dest_size.y, .z = 1.0 });
+        var s_model = model;
+        model = t_model.mul(&r_model).mul(&s_model);
+
         models[i] = model;
 
         sprite_render_data.shader.use();
