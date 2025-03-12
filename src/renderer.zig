@@ -117,7 +117,7 @@ pub const Shader = struct {
             Vec2 => glad.glUniform2f(glad.glGetUniformLocation(self.id, name), @as(GLfloat, value.x), @as(GLfloat, value.y)),
             Vec3 => glad.glUniform3f(glad.glGetUniformLocation(self.id, name), @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z)),
             Vec4 => glad.glUniform4f(glad.glGetUniformLocation(self.id, name), @as(GLfloat, value.x), @as(GLfloat, value.y), @as(GLfloat, value.z), @as(GLfloat, value.w)),
-            Mat4 => glad.glUniformMatrix4fv(glad.glGetUniformLocation(self.id, name), 1, glad.GL_FALSE, @ptrCast(&value.data[0])),
+            Mat4 => glad.glUniformMatrix4fv(glad.glGetUniformLocation(self.id, name), 1, glad.GL_FALSE, @as(*const GLfloat, &value.data[0][0])),
             else => @compileError("Unsupported type for Shader.setUniform!"),
         }
     }
@@ -400,15 +400,14 @@ pub fn init(res_width: i32, res_height: i32) !void {
     glad.glBindVertexArray(0);
 
     sprite_render_data.shader = try Shader.compileNew(sprite_vertex_shader_source, sprite_fragment_shader_source);
-    sprite_render_data.shader.use();
     sprite_render_data.resolution = .{ .x = res_width, .y = res_height };
     sprite_render_data.projection = math.ortho(0.0, @floatFromInt(sprite_render_data.resolution.x), @floatFromInt(sprite_render_data.resolution.y), 0.0, -1.0, 1.0);
+    sprite_render_data.shader.use();
     sprite_render_data.shader.setUniform("projection", Mat4, sprite_render_data.projection);
 }
 
 pub fn deinit() void {}
 
-// TODO: Fix
 pub fn drawSprite(p: *const DrawSpriteParams) void {
     glad.glDepthMask(glad.GL_FALSE);
 
@@ -462,7 +461,7 @@ pub fn drawSprite(p: *const DrawSpriteParams) void {
         glad.glActiveTexture(glad.GL_TEXTURE0);
         glad.glBindTexture(glad.GL_TEXTURE_2D, p.texture.id);
 
-        glad.glBufferData(glad.GL_ARRAY_BUFFER, @sizeOf(@TypeOf(verts)), &verts, glad.GL_DYNAMIC_DRAW);
+        glad.glBufferData(glad.GL_ARRAY_BUFFER, @sizeOf(@TypeOf(verts)), @ptrCast(&verts[0]), glad.GL_DYNAMIC_DRAW);
         glad.glDrawArrays(glad.GL_TRIANGLES, 0, @as(GLsizei, number_of_sprites * number_of_vertices));
 
         glad.glBindVertexArray(0);
