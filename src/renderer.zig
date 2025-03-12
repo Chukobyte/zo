@@ -298,62 +298,174 @@ pub const DrawSpriteParams = struct {
     z_index: i32 = 0,
 };
 
+const SpriteRenderer = struct {
+    const sprite_vertex_shader_source =
+        \\#version 330 core
+        \\layout (location = 0) in float in_id;
+        \\layout (location = 1) in vec2 in_pos;
+        \\layout (location = 2) in vec2 in_uv;
+        \\layout (location = 3) in vec4 in_color_mod;
+        \\layout (location = 4) in float in_use_nearest;
+        \\
+        \\out vec2 frag_uv;
+        \\out vec4 frag_color_mod;
+        \\out float frag_use_nearest;
+        \\
+        \\uniform mat4 models[100];
+        \\uniform mat4 projection;
+        \\
+        \\void main() {{
+        \\    int sprite_index = int(in_id);
+        \\    frag_uv = in_uv;
+        \\    frag_color_mod = in_color_mod;
+        \\    frag_use_nearest = in_use_nearest;
+        \\    gl_Position = projection * models[sprite_index] * vec4(in_pos, 0.0, 1.0);
+        \\}}
+        ;
+
+    const sprite_fragment_shader_source =
+        \\#version 330 core
+        \\in vec2 frag_uv;
+        \\in vec4 frag_color_mod;
+        \\in float frag_use_nearest;
+        \\
+        \\out vec4 out_color;
+        \\
+        \\uniform sampler2D u_texture;
+        \\
+        \\vec2 apply_nearest_neighbor(vec2 uv, vec2 texture_size) {{
+        \\    vec2 pixel = uv * texture_size;
+        \\    vec2 nearest = floor(pixel + 0.5);
+        \\    vec2 dudv = fwidth(pixel);
+        \\    pixel = nearest + clamp((pixel - nearest) / dudv, -0.5, 0.5);
+        \\    return pixel / texture_size;
+        \\}}
+        \\
+        \\void main() {{
+        \\    vec2 tex_size = textureSize(u_texture, 0);
+        \\    vec2 final_uv = mix(frag_uv, apply_nearest_neighbor(frag_uv, tex_size), frag_use_nearest);
+        \\    out_color = frag_color_mod * texture(u_texture, final_uv);
+        \\}}
+        ;
+
+    const max_sprite_count = 10;
+    const number_of_vertices = 6;
+    const verts_stride = 10;
+    const vertex_buffer_size: comptime_int = verts_stride * number_of_vertices * max_sprite_count;
+    var render_data: RenderData = .{};
+
+    pub fn init(res_width: i32, res_height: i32) !void {
+        // Init sprite rendering
+        const vertices: [verts_stride * number_of_vertices]GLfloat = .{
+            //id (1) // positions (2) // texture coordinates (2) // color (4) // using nearest neighbor (1)
+            0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,
+            0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
+
+            0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,
+            0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,
+            0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
+        };
+
+        // Initialize render data
+        glad.glGenVertexArrays(1, &render_data.vao);
+        glad.glBindVertexArray(render_data.vao);
+
+        glad.glGenBuffers(1, &render_data.vbo);
+        glad.glBindBuffer(glad.GL_ARRAY_BUFFER, render_data.vbo);
+        glad.glBufferData(glad.GL_ARRAY_BUFFER, @sizeOf(@TypeOf(vertices)), @ptrCast(&vertices[0]), glad.GL_DYNAMIC_DRAW);
+
+        // id attribute
+        glad.glVertexAttribPointer(0, 1, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), null);
+        glad.glEnableVertexAttribArray(0);
+        // position attribute
+        glad.glVertexAttribPointer(1, 2, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrFromInt(@sizeOf(GLfloat)));
+        glad.glEnableVertexAttribArray(1);
+        // texture coord attribute
+        glad.glVertexAttribPointer(2, 2, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrFromInt(3 * @sizeOf(GLfloat)));
+        glad.glEnableVertexAttribArray(2);
+        // color attribute
+        glad.glVertexAttribPointer(3, 4, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrFromInt(5 * @sizeOf(GLfloat)));
+        glad.glEnableVertexAttribArray(3);
+        // using nearest neighbor attribute
+        glad.glVertexAttribPointer(4, 1, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrFromInt(9 * @sizeOf(GLfloat)));
+        glad.glEnableVertexAttribArray(4);
+
+        glad.glBindBuffer(glad.GL_ARRAY_BUFFER, 0);
+        glad.glBindVertexArray(0);
+
+        render_data.resolution = .{ .x = res_width, .y = res_height };
+        render_data.projection = math.ortho(0.0, @floatFromInt(render_data.resolution.x), @floatFromInt(render_data.resolution.y), 0.0, -1.0, 1.0);
+        render_data.shader = try Shader.compileNew(sprite_vertex_shader_source, sprite_fragment_shader_source);
+        render_data.shader.use();
+        render_data.shader.setUniform("u_texture", i32, 0);
+        render_data.shader.setUniform("projection", Mat4, render_data.projection);
+    }
+
+    pub fn deinit() void {}
+
+    pub fn drawSprite(p: *const DrawSpriteParams) void {
+        glad.glDepthMask(glad.GL_FALSE);
+
+        glad.glBindVertexArray(render_data.vao);
+        glad.glBindBuffer(glad.GL_ARRAY_BUFFER, render_data.vbo);
+
+        var models: [max_sprite_count]Mat4 = undefined;
+        const number_of_sprites: usize = 1;
+        for (0..number_of_sprites) |i| {
+            var model: Mat4 = Mat4.Identity;
+            model.translate2(.{ .x = p.transform.position.x, .y = p.transform.position.y });
+            model.rotateZ2(std.math.degreesToRadians(p.transform.rotation));
+            model.scale2(.{ .x = p.transform.scale.x * p.dest_size.x, .y = p.transform.scale.y * p.dest_size.y, .z = 1.0 });
+
+            models[i] = model;
+
+            render_data.shader.use();
+
+            const model_id: f32 = @floatFromInt(i);
+            const determinate: f32 = model.determinant();
+            const texture_coords: TextureCoords = TextureCoords.generate(p.texture, &p.source_rect, p.flip_h, p.flip_v);
+
+            render_data.shader.setUniformArray("models", []Mat4, &models, number_of_sprites);
+
+            // Create vertex data for the sprite.
+            var verts: [vertex_buffer_size]GLfloat = undefined;
+            for (0..number_of_vertices) |j| {
+                var use_s_min: bool = false;
+                var use_t_min: bool = false;
+                if (determinate >= 0.0) {
+                    use_s_min = (j == 0 or j == 2 or j == 3);
+                    use_t_min = (j == 1 or j == 2 or j == 5);
+                } else {
+                    use_s_min = (j == 1 or j == 2 or j == 5);
+                    use_t_min = (j == 0 or j == 2 or j == 3);
+                }
+                // Compute the offset (row) in the vertex array.
+                const row: usize = (j * verts_stride) + (i * verts_stride * number_of_vertices);
+                verts[row + 0] = model_id;
+                verts[row + 1] = if (use_s_min) 0.0 else 1.0;
+                verts[row + 2] = if (use_t_min) 0.0 else 1.0;
+                verts[row + 3] = if (use_s_min) texture_coords.s_min else texture_coords.s_max;
+                verts[row + 4] = if (use_t_min) texture_coords.t_min else texture_coords.t_max;
+                verts[row + 5] = @as(GLfloat, p.color.r);
+                verts[row + 6] = @as(GLfloat, p.color.g);
+                verts[row + 7] = @as(GLfloat, p.color.b);
+                verts[row + 8] = @as(GLfloat, p.color.a);
+                verts[row + 9] = if(p.texture.using_nearest_neighbor) 1.0 else 0.0;
+            }
+
+            glad.glActiveTexture(glad.GL_TEXTURE0);
+            glad.glBindTexture(glad.GL_TEXTURE_2D, p.texture.id);
+
+            glad.glBufferData(glad.GL_ARRAY_BUFFER, @sizeOf(@TypeOf(verts)), @ptrCast(&verts[0]), glad.GL_DYNAMIC_DRAW);
+            glad.glDrawArrays(glad.GL_TRIANGLES, 0, @as(GLsizei, number_of_sprites * number_of_vertices));
+
+            glad.glBindVertexArray(0);
+        }
+    }
+};
+
 var render_context: RenderContext = .{};
-var sprite_render_data: RenderData = .{};
-
-pub const sprite_vertex_shader_source =
-    \\#version 330 core
-    \\layout (location = 0) in float in_id;
-    \\layout (location = 1) in vec2 in_pos;
-    \\layout (location = 2) in vec2 in_uv;
-    \\layout (location = 3) in vec4 in_color_mod;
-    \\layout (location = 4) in float in_use_nearest;
-    \\
-    \\out vec2 frag_uv;
-    \\out vec4 frag_color_mod;
-    \\out float frag_use_nearest;
-    \\
-    \\uniform mat4 models[100];
-    \\uniform mat4 projection;
-    \\
-    \\void main() {{
-    \\    int sprite_index = int(in_id);
-    \\    frag_uv = in_uv;
-    \\    frag_color_mod = in_color_mod;
-    \\    frag_use_nearest = in_use_nearest;
-    \\    gl_Position = projection * models[sprite_index] * vec4(in_pos, 0.0, 1.0);
-    \\}}
-;
-
-pub const sprite_fragment_shader_source =
-    \\#version 330 core
-    \\in vec2 frag_uv;
-    \\in vec4 frag_color_mod;
-    \\in float frag_use_nearest;
-    \\
-    \\out vec4 out_color;
-    \\
-    \\uniform sampler2D u_texture;
-    \\
-    \\vec2 apply_nearest_neighbor(vec2 uv, vec2 texture_size) {{
-    \\    vec2 pixel = uv * texture_size;
-    \\    vec2 nearest = floor(pixel + 0.5);
-    \\    vec2 dudv = fwidth(pixel);
-    \\    pixel = nearest + clamp((pixel - nearest) / dudv, -0.5, 0.5);
-    \\    return pixel / texture_size;
-    \\}}
-    \\
-    \\void main() {{
-    \\    vec2 tex_size = textureSize(u_texture, 0);
-    \\    vec2 final_uv = mix(frag_uv, apply_nearest_neighbor(frag_uv, tex_size), frag_use_nearest);
-    \\    out_color = frag_color_mod * texture(u_texture, final_uv);
-    \\}}
-;
-
-const max_sprite_count = 10;
-const number_of_vertices = 6;
-const verts_stride = 10;
-const vertex_buffer_size: comptime_int = verts_stride * number_of_vertices * max_sprite_count;
 
 pub fn init(res_width: i32, res_height: i32) !void {
     render_context.res_width = res_width;
@@ -362,111 +474,13 @@ pub fn init(res_width: i32, res_height: i32) !void {
     glad.glEnable(glad.GL_BLEND);
     glad.glBlendFunc(glad.GL_SRC_ALPHA, glad.GL_ONE_MINUS_SRC_ALPHA);
 
-    // Init sprite rendering
-    const vertices: [verts_stride * number_of_vertices]GLfloat = .{
-        //id (1) // positions (2) // texture coordinates (2) // color (4) // using nearest neighbor (1)
-        0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,
-        0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
-
-        0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,
-        0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,
-        0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
-    };
-
-    // Initialize render data
-    glad.glGenVertexArrays(1, &sprite_render_data.vao);
-    glad.glBindVertexArray(sprite_render_data.vao);
-
-    glad.glGenBuffers(1, &sprite_render_data.vbo);
-    glad.glBindBuffer(glad.GL_ARRAY_BUFFER, sprite_render_data.vbo);
-    glad.glBufferData(glad.GL_ARRAY_BUFFER, @sizeOf(@TypeOf(vertices)), @ptrCast(&vertices[0]), glad.GL_DYNAMIC_DRAW);
-
-    // id attribute
-    glad.glVertexAttribPointer(0, 1, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), null);
-    glad.glEnableVertexAttribArray(0);
-    // position attribute
-    glad.glVertexAttribPointer(1, 2, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrFromInt(@sizeOf(GLfloat)));
-    glad.glEnableVertexAttribArray(1);
-    // texture coord attribute
-    glad.glVertexAttribPointer(2, 2, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrFromInt(3 * @sizeOf(GLfloat)));
-    glad.glEnableVertexAttribArray(2);
-    // color attribute
-    glad.glVertexAttribPointer(3, 4, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrFromInt(5 * @sizeOf(GLfloat)));
-    glad.glEnableVertexAttribArray(3);
-    // using nearest neighbor attribute
-    glad.glVertexAttribPointer(4, 1, glad.GL_FLOAT, glad.GL_FALSE, verts_stride * @sizeOf(GLfloat), @ptrFromInt(9 * @sizeOf(GLfloat)));
-    glad.glEnableVertexAttribArray(4);
-
-    glad.glBindBuffer(glad.GL_ARRAY_BUFFER, 0);
-    glad.glBindVertexArray(0);
-
-    sprite_render_data.resolution = .{ .x = res_width, .y = res_height };
-    sprite_render_data.projection = math.ortho(0.0, @floatFromInt(sprite_render_data.resolution.x), @floatFromInt(sprite_render_data.resolution.y), 0.0, -1.0, 1.0);
-    sprite_render_data.shader = try Shader.compileNew(sprite_vertex_shader_source, sprite_fragment_shader_source);
-    sprite_render_data.shader.use();
-    sprite_render_data.shader.setUniform("u_texture", i32, 0);
-    sprite_render_data.shader.setUniform("projection", Mat4, sprite_render_data.projection);
+    try SpriteRenderer.init(res_width, res_height);
 }
 
-pub fn deinit() void {}
+pub fn deinit() void {
+    SpriteRenderer.deinit();
+}
 
-pub fn drawSprite(p: *const DrawSpriteParams) void {
-    glad.glDepthMask(glad.GL_FALSE);
-
-    glad.glBindVertexArray(sprite_render_data.vao);
-    glad.glBindBuffer(glad.GL_ARRAY_BUFFER, sprite_render_data.vbo);
-
-    var models: [max_sprite_count]Mat4 = undefined;
-    const number_of_sprites: usize = 1;
-    for (0..number_of_sprites) |i| {
-        var model: Mat4 = Mat4.Identity;
-        model.translate2(.{ .x = p.transform.position.x, .y = p.transform.position.y });
-        model.rotateZ2(std.math.degreesToRadians(p.transform.rotation));
-        model.scale2(.{ .x = p.transform.scale.x * p.dest_size.x, .y = p.transform.scale.y * p.dest_size.y, .z = 1.0 });
-
-        models[i] = model;
-
-        sprite_render_data.shader.use();
-
-        const model_id: f32 = @floatFromInt(i);
-        const determinate: f32 = model.determinant();
-        const texture_coords: TextureCoords = TextureCoords.generate(p.texture, &p.source_rect, p.flip_h, p.flip_v);
-
-        sprite_render_data.shader.setUniformArray("models", []Mat4, &models, number_of_sprites);
-
-        // Create vertex data for the sprite.
-        var verts: [vertex_buffer_size]GLfloat = undefined;
-        for (0..number_of_vertices) |j| {
-            var use_s_min: bool = false;
-            var use_t_min: bool = false;
-            if (determinate >= 0.0) {
-                use_s_min = (j == 0 or j == 2 or j == 3);
-                use_t_min = (j == 1 or j == 2 or j == 5);
-            } else {
-                use_s_min = (j == 1 or j == 2 or j == 5);
-                use_t_min = (j == 0 or j == 2 or j == 3);
-            }
-            // Compute the offset (row) in the vertex array.
-            const row: usize = (j * verts_stride) + (i * verts_stride * number_of_vertices);
-            verts[row + 0] = model_id;
-            verts[row + 1] = if (use_s_min) 0.0 else 1.0;
-            verts[row + 2] = if (use_t_min) 0.0 else 1.0;
-            verts[row + 3] = if (use_s_min) texture_coords.s_min else texture_coords.s_max;
-            verts[row + 4] = if (use_t_min) texture_coords.t_min else texture_coords.t_max;
-            verts[row + 5] = @as(GLfloat, p.color.r);
-            verts[row + 6] = @as(GLfloat, p.color.g);
-            verts[row + 7] = @as(GLfloat, p.color.b);
-            verts[row + 8] = @as(GLfloat, p.color.a);
-            verts[row + 9] = if(p.texture.using_nearest_neighbor) 1.0 else 0.0;
-        }
-
-        glad.glActiveTexture(glad.GL_TEXTURE0);
-        glad.glBindTexture(glad.GL_TEXTURE_2D, p.texture.id);
-
-        glad.glBufferData(glad.GL_ARRAY_BUFFER, @sizeOf(@TypeOf(verts)), @ptrCast(&verts[0]), glad.GL_DYNAMIC_DRAW);
-        glad.glDrawArrays(glad.GL_TRIANGLES, 0, @as(GLsizei, number_of_sprites * number_of_vertices));
-
-        glad.glBindVertexArray(0);
-    }
+pub inline fn drawSprite(p: *const DrawSpriteParams) void {
+    SpriteRenderer.drawSprite(p);
 }
