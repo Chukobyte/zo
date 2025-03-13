@@ -386,6 +386,12 @@ pub const LinearColor = struct {
     g: f32,
     b: f32,
     a: f32 = 1.0,
+
+    pub const Black = @This(){ .r = 0.0, .g = 0.0, .b = 0.0 };
+    pub const White = @This(){ .r = 1.0, .g = 1.0, .b = 1.0 };
+    pub const Red = @This(){ .r = 1.0, .g = 0.0, .b = 0.0 };
+    pub const Green = @This(){ .r = 0.0, .g = 1.0, .b = 0.0 };
+    pub const Blue = @This(){ .r = 0.0, .g = 0.0, .b = 1.0 };
 };
 
 /// Map a value from one range to another

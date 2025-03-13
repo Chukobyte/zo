@@ -571,8 +571,8 @@ pub const DrawTextParams = struct {
     text: []const u8,
     font: *Font,
     position: Vec2,
-    scale: f32,
-    color: LinearColor,
+    scale: f32 = 1.0,
+    color: LinearColor = LinearColor.White,
 };
 
 const FontRenderer = struct {
@@ -646,10 +646,10 @@ const FontRenderer = struct {
             // Compute the position of the quad.
             // Note: The original C code inverts the y coordinate (using -y)
             // because the orthographic projection was flipped.
-            const x_pos = x + ch.bearing.x * p.scale;
-            const y_pos = -y - ((ch.size.y - ch.bearing.y) * p.scale);
-            const w = ch.size.x * p.scale;
-            const h = ch.size.y * p.scale;
+            const x_pos: f32 = x + @as(f32, @floatFromInt(ch.bearing.x)) * p.scale;
+            const y_pos: f32 = -y - (@as(f32, @floatFromInt(ch.size.y - @as(u32, @intCast(ch.bearing.y)))) * p.scale);
+            const w: f32 = @as(f32, @floatFromInt(ch.size.x)) * p.scale;
+            const h: f32 = @as(f32, @floatFromInt(ch.size.y)) * p.scale;
 
             // Create the vertex data for the quad (6 vertices, each with 4 components: x, y, u, v).
             var verts: [6][4]f32 = .{
@@ -666,13 +666,13 @@ const FontRenderer = struct {
             glad.glBindTexture(glad.GL_TEXTURE_2D, @intCast(ch.texture_id));
             // Update the VBO with the new vertex data.
             glad.glBindBuffer(glad.GL_ARRAY_BUFFER, p.font.vbo);
-            glad.glBufferSubData(glad.GL_ARRAY_BUFFER, 0, @sizeOf(verts), &verts);
+            glad.glBufferSubData(glad.GL_ARRAY_BUFFER, 0, @sizeOf(@TypeOf(verts)), &verts);
             // Render the quad.
             glad.glDrawArrays(glad.GL_TRIANGLES, 0, 6);
             // Advance the cursor for the next glyph.
             // (ch.advance >> 6) converts from 1/64 pixels to pixels.
             const advance_amount: u32 = @intCast(ch.advance >> 6);
-            const advance_total: f32 = @floatCast(advance_amount);
+            const advance_total: f32 = @floatFromInt(advance_amount);
             x += advance_total * p.scale;
         }
 
