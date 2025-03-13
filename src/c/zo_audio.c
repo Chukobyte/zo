@@ -7,6 +7,7 @@
 #define ZO_MAX_AUDIO_INSTANCES 32
 
 static void audio_data_callback(void* device, void* output, const void* input, ma_uint32 frame_count);
+static bool resample_audio(ZoAudioSource* audio_source);
 static char* read_file_contents(const char* file_path, usize* size);
 static usize get_file_size(const char* file_path);
 
@@ -70,47 +71,9 @@ ZoAudioSource* zo_audio_load_wav(const char* file_path) {
 
   // Resample if audio source sample rate is different from main
   if (new_audio_source->sample_rate != audio_wav_sample_rate) {
-      const int32 inputFrameCount = sample_count / channels;
-        const f64 resampleRatio = (f64)audio_wav_sample_rate / sample_rate;
-        const int32 outputFrameCount = (int32)(inputFrameCount * resampleRatio);
-
-        int16_t* resampledSamples = malloc(outputFrameCount * channels * sizeof(int16));
-        if (!resampledSamples) {
-//            ska_logger_error("Failed to allocate memory for resampled audio for '%s'!", file_path);
-            free(samples);
-            free(new_audio_source);
-            return NULL;
-        }
-
-        ma_data_converter_config converterConfig = ma_data_converter_config_init(
-            ma_format_s16, ma_format_s16, channels, channels,
-            new_audio_source->sample_rate, audio_wav_sample_rate
-        );
-        ma_data_converter converter;
-        if (ma_data_converter_init(&converterConfig, NULL, &converter) != MA_SUCCESS) {
-//            ska_logger_error("Failed to initialize data converter for audio file '%s'!", file_path);
-            free(samples);
-            free(resampledSamples);
-            free(new_audio_source);
-            return NULL;
-        }
-
-        ma_uint64 inFrames = inputFrameCount;
-        ma_uint64 outFrames = outputFrameCount;
-        if (ma_data_converter_process_pcm_frames(&converter, resampledSamples, &outFrames, samples, &inFrames) != MA_SUCCESS) {
-//            ska_logger_error("Data conversion failed for audio file '%s'!", file_path);
-            free(samples);
-            free(resampledSamples);
-            ma_data_converter_uninit(&converter, NULL);
-            free(new_audio_source);
-            return NULL;
-        }
-        ma_data_converter_uninit(&converter, NULL);
-//        ska_logger_debug("Resampled audio for '%s': inFrames = %d, outFrames = %llu", file_path, inputFrameCount, outFrames);
-        free(samples);
-        new_audio_source->samples = resampledSamples;
-        new_audio_source->sample_rate = (int32)audio_wav_sample_rate;
-        new_audio_source->sample_count = (int32)outFrames * channels;
+      if (!resample_audio(new_audio_source)) {
+           return NULL;
+      }
   }
 
   return new_audio_source;
@@ -128,6 +91,51 @@ void zo_audio_stop(ZoAudioSource* source) {}
 
 void audio_data_callback(void* device, void* output, const void* input, ma_uint32 frame_count) {
   ma_device* audio_device = (ma_device*)device;
+}
+
+bool resample_audio(ZoAudioSource* audio_source) {
+    const int32 inputFrameCount = audio_source->sample_count / audio_source->channels;
+    const f64 resampleRatio = (f64)audio_wav_sample_rate / audio_source->sample_rate;
+    const int32 outputFrameCount = (int32)(inputFrameCount * resampleRatio);
+
+    int16* resampledSamples = malloc(outputFrameCount * audio_source->channels * sizeof(int16));
+    if (!resampledSamples) {
+//      ska_logger_error("Failed to allocate memory for resampled audio for '%s'!", file_path);
+        free(audio_source->samples);
+        free(audio_source);
+        return false;
+    }
+
+    ma_data_converter_config converterConfig = ma_data_converter_config_init(
+        ma_format_s16, ma_format_s16, audio_source->channels, audio_source->channels,
+        audio_source->sample_rate, audio_wav_sample_rate
+    );
+    ma_data_converter converter;
+    if (ma_data_converter_init(&converterConfig, NULL, &converter) != MA_SUCCESS) {
+//      ska_logger_error("Failed to initialize data converter for audio file '%s'!", file_path);
+        free(audio_source->samples);
+        free(resampledSamples);
+        free(audio_source);
+        return false;
+    }
+
+    ma_uint64 inFrames = inputFrameCount;
+    ma_uint64 outFrames = outputFrameCount;
+    if (ma_data_converter_process_pcm_frames(&converter, resampledSamples, &outFrames, audio_source->samples, &inFrames) != MA_SUCCESS) {
+//      ska_logger_error("Data conversion failed for audio file '%s'!", file_path);
+        free(audio_source->samples);
+        free(resampledSamples);
+        ma_data_converter_uninit(&converter, NULL);
+        free(audio_source);
+        return false;
+    }
+    ma_data_converter_uninit(&converter, NULL);
+//  ska_logger_debug("Resampled audio for '%s': inFrames = %d, outFrames = %llu", file_path, inputFrameCount, outFrames);
+    free(audio_source->samples);
+    audio_source->samples = resampledSamples;
+    audio_source->sample_rate = (int32)audio_wav_sample_rate;
+    audio_source->sample_count = (int32)outFrames * audio_source->channels;
+    return true;
 }
 
 char* read_file_contents(const char* file_path, usize* size) {
