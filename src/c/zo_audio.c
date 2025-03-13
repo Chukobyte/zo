@@ -6,6 +6,7 @@
 #define ZO_MAX_AUDIO_SOURCES 64
 #define ZO_MAX_AUDIO_INSTANCES 32
 
+static ZoAudioSource* load_wav_from_data(const void* buffer, size_t buffer_len);
 static void audio_data_callback(void* device, void* output, const void* input, ma_uint32 frame_count);
 static bool resample_audio(ZoAudioSource* audio_source);
 static char* read_file_contents(const char* file_path, usize* size);
@@ -42,45 +43,21 @@ void zo_audio_deinit() {
 }
 
 ZoAudioSource* zo_audio_load_wav(const char* file_path) {
-  i32 sample_count;
-  u32 channels;
-  u32 sample_rate;
-  void* samples;
-
-  // Load from file
   usize len = 0;
   char* file_data = read_file_contents(file_path, &len);
-  drwav_uint64 totalPcmFrameCount = 0;
-  samples = drwav_open_memory_and_read_pcm_frames_s16(file_data, len, &channels, &sample_rate, &totalPcmFrameCount, NULL);
-  free(file_data);
-
-  if (!samples) {
-//    ska_logger_error("Could not load .wav file: %s", file_path);
-    return NULL;
+  if (!file_data) {
+      return NULL;
   }
-
-  sample_count = (int32)totalPcmFrameCount * channels;
-
-  ZoAudioSource* new_audio_source = malloc(sizeof(ZoAudioSource));
-  new_audio_source->file_path = file_path; // TODO: Fix
-  new_audio_source->pitch = 1.0;
-  new_audio_source->sample_count = sample_count;
-  new_audio_source->sample_rate = sample_rate;
-  new_audio_source->channels = channels;
-  new_audio_source->samples = samples;
-
-  // Resample if audio source sample rate is different from main
-  if (new_audio_source->sample_rate != audio_wav_sample_rate) {
-      if (!resample_audio(new_audio_source)) {
-           return NULL;
-      }
+  ZoAudioSource* new_audio_source = load_wav_from_data(file_data, len);
+  if (!new_audio_source) {
+      return NULL;
   }
-
+  new_audio_source->file_path = file_path;
   return new_audio_source;
 }
 
 ZoAudioSource* zo_audio_load_wav_from_memory(const void* buffer, size_t buffer_len) {
-  return NULL;
+  return load_wav_from_data(buffer, buffer_len);
 }
 
 void zo_audio_delete_audio_source(ZoAudioSource* source) {}
@@ -88,6 +65,38 @@ void zo_audio_delete_audio_source(ZoAudioSource* source) {}
 void zo_audio_play(ZoAudioSource* source, bool doesLoop) {}
 
 void zo_audio_stop(ZoAudioSource* source) {}
+
+ZoAudioSource* load_wav_from_data(const void* buffer, size_t buffer_len) {
+    i32 sample_count;
+    u32 channels;
+    u32 sample_rate;
+    drwav_uint64 totalPcmFrameCount = 0;
+
+    void* samples = drwav_open_memory_and_read_pcm_frames_s16(buffer, buffer_len, &channels, &sample_rate, &totalPcmFrameCount, NULL);
+    if (!samples) {
+        // TODO: Either log error or return an error enum
+        return NULL;
+    }
+
+    sample_count = (int32)totalPcmFrameCount * channels;
+
+    ZoAudioSource* new_audio_source = malloc(sizeof(ZoAudioSource));
+    // For memory loaded audio, file_path may be NULL or a descriptive identifier.
+    new_audio_source->file_path = NULL;
+    new_audio_source->pitch = 1.0;
+    new_audio_source->sample_count = sample_count;
+    new_audio_source->sample_rate = sample_rate;
+    new_audio_source->channels = channels;
+    new_audio_source->samples = samples;
+
+    // Resample if the sample rate is different from the audio device's sample rate.
+    if (new_audio_source->sample_rate != audio_wav_sample_rate) {
+        if (!resample_audio(new_audio_source)) {
+            return NULL;
+        }
+    }
+    return new_audio_source;
+}
 
 void audio_data_callback(void* device, void* output, const void* input, ma_uint32 frame_count) {
   ma_device* audio_device = (ma_device*)device;
