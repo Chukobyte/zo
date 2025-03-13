@@ -6384,7 +6384,7 @@ The interruption notifications are used on mobile platforms for detecting when a
 due to things like an incoming phone call. Currently this is only implemented on iOS. None of the
 Android backends will report this notification.
 */
-typedef void (* ma_device_notification_proc)(const ma_device_notification* pNotification);
+typedef void (* ma_device_notification_proc)(const void* pNotification);
 
 
 /*
@@ -6427,7 +6427,7 @@ callback. The following APIs cannot be called from inside the callback:
 
 The proper way to stop the device is to call `ma_device_stop()` from a different thread, normally the main application thread.
 */
-typedef void (* ma_device_data_proc)(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount);
+typedef void (* ma_device_data_proc)(void* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount);
 
 
 
@@ -6451,7 +6451,7 @@ Remarks
 -------
 Do not restart or uninitialize the device from the callback.
 */
-typedef void (* ma_stop_proc)(ma_device* pDevice);  /* DEPRECATED. Use ma_device_notification_proc instead. */
+typedef void (* ma_stop_proc)(void* pDevice);  /* DEPRECATED. Use ma_device_notification_proc instead. */
 
 typedef enum
 {
@@ -72372,8 +72372,9 @@ MA_API ma_engine_config ma_engine_config_init(void)
 
 
 #if !defined(MA_NO_DEVICE_IO)
-static void ma_engine_data_callback_internal(ma_device* pDevice, void* pFramesOut, const void* pFramesIn, ma_uint32 frameCount)
+static void ma_engine_data_callback_internal(void* inPDevice, void* pFramesOut, const void* pFramesIn, ma_uint32 frameCount)
 {
+    ma_device* pDevice = (ma_device*)inPDevice;
     ma_engine* pEngine = (ma_engine*)pDevice->pUserData;
 
     (void)pFramesIn;
