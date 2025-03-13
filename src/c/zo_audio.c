@@ -109,7 +109,6 @@ bool resample_audio(ZoAudioSource* audio_source) {
 
     int16* resampledSamples = malloc(outputFrameCount * audio_source->channels * sizeof(int16));
     if (!resampledSamples) {
-//      ska_logger_error("Failed to allocate memory for resampled audio for '%s'!", file_path);
         free(audio_source->samples);
         free(audio_source);
         return false;
@@ -121,7 +120,6 @@ bool resample_audio(ZoAudioSource* audio_source) {
     );
     ma_data_converter converter;
     if (ma_data_converter_init(&converterConfig, NULL, &converter) != MA_SUCCESS) {
-//      ska_logger_error("Failed to initialize data converter for audio file '%s'!", file_path);
         free(audio_source->samples);
         free(resampledSamples);
         free(audio_source);
@@ -131,7 +129,6 @@ bool resample_audio(ZoAudioSource* audio_source) {
     ma_uint64 inFrames = inputFrameCount;
     ma_uint64 outFrames = outputFrameCount;
     if (ma_data_converter_process_pcm_frames(&converter, resampledSamples, &outFrames, audio_source->samples, &inFrames) != MA_SUCCESS) {
-//      ska_logger_error("Data conversion failed for audio file '%s'!", file_path);
         free(audio_source->samples);
         free(resampledSamples);
         ma_data_converter_uninit(&converter, NULL);
@@ -139,7 +136,6 @@ bool resample_audio(ZoAudioSource* audio_source) {
         return false;
     }
     ma_data_converter_uninit(&converter, NULL);
-//  ska_logger_debug("Resampled audio for '%s': inFrames = %d, outFrames = %llu", file_path, inputFrameCount, outFrames);
     free(audio_source->samples);
     audio_source->samples = resampledSamples;
     audio_source->sample_rate = (int32)audio_wav_sample_rate;
@@ -153,6 +149,7 @@ char* read_file_contents(const char* file_path, usize* size) {
   usize read_size = 0;
   if (fp) {
     read_size = get_file_size(file_path);
+    if (read_size == 0) { return NULL; }
     // Update buffer
     buffer = (char*)malloc(read_size + 1);
     if (buffer != NULL) {
@@ -171,14 +168,12 @@ usize get_file_size(const char* filePath) {
 #ifdef _WIN32
   HANDLE hFile = CreateFile(filePath, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
   if (hFile == INVALID_HANDLE_VALUE) {
-//    ska_logger_error("Error invalid handle value when getting file size at path '%s'", filePath);
     return 0;
   }
 
   LARGE_INTEGER size;
   if (!GetFileSizeEx(hFile, &size)) {
     CloseHandle(hFile);
-//    ska_logger_error("Error getting file size at path '%s'", filePath);
     return 0;
   }
 
