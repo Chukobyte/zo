@@ -230,7 +230,17 @@ pub const Texture = struct {
         // Generate opengl texture
         glad.glGenTextures(1, &self.id);
         glad.glBindTexture(glad.GL_TEXTURE_2D, self.id);
-        glad.glTexImage2D(glad.GL_TEXTURE_2D, 0, self.internal_format, self.width, self.height, 0, self.image_format, glad.GL_UNSIGNED_BYTE, self.data);
+        glad.glTexImage2D(
+            glad.GL_TEXTURE_2D,
+            0,
+            self.internal_format,
+            self.width,
+            self.height,
+            0,
+            self.image_format,
+            glad.GL_UNSIGNED_BYTE,
+            self.data
+        );
         glad.glGenerateMipmap(glad.GL_TEXTURE_2D);
         // Wrap and filter modes
         glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_WRAP_S, self.wrap_s);
@@ -296,7 +306,7 @@ pub const Font = struct {
 
     pub fn init(file_path: []const u8, font_size: usize, nearest_neighbor: bool) !@This() {
         var face: ft.FT_Face = undefined;
-        var font = @This().EmptyFont;
+        var font = EmptyFont;
         font.size = @intCast(font_size);
         if (ft.FT_New_Face(render_context.ft_instance, file_path.ptr, 0, &face) != 0) {
             ft.FT_Done_Face(face);
@@ -308,7 +318,7 @@ pub const Font = struct {
 
     pub fn initFromMemory(buffer: *const anyopaque, buffer_len: usize, font_size: usize, nearest_neighbor: bool) !@This() {
         var face: ft.FT_Face = undefined;
-        var font = @This().EmptyFont;
+        var font = EmptyFont;
         font.size = @intCast(font_size);
         const buffer_raw: [*c]const u8 = @alignCast(@ptrCast(buffer));
         if (ft.FT_New_Memory_Face(render_context.ft_instance, &buffer_raw[0], @intCast(buffer_len), 0, &face) != 0) {
@@ -325,7 +335,9 @@ pub const Font = struct {
 
     fn internalInit(self: *@This(), face: ft.FT_Face, nearest_neighbor: bool) !void {
         // Set size to load glyphs, width set to 0 to dynamically adjust
-        _ = ft.FT_Set_Pixel_Sizes(face, 0, @intCast(self.size));
+        if (ft.FT_Set_Pixel_Sizes(face, 0, @intCast(self.size)) != 0) {
+            return FontError.FailedToLoad;
+        }
         // Disable byte alignment restriction
         glad.glPixelStorei(glad.GL_UNPACK_ALIGNMENT, 1);
         // Load first 128 characters of ASCII set
@@ -348,7 +360,7 @@ pub const Font = struct {
                 0,
                 glad.GL_RED,
                 glad.GL_UNSIGNED_BYTE,
-                @ptrCast(face.*.glyph.*.bitmap.buffer)
+                face.*.glyph.*.bitmap.buffer
             );
             glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_WRAP_S, glad.GL_CLAMP_TO_EDGE);
             glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_WRAP_T, glad.GL_CLAMP_TO_EDGE);
@@ -366,6 +378,7 @@ pub const Font = struct {
 
         // Configure vao and vbo
         glad.glGenVertexArrays(1, &self.vao);
+        log(.debug, "self.vao = {}", .{self.vao});
         glad.glGenBuffers(1, &self.vbo);
         glad.glBindVertexArray(self.vao);
         glad.glBindBuffer(glad.GL_ARRAY_BUFFER, self.vbo);
@@ -378,7 +391,6 @@ pub const Font = struct {
 
         _ = ft.FT_Done_Face(face);
     }
-
 };
 
 pub const RenderData = struct {
@@ -564,6 +576,7 @@ const SpriteRenderer = struct {
 
             glad.glBindVertexArray(0);
         }
+        printOpenGLErrors("Post draw sprite");
     }
 };
 
@@ -629,30 +642,24 @@ const FontRenderer = struct {
     }
 
     pub fn drawText(p: *const DrawTextParams) void {
-        glad.glActiveTexture(glad.GL_TEXTURE0);
-        glad.glBindVertexArray(render_data.vao);
-
         render_data.shader.use();
         render_data.shader.setUniform("text_color", LinearColor, p.color);
-
         glad.glActiveTexture(glad.GL_TEXTURE0);
+        glad.glBindVertexArray(render_data.vao);
+        log(.debug, "render_data.vao = {}", .{render_data.vao});
+        printOpenGLErrors("bind vao");
 
         // Iterate over each character in the text.
         var x: f32 = p.position.x;
         const y: f32 = p.position.y;
         for (p.text) |c| {
-            // Since our characters array is indexed by ASCII code, c is used directly.
-            const ch = p.font.characters[c];
-            // Compute the position of the quad.
-            // Note: The original C code inverts the y coordinate (using -y)
-            // because the orthographic projection was flipped.
+            const ch = p.font.characters[@intCast(c)];
             const x_pos: f32 = x + @as(f32, @floatFromInt(ch.bearing.x)) * p.scale;
             const y_pos: f32 = -y - (@as(f32, @floatFromInt(ch.size.y - @as(u32, @intCast(ch.bearing.y)))) * p.scale);
             const w: f32 = @as(f32, @floatFromInt(ch.size.x)) * p.scale;
             const h: f32 = @as(f32, @floatFromInt(ch.size.y)) * p.scale;
-
-            // Create the vertex data for the quad (6 vertices, each with 4 components: x, y, u, v).
-            var verts: [6][4]f32 = .{
+            // Update VBO for each characters
+            const verts: [6][4]f32 = .{
                 .{ x_pos,       y_pos + h, 0.0, 0.0 },
                 .{ x_pos,       y_pos,     0.0, 1.0 },
                 .{ x_pos + w,   y_pos,     1.0, 1.0 },
@@ -663,12 +670,15 @@ const FontRenderer = struct {
             };
 
             // Bind the glyph's texture.
-            glad.glBindTexture(glad.GL_TEXTURE_2D, @intCast(ch.texture_id));
-            // Update the VBO with the new vertex data.
+            printOpenGLErrors("pre bind font texture");
+            glad.glBindTexture(glad.GL_TEXTURE_2D, ch.texture_id);
+            printOpenGLErrors("bind font texture");
             glad.glBindBuffer(glad.GL_ARRAY_BUFFER, p.font.vbo);
-            glad.glBufferSubData(glad.GL_ARRAY_BUFFER, 0, @sizeOf(@TypeOf(verts)), &verts);
-            // Render the quad.
+            printOpenGLErrors("bind buffer");
+            glad.glBufferSubData(glad.GL_ARRAY_BUFFER, 0, @sizeOf(@TypeOf(verts)), @ptrCast(&verts[0]));
+            printOpenGLErrors("buffer sub data");
             glad.glDrawArrays(glad.GL_TRIANGLES, 0, 6);
+            printOpenGLErrors("draw arrays");
             // Advance the cursor for the next glyph.
             // (ch.advance >> 6) converts from 1/64 pixels to pixels.
             const advance_amount: u32 = @intCast(ch.advance >> 6);
@@ -679,6 +689,7 @@ const FontRenderer = struct {
         glad.glBindBuffer(glad.GL_ARRAY_BUFFER, 0);
         glad.glBindVertexArray(0);
         glad.glBindTexture(glad.GL_TEXTURE_2D, 0);
+        printOpenGLErrors("Post draw text");
     }
 };
 

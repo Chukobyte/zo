@@ -33,7 +33,7 @@ pub fn main() !void {
         true
     );
     defer test_texture.deinit();
-    var test_font: Font = try Font.initFromMemory(static_assets.default_font.ptr, static_assets.default_font.len, 12, true);
+    var test_font: Font = try Font.initFromMemory(static_assets.default_font.ptr, static_assets.default_font.len, 32, true);
     defer test_font.deinit();
 
     var is_running = true;
@@ -63,7 +63,8 @@ pub fn main() !void {
         });
 
         renderer.drawText(&.{
-            .text = "Zo Test",
+            // .text = "Zo Test",
+            .text = "Z",
             .font = &test_font,
             .position = .{ .x = 200.0, .y = 400.0 },
         });
