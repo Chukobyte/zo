@@ -10,6 +10,7 @@ const math = zo.math;
 
 const Vec2 = math.Vec2;
 const Texture = renderer.Texture;
+const Font = renderer.Font;
 
 const GameConfig = struct {
     name: []const u8 = "Test Game",
@@ -32,6 +33,8 @@ pub fn main() !void {
         true
     );
     defer test_texture.deinit();
+    var test_font: Font = try Font.initFromMemory(static_assets.default_font.ptr, static_assets.default_font.len, 12, true);
+    defer test_font.deinit();
 
     var is_running = true;
 

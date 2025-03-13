@@ -1,7 +1,7 @@
 ///! Zig file used to embed assets at compile time
 
 // Fonts
-pub const default_font = StaticAsset.create("assets/font/verdana.ttf");
+pub const default_font = StaticAsset.create("assets/fonts/verdana.ttf");
 
 // Images
 pub const seika_idle_texture = StaticAsset.create("assets/images/seika_idle0.png");

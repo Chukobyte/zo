@@ -24,6 +24,7 @@ const GLenum = glad.GLenum;
 
 const Vec2 = math.Vec2;
 const Vec2i = math.Vec2i;
+const Vec2u = math.Vec2u;
 const Vec3 = math.Vec3;
 const Vec4 = math.Vec4;
 const Rect2 = math.Rect2;
@@ -275,8 +276,8 @@ pub const TextureCoords = struct {
 };
 
 pub const FontCharacter = struct {
-    texture_id: GLint,
-    size: Vec2i,
+    texture_id: GLuint,
+    size: Vec2u,
     bearing: Vec2i,
     advance: u32,
 };
@@ -294,30 +295,37 @@ pub const Font = struct {
     const EmptyFont: @This() = .{ .vao = undefined, .vbo = undefined, .size = undefined, .characters = undefined };
 
     pub fn init(file_path: []const u8, font_size: usize, nearest_neighbor: bool) !@This() {
-        var face: ft.FT_Face = .{};
+        var face: ft.FT_Face = undefined;
         var font = @This().EmptyFont;
         font.size = @intCast(font_size);
         if (ft.FT_New_Face(render_context.ft_instance, file_path.ptr, 0, &face) != 0) {
             ft.FT_Done_Face(face);
             return FontError.FailedToLoad;
         }
-        font.internalInit(face, nearest_neighbor);
+        try font.internalInit(face, nearest_neighbor);
+        return font;
     }
 
     pub fn initFromMemory(buffer: *const anyopaque, buffer_len: usize, font_size: usize, nearest_neighbor: bool) !@This() {
-        var face: ft.FT_Face = .{};
+        var face: ft.FT_Face = undefined;
         var font = @This().EmptyFont;
         font.size = @intCast(font_size);
-        if (ft.FT_New_Memory_Face(render_context.ft_instance, buffer, buffer_len, 0, &face) != 0) {
-            ft.FT_Done_Face(face);
+        const buffer_raw: [*c]const u8 = @alignCast(@ptrCast(buffer));
+        if (ft.FT_New_Memory_Face(render_context.ft_instance, &buffer_raw[0], @intCast(buffer_len), 0, &face) != 0) {
+            _ = ft.FT_Done_Face(face);
             return FontError.FailedToLoad;
         }
-        font.internalInit(face, nearest_neighbor);
+        try font.internalInit(face, nearest_neighbor);
+        return font;
     }
 
-    fn internalInit(self: *@This(), face: *ft.Face, nearest_neighbor: bool) !void {
+    pub fn deinit(self: *Font) void {
+        _ = self;
+    }
+
+    fn internalInit(self: *@This(), face: ft.FT_Face, nearest_neighbor: bool) !void {
         // Set size to load glyphs, width set to 0 to dynamically adjust
-        ft.FT_Set_Pixel_Sizes(face, 0, @intCast(self.size));
+        _ = ft.FT_Set_Pixel_Sizes(face, 0, @intCast(self.size));
         // Disable byte alignment restriction
         glad.glPixelStorei(glad.GL_UNPACK_ALIGNMENT, 1);
         // Load first 128 characters of ASCII set
@@ -335,12 +343,12 @@ pub const Font = struct {
                 glad.GL_TEXTURE_2D,
                 0,
                 glad.GL_R8,
-                @intCast(face.glyph.bitmap.width),
-                @intCast(face.glyph.bitmap.rows),
+                @intCast(face.*.glyph.*.bitmap.width),
+                @intCast(face.*.glyph.*.bitmap.rows),
                 0,
                 glad.GL_RED,
                 glad.GL_UNSIGNED_BYTE,
-                @ptrCast(face.glyph.bitmap.buffer)
+                @ptrCast(face.*.glyph.*.bitmap.buffer)
             );
             glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_WRAP_S, glad.GL_CLAMP_TO_EDGE);
             glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_WRAP_T, glad.GL_CLAMP_TO_EDGE);
@@ -349,9 +357,9 @@ pub const Font = struct {
             glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_MAG_FILTER, filter_type);
             self.characters[c] = .{
                 .texture_id = text_texture,
-                .size = .{ .x = face.glyph.bitmap.width, .y = face.glyph.bitmap.rows },
-                .bearing = .{ .x = face.glyph.bitmap_left, .y = face.glyph.bitmap_top },
-                .advance = @intFromFloat(face.glyph.advance.x),
+                .size = .{ .x = face.*.glyph.*.bitmap.width, .y = face.*.glyph.*.bitmap.rows },
+                .bearing = .{ .x = @intCast(face.*.glyph.*.bitmap_left), .y = @intCast(face.*.glyph.*.bitmap_top) },
+                .advance = @intCast(face.*.glyph.*.advance.x),
             };
         }
         glad.glBindTexture(glad.GL_TEXTURE_2D, 0);
@@ -368,7 +376,7 @@ pub const Font = struct {
         glad.glBindBuffer(glad.GL_ARRAY_BUFFER, 0);
         glad.glBindVertexArray(0);
 
-        ft.FT_Done_Face(face);
+        _ = ft.FT_Done_Face(face);
     }
 
 };
