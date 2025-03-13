@@ -285,8 +285,6 @@ const FontError = error {
     FailedToLoad,
 };
 
-
-
 pub const Font = struct {
     vao: GLuint,
     vbo: GLuint,
