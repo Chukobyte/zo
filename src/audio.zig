@@ -19,6 +19,12 @@ pub const AudioSource = struct {
     pub fn initWavFromMemory(_: *const anyopaque, _: usize) !@This() {}
 };
 
-pub fn init() !void {}
+pub fn init() !void {
+    if (!a.zo_audio_init()) {
+        return AudioError.FailedToInitialize;
+    }
+}
 
-pub fn deinit() void {}
+pub fn deinit() void {
+    a.zo_audio_deinit();
+}

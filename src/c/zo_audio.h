@@ -1,25 +1,6 @@
 #pragma once
 
-#include <stddef.h>
-#include <stdbool.h>
-#include <stdint.h>
-
-typedef size_t usize;
-
-typedef int16_t int16;
-typedef int16_t i16;
-typedef int32_t int32;
-typedef int32_t i32;
-typedef int64_t int64;
-typedef int64_t i64;
-
-typedef uint32_t uint32;
-typedef uint32_t u32;
-typedef uint64_t uint64;
-typedef uint64_t u64;
-
-typedef float f32;
-typedef double f64;
+#include "zo_defines.h"
 
 typedef struct ZoAudioSource {
     const char* file_path;
@@ -31,3 +12,17 @@ typedef struct ZoAudioSource {
     u32 dataId;
 } ZoAudioSource;
 
+// Initialize audio library
+bool zo_audio_init();
+// Deinitialize audio library
+void zo_audio_deinit();
+// Load wav from file path
+ZoAudioSource* zo_audio_load_wav(const char* file_path);
+// Load wav from memory
+ZoAudioSource* zo_audio_load_wav_from_memory(const void* buffer, size_t buffer_len);
+// Delete audio source
+void zo_audio_delete_audio_source(ZoAudioSource* source);
+// Play audio source
+void zo_audio_play(ZoAudioSource* source, bool doesLoop);
+// Stop audio source if playing
+void zo_audio_stop(ZoAudioSource* source);
