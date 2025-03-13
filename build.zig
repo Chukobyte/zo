@@ -31,6 +31,7 @@ pub fn build(b: *std.Build) !void {
     const glad_lib: *std.Build.Step.Compile = try add_glad(b, target, optimize);
     const stb_image_lib: *std.Build.Step.Compile = try add_stb_image(b, target, optimize);
     const freetype_lib: *std.Build.Step.Compile = try add_freetype(b, target, optimize);
+    const zo_audio_lib: *std.Build.Step.Compile = try add_zo_audio(b, target, optimize);
     exe.linkLibC();
     exe.linkSystemLibrary("gdi32");
     exe.linkSystemLibrary("user32");
@@ -38,10 +39,7 @@ pub fn build(b: *std.Build) !void {
     exe.linkLibrary(glad_lib);
     exe.linkLibrary(stb_image_lib);
     exe.linkLibrary(freetype_lib);
-
-    // Add miniaudio
-    const miniaudio_path = thirdparty_path ++ "/miniaudio";
-    exe.addIncludePath(b.path(miniaudio_path));
+    exe.linkLibrary(zo_audio_lib);
 
     const static_assets_module = b.addModule("static_assets", .{
         .root_source_file = b.path("static_assets.zig"),
@@ -310,4 +308,24 @@ fn add_libpng(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.bui
     b.installArtifact(libpng_lib);
 
     return libpng_lib;
+}
+
+fn add_zo_audio(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !*std.Build.Step.Compile {
+    const miniaudio_path = thirdparty_path ++ "/miniaudio";
+
+    const audio_lib: *std.Build.Step.Compile = b.addStaticLibrary(.{
+        .name = "zo_audio",
+        .target = target,
+        .optimize = optimize,
+    });
+    audio_lib.linkLibC();
+    // Add miniaudio directory to be included
+    audio_lib.addIncludePath(b.path(miniaudio_path));
+    audio_lib.addCSourceFile(.{.file = b.path("src/c/zo_audio.c")});
+    
+    audio_lib.installHeader(b.path("src/c/zo_audio.h"), "zo_audio.h");
+
+    b.installArtifact(audio_lib);
+
+    return audio_lib;
 }
