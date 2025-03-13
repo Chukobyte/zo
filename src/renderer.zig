@@ -378,7 +378,6 @@ pub const Font = struct {
 
         // Configure vao and vbo
         glad.glGenVertexArrays(1, &self.vao);
-        log(.debug, "self.vao = {}", .{self.vao});
         glad.glGenBuffers(1, &self.vbo);
         glad.glBindVertexArray(self.vao);
         glad.glBindBuffer(glad.GL_ARRAY_BUFFER, self.vbo);
@@ -576,7 +575,6 @@ const SpriteRenderer = struct {
 
             glad.glBindVertexArray(0);
         }
-        printOpenGLErrors("Post draw sprite");
     }
 };
 
@@ -645,9 +643,7 @@ const FontRenderer = struct {
         render_data.shader.use();
         render_data.shader.setUniform("text_color", LinearColor, p.color);
         glad.glActiveTexture(glad.GL_TEXTURE0);
-        glad.glBindVertexArray(render_data.vao);
-        log(.debug, "render_data.vao = {}", .{render_data.vao});
-        printOpenGLErrors("bind vao");
+        glad.glBindVertexArray(p.font.vao);
 
         // Iterate over each character in the text.
         var x: f32 = p.position.x;
@@ -670,15 +666,10 @@ const FontRenderer = struct {
             };
 
             // Bind the glyph's texture.
-            printOpenGLErrors("pre bind font texture");
             glad.glBindTexture(glad.GL_TEXTURE_2D, ch.texture_id);
-            printOpenGLErrors("bind font texture");
             glad.glBindBuffer(glad.GL_ARRAY_BUFFER, p.font.vbo);
-            printOpenGLErrors("bind buffer");
             glad.glBufferSubData(glad.GL_ARRAY_BUFFER, 0, @sizeOf(@TypeOf(verts)), @ptrCast(&verts[0]));
-            printOpenGLErrors("buffer sub data");
             glad.glDrawArrays(glad.GL_TRIANGLES, 0, 6);
-            printOpenGLErrors("draw arrays");
             // Advance the cursor for the next glyph.
             // (ch.advance >> 6) converts from 1/64 pixels to pixels.
             const advance_amount: u32 = @intCast(ch.advance >> 6);
@@ -689,7 +680,6 @@ const FontRenderer = struct {
         glad.glBindBuffer(glad.GL_ARRAY_BUFFER, 0);
         glad.glBindVertexArray(0);
         glad.glBindTexture(glad.GL_TEXTURE_2D, 0);
-        printOpenGLErrors("Post draw text");
     }
 };
 

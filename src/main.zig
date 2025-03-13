@@ -63,8 +63,7 @@ pub fn main() !void {
         });
 
         renderer.drawText(&.{
-            // .text = "Zo Test",
-            .text = "Z",
+            .text = "Zo Test",
             .font = &test_font,
             .position = .{ .x = 200.0, .y = 400.0 },
         });
