@@ -3,6 +3,7 @@ const std = @import("std");
 const static_assets = @import("static_assets");
 
 const renderer = @import("renderer.zig");
+const audio = @import("audio.zig");
 const zo = @import("zo.zig");
 const window = zo.window;
 const input = zo.input;
@@ -25,6 +26,8 @@ pub fn main() !void {
     try window.create(config.name, config.window_pos.x, config.window_pos.y, config.window_width, config.window_height);
     try renderer.init(config.window_width, config.window_height);
     defer renderer.deinit();
+    try audio.init();
+    defer audio.deinit();
 
     var test_texture: Texture = try Texture.initFromMemory(
         std.heap.page_allocator,
