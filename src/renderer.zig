@@ -38,7 +38,10 @@ const log = @import("logger.zig").log;
 pub const RenderContext = struct {
     res_width: i32 = undefined,
     res_height: i32 = undefined,
+    ft_instance: ft.FT_Library = undefined,
 };
+
+var render_context: RenderContext = .{};
 
 const ShaderError = error{
     FailedToCompile,
@@ -273,16 +276,103 @@ pub const TextureCoords = struct {
 
 pub const FontCharacter = struct {
     texture_id: GLint,
-    size: Vec2,
-    bearing: Vec2,
+    size: Vec2i,
+    bearing: Vec2i,
     advance: u32,
 };
+
+const FontError = error {
+    FailedToLoad,
+};
+
+
 
 pub const Font = struct {
     vao: GLuint,
     vbo: GLuint,
     size: i32,
     characters: [128]FontCharacter, // First 128 of ASCII set
+
+    const EmptyFont: @This() = .{ .vao = undefined, .vbo = undefined, .size = undefined, .characters = undefined };
+
+    pub fn init(file_path: []const u8, font_size: usize, nearest_neighbor: bool) !@This() {
+        var face: ft.FT_Face = .{};
+        var font = @This().EmptyFont;
+        font.size = @intCast(font_size);
+        if (ft.FT_New_Face(render_context.ft_instance, file_path.ptr, 0, &face) != 0) {
+            ft.FT_Done_Face(face);
+            return FontError.FailedToLoad;
+        }
+        font.internalInit(face, nearest_neighbor);
+    }
+
+    pub fn initFromMemory(buffer: *const anyopaque, buffer_len: usize, font_size: usize, nearest_neighbor: bool) !@This() {
+        var face: ft.FT_Face = .{};
+        var font = @This().EmptyFont;
+        font.size = @intCast(font_size);
+        if (ft.FT_New_Memory_Face(render_context.ft_instance, buffer, buffer_len, 0, &face) != 0) {
+            ft.FT_Done_Face(face);
+            return FontError.FailedToLoad;
+        }
+        font.internalInit(face, nearest_neighbor);
+    }
+
+    fn internalInit(self: *@This(), face: *ft.Face, nearest_neighbor: bool) !void {
+        // Set size to load glyphs, width set to 0 to dynamically adjust
+        ft.FT_Set_Pixel_Sizes(face, 0, @intCast(self.size));
+        // Disable byte alignment restriction
+        glad.glPixelStorei(glad.GL_UNPACK_ALIGNMENT, 1);
+        // Load first 128 characters of ASCII set
+        var c: ft.FT_ULong = 0;
+        while (c < 128) : (c += 1) {
+            // Load character glyph
+            if (ft.FT_Load_Char(face, c, ft.FT_LOAD_RENDER) != 0) {
+                log(.critical, "Free type failed to load glyph for {any}", .{c});
+                return FontError.FailedToLoad;
+            }
+            var text_texture: GLuint = undefined;
+            glad.glGenTextures(1, &text_texture);
+            glad.glBindTexture(glad.GL_TEXTURE_2D, text_texture);
+            glad.glTexImage2D(
+                glad.GL_TEXTURE_2D,
+                0,
+                glad.GL_R8,
+                @intCast(face.glyph.bitmap.width),
+                @intCast(face.glyph.bitmap.rows),
+                0,
+                glad.GL_RED,
+                glad.GL_UNSIGNED_BYTE,
+                @ptrCast(face.glyph.bitmap.buffer)
+            );
+            glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_WRAP_S, glad.GL_CLAMP_TO_EDGE);
+            glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_WRAP_T, glad.GL_CLAMP_TO_EDGE);
+            const filter_type: GLint = if (nearest_neighbor) glad.GL_NEAREST else glad.GL_LINEAR;
+            glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_MIN_FILTER, filter_type);
+            glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_MAG_FILTER, filter_type);
+            self.characters[c] = .{
+                .texture_id = text_texture,
+                .size = .{ .x = face.glyph.bitmap.width, .y = face.glyph.bitmap.rows },
+                .bearing = .{ .x = face.glyph.bitmap_left, .y = face.glyph.bitmap_top },
+                .advance = @intFromFloat(face.glyph.advance.x),
+            };
+        }
+        glad.glBindTexture(glad.GL_TEXTURE_2D, 0);
+
+        // Configure vao and vbo
+        glad.glGenVertexArrays(1, &self.vao);
+        glad.glGenBuffers(1, &self.vbo);
+        glad.glBindVertexArray(self.vao);
+        glad.glBindBuffer(glad.GL_ARRAY_BUFFER, self.vbo);
+        glad.glBufferData(glad.GL_ARRAY_BUFFER, @sizeOf(GLfloat) * 6 * 4, null, glad.GL_DYNAMIC_DRAW);
+        // Setup vertex attribute as we just pass in the vertex to the shader
+        glad.glEnableVertexAttribArray(0);
+        glad.glVertexAttribPointer(0, 4, glad.GL_FLOAT, glad.GL_FALSE, 4 * @sizeOf(GLfloat), null);
+        glad.glBindBuffer(glad.GL_ARRAY_BUFFER, 0);
+        glad.glBindVertexArray(0);
+
+        ft.FT_Done_Face(face);
+    }
+
 };
 
 pub const RenderData = struct {
@@ -514,10 +604,9 @@ const FontRenderer = struct {
     };
 
     var render_data: RenderData = .{};
-    var ft_instance: ft.FT_Library = undefined;
 
     pub fn init(res_width: i32, res_height: i32) !void {
-        if (ft.FT_Init_FreeType(&ft_instance) != 0) {
+        if (ft.FT_Init_FreeType(&render_context.ft_instance) != 0) {
             log(.critical, "Unable to initialize FreeType library!", .{});
             return InitializeError.FreeType;
         }
@@ -530,7 +619,7 @@ const FontRenderer = struct {
     }
 
     pub fn deinit() void {
-        _ = ft.FT_Done_FreeType(ft_instance);
+        _ = ft.FT_Done_FreeType(render_context.ft_instance);
     }
 
     pub fn drawText(p: *const DrawTextParams) void {
@@ -586,8 +675,6 @@ const FontRenderer = struct {
         glad.glBindTexture(glad.GL_TEXTURE_2D, 0);
     }
 };
-
-var render_context: RenderContext = .{};
 
 pub fn init(res_width: i32, res_height: i32) !void {
     render_context.res_width = res_width;
