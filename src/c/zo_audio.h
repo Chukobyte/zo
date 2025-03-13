@@ -6,7 +6,7 @@ typedef struct ZoAudioSource {
     const char* file_path;
     f64 pitch;
     i32 channels;
-    i32 sample_rate;
+    u32 sample_rate;
     void* samples;
     i32 sample_count;
     u32 dataId;

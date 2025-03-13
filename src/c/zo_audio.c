@@ -7,8 +7,11 @@
 #define ZO_MAX_AUDIO_INSTANCES 32
 
 static void audio_data_callback(void* device, void* output, const void* input, ma_uint32 frame_count);
+static char* read_file_contents(const char* file_path, usize* size);
+static usize get_file_size(const char* file_path);
 
 static ma_device audio_device;
+static uint32 audio_wav_sample_rate = 0;
 
 bool zo_audio_init() {
   // Device
@@ -28,6 +31,7 @@ bool zo_audio_init() {
   if (ma_device_start(&audio_device) != MA_SUCCESS) {
     return false;
   }
+  audio_wav_sample_rate = audio_device.sampleRate;
 
   return true;
 }
@@ -37,7 +41,79 @@ void zo_audio_deinit() {
 }
 
 ZoAudioSource* zo_audio_load_wav(const char* file_path) {
-  return NULL;
+  i32 sample_count;
+  u32 channels;
+  u32 sample_rate;
+  void* samples;
+
+  // Load from file
+  usize len = 0;
+  char* file_data = read_file_contents(file_path, &len);
+  drwav_uint64 totalPcmFrameCount = 0;
+  samples = drwav_open_memory_and_read_pcm_frames_s16(file_data, len, &channels, &sample_rate, &totalPcmFrameCount, NULL);
+  free(file_data);
+
+  if (!samples) {
+//    ska_logger_error("Could not load .wav file: %s", file_path);
+    return NULL;
+  }
+
+  sample_count = (int32)totalPcmFrameCount * channels;
+
+  ZoAudioSource* new_audio_source = malloc(sizeof(ZoAudioSource));
+  new_audio_source->file_path = file_path; // TODO: Fix
+  new_audio_source->pitch = 1.0;
+  new_audio_source->sample_count = sample_count;
+  new_audio_source->sample_rate = sample_rate;
+  new_audio_source->channels = channels;
+  new_audio_source->samples = samples;
+
+  // Resample if audio source sample rate is different from main
+  if (new_audio_source->sample_rate != audio_wav_sample_rate) {
+      const int32 inputFrameCount = sample_count / channels;
+        const f64 resampleRatio = (f64)audio_wav_sample_rate / sample_rate;
+        const int32 outputFrameCount = (int32)(inputFrameCount * resampleRatio);
+
+        int16_t* resampledSamples = malloc(outputFrameCount * channels * sizeof(int16));
+        if (!resampledSamples) {
+//            ska_logger_error("Failed to allocate memory for resampled audio for '%s'!", file_path);
+            free(samples);
+            free(new_audio_source);
+            return NULL;
+        }
+
+        ma_data_converter_config converterConfig = ma_data_converter_config_init(
+            ma_format_s16, ma_format_s16, channels, channels,
+            new_audio_source->sample_rate, audio_wav_sample_rate
+        );
+        ma_data_converter converter;
+        if (ma_data_converter_init(&converterConfig, NULL, &converter) != MA_SUCCESS) {
+//            ska_logger_error("Failed to initialize data converter for audio file '%s'!", file_path);
+            free(samples);
+            free(resampledSamples);
+            free(new_audio_source);
+            return NULL;
+        }
+
+        ma_uint64 inFrames = inputFrameCount;
+        ma_uint64 outFrames = outputFrameCount;
+        if (ma_data_converter_process_pcm_frames(&converter, resampledSamples, &outFrames, samples, &inFrames) != MA_SUCCESS) {
+//            ska_logger_error("Data conversion failed for audio file '%s'!", file_path);
+            free(samples);
+            free(resampledSamples);
+            ma_data_converter_uninit(&converter, NULL);
+            free(new_audio_source);
+            return NULL;
+        }
+        ma_data_converter_uninit(&converter, NULL);
+//        ska_logger_debug("Resampled audio for '%s': inFrames = %d, outFrames = %llu", file_path, inputFrameCount, outFrames);
+        free(samples);
+        new_audio_source->samples = resampledSamples;
+        new_audio_source->sample_rate = (int32)audio_wav_sample_rate;
+        new_audio_source->sample_count = (int32)outFrames * channels;
+  }
+
+  return new_audio_source;
 }
 
 ZoAudioSource* zo_audio_load_wav_from_memory(const void* buffer, size_t buffer_len) {
@@ -52,4 +128,48 @@ void zo_audio_stop(ZoAudioSource* source) {}
 
 void audio_data_callback(void* device, void* output, const void* input, ma_uint32 frame_count) {
   ma_device* audio_device = (ma_device*)device;
+}
+
+char* read_file_contents(const char* file_path, usize* size) {
+  char* buffer = NULL;
+  FILE* fp = fopen(file_path, "rb");
+  usize read_size = 0;
+  if (fp) {
+    read_size = get_file_size(file_path);
+    // Update buffer
+    buffer = (char*)malloc(read_size + 1);
+    if (buffer != NULL) {
+      fread(buffer, 1, read_size, fp);
+      buffer[read_size] = '\0';
+    }
+    fclose(fp);
+  }
+  if (size != NULL) {
+    *size = read_size;
+  }
+  return buffer;
+}
+
+usize get_file_size(const char* filePath) {
+#ifdef _WIN32
+  HANDLE hFile = CreateFile(filePath, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+  if (hFile == INVALID_HANDLE_VALUE) {
+//    ska_logger_error("Error invalid handle value when getting file size at path '%s'", filePath);
+    return 0;
+  }
+
+  LARGE_INTEGER size;
+  if (!GetFileSizeEx(hFile, &size)) {
+    CloseHandle(hFile);
+//    ska_logger_error("Error getting file size at path '%s'", filePath);
+    return 0;
+  }
+
+  CloseHandle(hFile);
+  return (usize) size.QuadPart;
+#else
+  struct stat st;
+  stat(filePath, &st);
+  return (usize) st.st_size;
+#endif
 }
