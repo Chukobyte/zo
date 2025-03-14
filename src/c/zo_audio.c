@@ -17,6 +17,7 @@ typedef struct ZoAudioInstance {
     bool is_playing;
     bool does_loop;
     f64 sample_position;
+    bool is_active;
 } ZoAudioInstance;
 
 static ma_device audio_device;
@@ -80,6 +81,7 @@ bool zo_audio_play(ZoAudioSource* source, bool doesLoop) {
     audio_instance->does_loop = doesLoop;
     audio_instance->sample_position = 0.0f;
     audio_instance->is_playing = true;
+    audio_instance->is_active = true;
     return true;
 }
 
@@ -126,7 +128,76 @@ ZoAudioSource* load_wav_from_data(const void* buffer, size_t buffer_len) {
 }
 
 void audio_data_callback(void* device, void* output, const void* input, ma_uint32 frame_count) {
-  ma_device* audio_device = (ma_device*)device;
+    if (audio_instances_count == 0) {
+        return;
+    }
+    ma_device* audio_device = (ma_device*)device;
+    memset(output, 0, frame_count * audio_device->playback.channels * ma_get_bytes_per_sample(audio_device->playback.format));
+    usize removed_instances = 0;
+    for (usize i = 0; i < audio_instances_count; i++) {
+        ZoAudioInstance* audio_instance = &audio_instances[i];
+        if (!audio_instance->is_playing) {
+            audio_instance->is_active = false;
+            removed_instances++;
+            continue;
+        }
+
+        const int32 channels = audio_instance->source->channels;
+        const f64 pitch = audio_instance->source->pitch;
+        int16* sampleOut = (int16*)output;
+        const int16* samples = (int16*)audio_instance->source->samples;
+        const uint64 samplesToWrite = (uint64)frame_count;
+
+        // Write to output
+        for (uint64 writeSample = 0; writeSample < samplesToWrite; writeSample++) {
+            const f64 startSamplePosition = audio_instance->sample_position;
+
+            uint64 curIndex = (uint64) startSamplePosition;
+            if (channels > 1) {
+                curIndex &= ~((uint64)0x01);
+            }
+            const uint64 nextIndex = (curIndex + channels) % audio_instance->source->sample_count;
+            const uint64 leftIndexNext = nextIndex;
+            const uint64 rightIndexNext = nextIndex + 1;
+            const int16 sampleLeftNext = samples[leftIndexNext];
+            const int16 sampleRightNext = samples[rightIndexNext];
+
+            *sampleOut++ += sampleLeftNext;
+            *sampleOut++ += sampleRightNext;
+
+            // Update the instance's sample position and clamp it
+            const f64 targetSamplePosition = startSamplePosition + (f64)channels * pitch;
+            audio_instance->sample_position = fmod(targetSamplePosition, audio_instance->source->sample_count);
+
+            // Check if the raw target sample position has passed boundary
+            if (targetSamplePosition >= (f64)audio_instance->source->sample_count - channels) {
+                audio_instance->sample_position = 0.0;
+                if (!audio_instance->does_loop) {
+                    audio_instance->is_playing = false;
+                    audio_instance->is_active = false;
+                    removed_instances++;
+                    break;
+                }
+            }
+        }
+    }
+
+    // Reshuffle array and update count if data sources have been removed
+    if (removed_instances > 0) {
+        static ZoAudioInstance tempAudioInstances[ZO_MAX_AUDIO_INSTANCES];
+        usize newCount = 0;
+        // Place active instances in temp array
+        for (usize i = 0; i < audio_instances_count; i++) {
+            if (audio_instances[i].is_active) {
+                tempAudioInstances[newCount++] = audio_instances[i];
+            }
+        }
+        // Now fill up regular array
+        for (usize i = 0; i < newCount; i++) {
+            audio_instances[i] = tempAudioInstances[i];
+        }
+        audio_instances_count = newCount;
+    }
 }
 
 bool resample_audio(ZoAudioSource* audio_source) {
