@@ -26,6 +26,7 @@ pub fn Tick(interface: type) type {
             return new_tick;
         }
 
+        /// Updates the tick and will call interface functions 'update' and 'fixed_update'
         pub fn update(self: *@This()) !void {
             const new_time: u64 = self.getTicks();
             const delta_time: u64 = new_time - self.current_time;

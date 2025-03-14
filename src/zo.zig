@@ -20,6 +20,8 @@ pub const ZoParams = struct {
 
     window: WindowParams,
     game: type,
+    target_fps: u32,
+    fixed_target_fps: ?u32 = null,
     resolution: ?Dim2i = null,
 };
 
@@ -43,7 +45,8 @@ pub fn run(comptime p: ZoParams) !void {
 
     var tick = GameTick.init(.{
         .interface = p.game,
-        .target_fps = 60,
+        .target_fps = p.target_fps,
+        .fixed_target_fps = p.fixed_target_fps,
     });
 
     is_running = true;

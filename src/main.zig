@@ -71,5 +71,6 @@ pub fn main() !void {
             .size = .{ .w = 800, .h = 600 },
         },
         .game = Game,
+        .target_fps = 60,
     });
 }
