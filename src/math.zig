@@ -394,6 +394,16 @@ pub const LinearColor = struct {
     pub const Blue = @This(){ .r = 0.0, .g = 0.0, .b = 1.0 };
 };
 
+pub fn Dimensions2(comptime T: type) type {
+    return struct {
+        w: T = @as(T, 0),
+        h: T = @as(T, 0),
+    };
+}
+
+pub const Dim2 = Dimensions2(f32);
+pub const Dim2i = Dimensions2(i32);
+
 /// Map a value from one range to another
 pub inline fn mapToRange(comptime T: type, input: T, input_min: T, input_max: T, output_min: T, output_max: T) T {
     return (((input - input_min) / (input_max - input_min)) * (output_max - output_min) + output_min);
