@@ -8,6 +8,8 @@ const Vec2i = math.Vec2i;
 const Dim2i = math.Dim2i;
 const LinearColor = math.LinearColor;
 
+const Tick = @import("tick.zig").Tick;
+
 pub const ZoParams = struct {
     const WindowParams = struct {
         title: []const u8,
@@ -37,6 +39,13 @@ pub fn run(comptime p: ZoParams) !void {
     try audio.init();
     defer audio.deinit();
 
+    const GameTick = Tick(p.game);
+
+    var tick = GameTick.init(.{
+        .interface = p.game,
+        .target_fps = 60,
+    });
+
     is_running = true;
 
     const T: type = p.game;
@@ -49,9 +58,8 @@ pub fn run(comptime p: ZoParams) !void {
         input.new_frame();
         window.update();
 
-        if (@hasDecl(T, "update")) {
-            try T.update(0.1);
-        }
+        // Call user define update and fixed_update functions
+        try tick.update();
 
         window.swap();
     }
