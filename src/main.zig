@@ -20,19 +20,19 @@ const Game = struct {
     var verdana_font: Font = undefined;
     var rainbow_orb_audio: AudioSource = undefined;
 
-    fn init() !void {
+    pub fn init() !void {
         seika_textue = try Texture.initFromMemory2(std.heap.page_allocator, static_assets.seika_idle_texture, true);
         verdana_font = try Font.initFromMemory2(static_assets.default_font, 32, true);
         rainbow_orb_audio = try AudioSource.initWavFromMemory2(static_assets.rainbow_orb_audio);
     }
 
-    fn deinit() void {
+    pub fn deinit() void {
         seika_textue.deinit();
         verdana_font.deinit();
         rainbow_orb_audio.deinit();
     }
 
-    fn update(_: f32) !void {
+    pub fn update(_: f32) !void {
         if (input.is_key_just_pressed(.{ .key = .keyboard_a })) {
             std.debug.print("a pressed!\n", .{});
         }

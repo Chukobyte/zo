@@ -50,7 +50,7 @@ pub fn run(comptime p: ZoParams) !void {
         window.update();
 
         if (@hasDecl(T, "update")) {
-            T.update(0.1);
+            try T.update(0.1);
         }
 
         window.swap();
