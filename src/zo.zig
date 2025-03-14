@@ -9,12 +9,6 @@ const Dim2i = math.Dim2i;
 const LinearColor = math.LinearColor;
 
 pub const ZoParams = struct {
-    const Callbacks = struct {
-        update: fn(f32) void,
-        init: ?fn() void,
-        deinit: ?fn() void,
-    };
-
     const WindowParams = struct {
         title: []const u8,
         pos: Vec2i,
@@ -22,15 +16,14 @@ pub const ZoParams = struct {
         background: LinearColor = .{ .r = 0.25, .g = 0.25, .b = 0.25 },
     };
 
-
     window: WindowParams,
-    callbacks: Callbacks,
+    game: type,
     resolution: ?Dim2i = null,
 };
 
 var is_running = false;
 
-pub fn run(p: ZoParams) !void {
+pub fn run(comptime p: ZoParams) !void {
     try window.create(
         p.window.title,
         p.window.pos.x,
@@ -46,8 +39,9 @@ pub fn run(p: ZoParams) !void {
 
     is_running = true;
 
-    if (p.callbacks.init) |init_func| {
-        init_func();
+    const T: type = p.game;
+    if (@hasDecl(T, "init")) {
+        try T.init();
     }
 
     while (window.isActive() and is_running) {
@@ -55,13 +49,15 @@ pub fn run(p: ZoParams) !void {
         input.new_frame();
         window.update();
 
-        p.callbacks.update(0.1);
+        if (@hasDecl(T, "update")) {
+            T.update(0.1);
+        }
 
         window.swap();
     }
 
-    if (p.callbacks.deinit) |deinit_func| {
-        deinit_func();
+    if (@hasDecl(T, "deinit")) {
+        T.deinit();
     }
 }
 
