@@ -2,6 +2,8 @@ const a = @cImport({
     @cInclude("zo_audio.h");
 });
 
+const StaticAsset = @import("static_assets").StaticAsset;
+
 const ZoAudioSource = a.ZoAudioSource;
 
 const AudioError = error {
@@ -26,6 +28,10 @@ pub const AudioSource = struct {
             return AudioError.FailedToInitialize;
         }
         return @This(){ .audio_source = internal_audio_source.? };
+    }
+
+    pub inline fn initWavFromMemory2(asset: StaticAsset) !@This() {
+        return try initWavFromMemory(asset.ptr, asset.len);
     }
 
     pub fn deinit(self: *@This()) void {

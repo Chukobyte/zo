@@ -31,18 +31,13 @@ pub fn main() !void {
     try audio.init();
     defer audio.deinit();
 
-    var test_texture: Texture = try Texture.initFromMemory(
-        std.heap.page_allocator,
-        static_assets.seika_idle_texture.ptr,
-        static_assets.seika_idle_texture.len,
-        true
-    );
+    var test_texture: Texture = try Texture.initFromMemory2(std.heap.page_allocator, static_assets.seika_idle_texture, true);
     defer test_texture.deinit();
 
-    var test_font: Font = try Font.initFromMemory(static_assets.default_font.ptr, static_assets.default_font.len, 32, true);
+    var test_font: Font = try Font.initFromMemory2(static_assets.default_font, 32, true);
     defer test_font.deinit();
 
-    var test_audio_source: AudioSource = try AudioSource.initWavFromMemory(static_assets.rainbow_orb_audio.ptr, static_assets.rainbow_orb_audio.len);
+    var test_audio_source: AudioSource = try AudioSource.initWavFromMemory2(static_assets.rainbow_orb_audio);
     defer test_audio_source.deinit();
 
     var is_running = true;

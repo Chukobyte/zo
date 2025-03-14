@@ -10,7 +10,7 @@ pub const seika_idle_texture = StaticAsset.create("assets/images/seika_idle0.png
 pub const rainbow_orb_audio = StaticAsset.create("assets/audio/rainbow_orb.wav");
 
 
-const StaticAsset = struct {
+pub const StaticAsset = struct {
     ptr: *const anyopaque,
     len: usize,
 

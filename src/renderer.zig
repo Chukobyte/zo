@@ -34,6 +34,8 @@ const LinearColor = math.LinearColor;
 
 const String = string.String;
 
+const StaticAsset = @import("static_assets").StaticAsset;
+
 const log = @import("logger.zig").log;
 
 pub const RenderContext = struct {
@@ -204,6 +206,10 @@ pub const Texture = struct {
         return texture;
     }
 
+    pub inline fn initFromMemory2(allocator: std.mem.Allocator, asset: StaticAsset, nearest_neighbor: bool) !@This() {
+        return try initFromMemory(allocator, asset.ptr, asset.len, nearest_neighbor);
+    }
+
     pub fn deinit(self: *@This()) void {
         if (self.file_path) |file_path| {
             self.allocator.free(file_path);
@@ -327,6 +333,10 @@ pub const Font = struct {
         }
         try font.internalInit(face, nearest_neighbor);
         return font;
+    }
+
+    pub inline fn initFromMemory2(asset: StaticAsset, font_size: usize, nearest_neighbor: bool) !@This() {
+        return try initFromMemory(asset.ptr, asset.len, font_size, nearest_neighbor);
     }
 
     pub fn deinit(self: *Font) void {
