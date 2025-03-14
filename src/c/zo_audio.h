@@ -23,6 +23,6 @@ ZoAudioSource* zo_audio_load_wav_from_memory(const void* buffer, size_t buffer_l
 // Delete audio source
 void zo_audio_delete_audio_source(ZoAudioSource* source);
 // Play audio source
-void zo_audio_play(ZoAudioSource* source, bool doesLoop);
+bool zo_audio_play(ZoAudioSource* source, bool doesLoop);
 // Stop audio source if playing
 void zo_audio_stop(ZoAudioSource* source);

@@ -12,8 +12,17 @@ static bool resample_audio(ZoAudioSource* audio_source);
 static char* read_file_contents(const char* file_path, usize* size);
 static usize get_file_size(const char* file_path);
 
+typedef struct ZoAudioInstance {
+    ZoAudioSource* source;
+    bool is_playing;
+    bool does_loop;
+    f64 sample_position;
+} ZoAudioInstance;
+
 static ma_device audio_device;
 static uint32 audio_wav_sample_rate = 0;
+static ZoAudioInstance audio_instances[ZO_MAX_AUDIO_INSTANCES];
+static usize audio_instances_count = 0;
 
 bool zo_audio_init() {
   // Device
@@ -62,9 +71,27 @@ ZoAudioSource* zo_audio_load_wav_from_memory(const void* buffer, size_t buffer_l
 
 void zo_audio_delete_audio_source(ZoAudioSource* source) {}
 
-void zo_audio_play(ZoAudioSource* source, bool doesLoop) {}
+bool zo_audio_play(ZoAudioSource* source, bool doesLoop) {
+    if (audio_instances_count >= ZO_MAX_AUDIO_INSTANCES) {
+        return false;
+    }
+    ZoAudioInstance* audio_instance = &audio_instances[audio_instances_count++];
+    audio_instance->source = source;
+    audio_instance->does_loop = doesLoop;
+    audio_instance->sample_position = 0.0f;
+    audio_instance->is_playing = true;
+    return true;
+}
 
-void zo_audio_stop(ZoAudioSource* source) {}
+void zo_audio_stop(ZoAudioSource* source) {
+    for (usize i = 0; i < audio_instances_count; i++) {
+        ZoAudioInstance* audio_instance = &audio_instances[i];
+        if (audio_instance->source == source) {
+            audio_instance->is_playing = false;
+            break;
+        }
+    }
+}
 
 ZoAudioSource* load_wav_from_data(const void* buffer, size_t buffer_len) {
     i32 sample_count;
