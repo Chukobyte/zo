@@ -10,14 +10,7 @@ const AudioError = error {
 };
 
 pub const AudioSource = struct {
-    // pitch: f64,
-    // channels: i32,
-    // sample_rate: i32,
-    // samples: [*c]anyopaque,
-    // sample_count: i32,
-    // data_id: u32,
-    // file_path: ?[]u8,
-    audio_source: *ZoAudioSource,
+    audio_source: *ZoAudioSource, // Internal audio source defined in c, can most likely replace with zig implementation post 0.15.0
 
     pub fn initWav(file_path: []const u8) !@This() {
         const internal_audio_source: ?*ZoAudioSource = a.zo_audio_load_wav(file_path.ptr);
@@ -36,7 +29,7 @@ pub const AudioSource = struct {
     }
 
     pub fn deinit(self: *@This()) void {
-        _ = self;
+        a.zo_audio_delete_audio_source(self.audio_source);
     }
 
     pub fn play(self: *@This(), does_loop: bool) !void {

@@ -70,7 +70,9 @@ ZoAudioSource* zo_audio_load_wav_from_memory(const void* buffer, size_t buffer_l
   return load_wav_from_data(buffer, buffer_len);
 }
 
-void zo_audio_delete_audio_source(ZoAudioSource* source) {}
+void zo_audio_delete_audio_source(ZoAudioSource* source) {
+    free(source);
+}
 
 bool zo_audio_play(ZoAudioSource* source, bool doesLoop) {
     if (audio_instances_count >= ZO_MAX_AUDIO_INSTANCES) {
