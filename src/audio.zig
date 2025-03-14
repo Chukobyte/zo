@@ -6,22 +6,25 @@ const ZoAudioSource = a.ZoAudioSource;
 
 const AudioError = error {
     FailedToInitialize,
+    FailedToPlay,
 };
 
 pub const AudioSource = struct {
-    pitch: f64,
-    channels: i32,
-    sample_rate: i32,
-    samples: [*c]anyopaque,
-    sample_count: i32,
-    data_id: u32,
-    file_path: ?[]u8,
+    // pitch: f64,
+    // channels: i32,
+    // sample_rate: i32,
+    // samples: [*c]anyopaque,
+    // sample_count: i32,
+    // data_id: u32,
+    // file_path: ?[]u8,
+    audio_source: *ZoAudioSource,
 
     pub fn initWav(file_path: []const u8) !@This() {
         const internal_audio_source: ?*ZoAudioSource = a.zo_audio_load_wav(file_path.ptr);
         if (internal_audio_source == null) {
             return AudioError.FailedToInitialize;
         }
+        return @This(){ .audio_source = internal_audio_source.? };
     }
 
     pub fn initWavFromMemory(buffer: *const anyopaque, buffer_len: usize) !@This() {
@@ -29,6 +32,21 @@ pub const AudioSource = struct {
         if (internal_audio_source == null) {
             return AudioError.FailedToInitialize;
         }
+        return @This(){ .audio_source = internal_audio_source.? };
+    }
+
+    pub fn deinit(self: *@This()) void {
+        _ = self;
+    }
+
+    pub fn play(self: *@This(), does_loop: bool) !void {
+        if (!a.zo_audio_play(self.audio_source, does_loop)) {
+            return AudioError.FailedToPlay;
+        }
+    }
+
+    pub fn stop(self: @This()) void {
+        a.zo_audio_stop(self.audio_source);
     }
 };
 

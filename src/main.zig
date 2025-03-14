@@ -13,6 +13,8 @@ const Vec2 = math.Vec2;
 const Texture = renderer.Texture;
 const Font = renderer.Font;
 
+const AudioSource = audio.AudioSource;
+
 const GameConfig = struct {
     name: []const u8 = "Test Game",
     window_pos: Vec2 = .{ .x = 100, .y = 100 },
@@ -36,8 +38,12 @@ pub fn main() !void {
         true
     );
     defer test_texture.deinit();
+
     var test_font: Font = try Font.initFromMemory(static_assets.default_font.ptr, static_assets.default_font.len, 32, true);
     defer test_font.deinit();
+
+    var test_audio_source: AudioSource = try AudioSource.initWavFromMemory(static_assets.rainbow_orb_audio.ptr, static_assets.rainbow_orb_audio.len);
+    defer test_audio_source.deinit();
 
     var is_running = true;
 
@@ -49,6 +55,10 @@ pub fn main() !void {
 
         if (input.is_key_just_pressed(.{ .key = .keyboard_a })) {
             std.debug.print("a pressed!\n", .{});
+        }
+
+        if (input.is_key_just_pressed(.{ .key = .keyboard_space })) {
+            try test_audio_source.play(false);
         }
 
         if (input.is_key_just_pressed(.{ .key = .keyboard_escape })) {
