@@ -413,8 +413,8 @@ pub const RenderData = struct {
 pub const DrawSpriteParams = struct {
     texture: *const Texture,
     source_rect: Rect2,
-    dest_size: Vec2,
-    transform: Transform2D,
+    dest_size: ?Vec2 = null,
+    transform: Transform2D = Transform2D.Identity,
     color: LinearColor = .{ .r = 1.0, .g = 1.0, .b = 1.0 },
     flip_h: bool = false,
     flip_v: bool = false,
@@ -533,13 +533,14 @@ const SpriteRenderer = struct {
         glad.glBindVertexArray(render_data.vao);
         glad.glBindBuffer(glad.GL_ARRAY_BUFFER, render_data.vbo);
 
+        const dest_size: Vec2 = p.dest_size orelse Vec2{ .x = p.source_rect.w, .y = p.source_rect.h };
         var models: [max_sprite_count]Mat4 = undefined;
         const number_of_sprites: usize = 1;
         for (0..number_of_sprites) |i| {
             var model: Mat4 = Mat4.Identity;
             model.translate2(.{ .x = p.transform.position.x, .y = p.transform.position.y });
             model.rotateZ2(std.math.degreesToRadians(p.transform.rotation));
-            model.scale2(.{ .x = p.transform.scale.x * p.dest_size.x, .y = p.transform.scale.y * p.dest_size.y, .z = 1.0 });
+            model.scale2(.{ .x = p.transform.scale.x * dest_size.x, .y = p.transform.scale.y * dest_size.y, .z = 1.0 });
 
             models[i] = model;
 

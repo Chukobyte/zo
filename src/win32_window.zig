@@ -24,7 +24,10 @@ pub const WPARAM = win.WPARAM;
 pub const LPARAM = win.LPARAM;
 pub const LRESULT = win.LRESULT;
 pub const INT = win.INT;
+
 const Vec2i = math.Vec2i;
+const Dim2i = math.Dim2i;
+
 const InputKey = input.InputKey;
 
 // OpenGL Stuff
@@ -40,10 +43,8 @@ const PFNWGLGETSWAPINTERVALEXTPROC = *fn() callconv(WINAPI) i32;
 const PFNWGLCREATECONTEXTATTRIBSARBPROC = *fn(hdc: win.HDC, hShareContext: win.HGLRC, attribList: [*]const i32) callconv(WINAPI) win.HGLRC;
 
 const Window = struct {
-    title: []const u8,
-    position: Vec2i,
-    width: i32,
-    height: i32,
+    size: Dim2i,
+    is_active: bool = false,
 };
 
 const Win32Data = struct {
@@ -58,10 +59,9 @@ const InitializeError = error {
     OpenGL,
 };
 
-const main_window: Window = {};
+var main_window: Window = undefined;
 var w32_data: Win32Data = .{};
 const class_name: []const u8 = "My window class";
-var window_is_active = false;
 var is_opengl_initialized = false;
 
 fn convert_vkcode_to_key(vk_code: u32) InputKey {
@@ -245,13 +245,27 @@ fn winProc(
     w_param: WPARAM,
     l_param: LPARAM,
 ) callconv(WINAPI) LRESULT {
+    const Local = struct {
+        fn extractLoHiWord(in_param: LPARAM) Vec2i {
+            const param: c_longlong = @as(c_longlong, in_param);
+            const mask: c_longlong = @as(c_longlong, 0xffff);
+            const x_u16: u16 = @intCast(param & mask);
+            const y_u16: u16 = @intCast((param >> 16) & mask);
+            const x_i16: i16 = @bitCast(x_u16);
+            const y_i16: i16 = @bitCast(y_u16);
+            return Vec2i{ .x = x_i16, .y = y_i16 };
+        }
+    };
+
     switch (msg) {
         win.WM_DESTROY => {
             win.PostQuitMessage(0);
-            window_is_active = false;
+            main_window.is_active = false;
             return 0;
         },
         win.WM_SIZE => {
+            const new_size: Vec2i = Local.extractLoHiWord(l_param);
+            updateWindowSize(new_size.x, new_size.y);
             return 0;
         },
         win.WM_KEYDOWN => {
@@ -291,16 +305,8 @@ fn winProc(
             return 0;
         },
         win.WM_MOUSEMOVE => {
-            const param: c_longlong = @as(c_longlong, l_param);
-            const mask: c_longlong = @as(c_longlong, 0xffff);
-            const x_u16: u16 = @intCast(param & mask);
-            const y_u16: u16 = @intCast((param >> 16) & mask);
-            const x_i16: i16 = @bitCast(x_u16);
-            const y_i16: i16 = @bitCast(y_u16);
-            // Promote to i32, which will sign-extend correctly.
-            const x_pos: i32 = x_i16;
-            const y_pos: i32 = y_i16;
-            input.register_mouse_move_event(.{ .x = x_pos, .y = y_pos });
+            const new_position: Vec2i = Local.extractLoHiWord(l_param);
+            input.register_mouse_move_event(new_position);
             return 0;
         },
         else => {
@@ -356,9 +362,9 @@ pub fn createWindow(comptime title: []const u8, pos_x: i32, pos_y: i32, width: i
     _ = win.ShowWindow(w32_data.hwnd, w32_data.cmd_show);
 
     try openglInit(w32_data.hwnd);
-    updateWindowSize(width, height);
+    main_window.is_active = true;
+    updateWindowSize(main_window.size.w, main_window.size.h);
 
-    window_is_active = true;
 }
 
 pub fn updateWindow() void {
@@ -370,7 +376,10 @@ pub fn updateWindow() void {
 }
 
 pub fn updateWindowSize(width: i32, height: i32) void {
-    glad.glViewport(0, 0, width, height);
+    main_window.size = .{ .w = width, .h = height };
+    if (main_window.is_active) {
+        glad.glViewport(0, 0, main_window.size.w, main_window.size.h);
+    }
 }
 
 pub fn clearWindow(color: LinearColor) void {
@@ -383,5 +392,5 @@ pub fn swapWindow() void {
 }
 
 pub fn isWindowActive() bool {
-    return window_is_active;
+    return main_window.is_active;
 }

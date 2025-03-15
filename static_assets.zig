@@ -4,7 +4,7 @@
 pub const default_font = StaticAsset.create("assets/fonts/verdana.ttf");
 
 // Images
-pub const seika_idle_texture = StaticAsset.create("assets/images/seika_idle0.png");
+pub const map_texture = StaticAsset.create("assets/images/map_mockup.png");
 
 // Audio
 pub const rainbow_orb_audio = StaticAsset.create("assets/audio/rainbow_orb.wav");

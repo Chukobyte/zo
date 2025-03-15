@@ -2,6 +2,7 @@ const std = @import("std");
 
 const static_assets = @import("static_assets");
 
+const game = @import("game.zig");
 const renderer = @import("renderer.zig");
 const audio = @import("audio.zig");
 const zo = @import("zo.zig");
@@ -15,19 +16,19 @@ const Font = renderer.Font;
 
 const AudioSource = audio.AudioSource;
 
-const Game = struct {
-    var seika_textue: Texture = undefined;
+const GameMain = struct {
+    var map_textue: Texture = undefined;
     var verdana_font: Font = undefined;
     var rainbow_orb_audio: AudioSource = undefined;
 
     pub fn init() !void {
-        seika_textue = try Texture.initFromMemory2(std.heap.page_allocator, static_assets.seika_idle_texture, true);
-        verdana_font = try Font.initFromMemory2(static_assets.default_font, 32, true);
+        map_textue = try Texture.initFromMemory2(std.heap.page_allocator, static_assets.map_texture, true);
+        verdana_font = try Font.initFromMemory2(static_assets.default_font, 16, true);
         rainbow_orb_audio = try AudioSource.initWavFromMemory2(static_assets.rainbow_orb_audio);
     }
 
     pub fn deinit() void {
-        seika_textue.deinit();
+        map_textue.deinit();
         verdana_font.deinit();
         rainbow_orb_audio.deinit();
     }
@@ -46,19 +47,14 @@ const Game = struct {
         }
 
         renderer.drawSprite(&.{
-            .texture = &seika_textue,
-            .source_rect = .{ .x = 0.0, .y = 0.0, .w = 32.0, .h = 32.0 },
-            .dest_size = .{ .x = 32.0, .y = 32.0 },
-            .transform = .{
-                .position = .{ .x = 200.0, .y = 200.0 },
-                .scale = .{ .x = 5.0, .y = 5.0 },
-            }
+            .texture = &map_textue,
+            .source_rect = .{ .x = 0.0, .y = 0.0, .w = 640.0, .h = 360.0 },
         });
 
         renderer.drawText(&.{
-            .text = "Zo Test",
+            .text = "Colonial America",
             .font = &verdana_font,
-            .position = .{ .x = 200.0, .y = 400.0 },
+            .position = .{ .x = 200.0, .y = 200.0 },
         });
     }
 };
@@ -68,9 +64,9 @@ pub fn main() !void {
         .window = .{
             .title = "Test Game",
             .pos = .{ .x = 100.0, .y = 100.0 },
-            .size = .{ .w = 800, .h = 600 },
+            .size = .{ .w = 640, .h = 360 },
         },
-        .game = Game,
+        .game = GameMain,
         .target_fps = 60,
     });
 }
