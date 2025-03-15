@@ -16,12 +16,18 @@ const Font = renderer.Font;
 
 const AudioSource = audio.AudioSource;
 
+const World = @import("world.zig").World;
+
+const allocator: std.mem.Allocator = std.heap.page_allocator;
+
 const GameMain = struct {
+    var world: World = .{};
     var map_textue: Texture = undefined;
     var verdana_font: Font = undefined;
     var rainbow_orb_audio: AudioSource = undefined;
 
     pub fn init() !void {
+        _ = try world.initScene(allocator, "Default");
         map_textue = try Texture.initFromMemory2(std.heap.page_allocator, static_assets.map_texture, true);
         verdana_font = try Font.initFromMemory2(static_assets.default_font, 16, true);
         rainbow_orb_audio = try AudioSource.initWavFromMemory2(static_assets.rainbow_orb_audio);
@@ -31,9 +37,10 @@ const GameMain = struct {
         map_textue.deinit();
         verdana_font.deinit();
         rainbow_orb_audio.deinit();
+        world.deinitActiveScene();
     }
 
-    pub fn update(_: f32) !void {
+    pub fn update(delta_seconds: f32) !void {
         if (input.is_key_just_pressed(.{ .key = .keyboard_a })) {
             std.debug.print("a pressed!\n", .{});
         }
@@ -46,6 +53,8 @@ const GameMain = struct {
             zo.quit();
         }
 
+        world.update(delta_seconds);
+
         renderer.drawSprite(&.{
             .texture = &map_textue,
             .source_rect = .{ .x = 0.0, .y = 0.0, .w = 640.0, .h = 360.0 },
@@ -56,6 +65,16 @@ const GameMain = struct {
             .font = &verdana_font,
             .position = .{ .x = 200.0, .y = 200.0 },
         });
+
+        renderer.drawText(&.{
+            .text = "Virginia",
+            .font = &verdana_font,
+            .position = .{ .x = 100.0, .y = 340.0 },
+        });
+    }
+
+    pub fn fixed_update(delta_seconds: f32) !void {
+        world.fixed_update(delta_seconds);
     }
 };
 

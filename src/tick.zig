@@ -10,7 +10,7 @@ pub fn Tick(interface: type) type {
     return struct {
         start_time: u64 = 0,
         current_time: u64 = 0,
-        accumaltor: f32 = 0.0,
+        accumulator: f32 = 0.0,
         update_interval: u32 = 0,
         fixed_update_interval: f32 = 0.0,
         fixed_delta_time: f32 = 0.0,

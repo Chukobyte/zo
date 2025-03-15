@@ -30,6 +30,7 @@ const Vec4 = math.Vec4;
 const Rect2 = math.Rect2;
 const Transform2D = math.Transform2D;
 const Mat4 = math.Mat4;
+const Dim2i = math.Dim2i;
 const LinearColor = math.LinearColor;
 
 const String = string.String;
@@ -39,8 +40,7 @@ const StaticAsset = @import("static_assets").StaticAsset;
 const log = @import("logger.zig").log;
 
 pub const RenderContext = struct {
-    res_width: i32 = undefined,
-    res_height: i32 = undefined,
+    resolution: Dim2i = undefined,
     ft_instance: ft.FT_Library = undefined,
 };
 
@@ -407,7 +407,6 @@ pub const RenderData = struct {
     vbo: GLuint = undefined,
     shader: Shader = undefined,
     projection: Mat4 = undefined,
-    resolution: Vec2i = undefined,
 };
 
 pub const DrawSpriteParams = struct {
@@ -477,7 +476,7 @@ const SpriteRenderer = struct {
     const vertex_buffer_size: comptime_int = verts_stride * number_of_vertices * max_sprite_count;
     var render_data: RenderData = .{};
 
-    pub fn init(res_width: i32, res_height: i32) !void {
+    pub fn init() !void {
         // Init sprite rendering
         const vertices: [verts_stride * number_of_vertices]GLfloat = .{
             //id (1) // positions (2) // texture coordinates (2) // color (4) // using nearest neighbor (1)
@@ -517,8 +516,7 @@ const SpriteRenderer = struct {
         glad.glBindBuffer(glad.GL_ARRAY_BUFFER, 0);
         glad.glBindVertexArray(0);
 
-        render_data.resolution = .{ .x = res_width, .y = res_height };
-        render_data.projection = math.ortho(0.0, @floatFromInt(render_data.resolution.x), @floatFromInt(render_data.resolution.y), 0.0, -1.0, 1.0);
+        render_data.projection = math.ortho(0.0, @floatFromInt(render_context.resolution.w), @floatFromInt(render_context.resolution.h), 0.0, -1.0, 1.0);
         render_data.shader = try Shader.compileNew(sprite_vertex_shader_source, sprite_fragment_shader_source);
         render_data.shader.use();
         render_data.shader.setUniform("u_texture", i32, 0);
@@ -633,13 +631,12 @@ const FontRenderer = struct {
 
     var render_data: RenderData = .{};
 
-    pub fn init(res_width: i32, res_height: i32) !void {
+    pub fn init() !void {
         if (ft.FT_Init_FreeType(&render_context.ft_instance) != 0) {
             log(.critical, "Unable to initialize FreeType library!", .{});
             return InitializeError.FreeType;
         }
-        render_data.resolution = .{ .x = res_width, .y = res_height };
-        render_data.projection = math.ortho(0.0, @floatFromInt(render_data.resolution.x), @floatFromInt(-render_data.resolution.y), 0.0, -1.0, 1.0);
+        render_data.projection = math.ortho(0.0, @floatFromInt(render_context.resolution.w), @floatFromInt(-render_context.resolution.h), 0.0, -1.0, 1.0);
         render_data.shader = try Shader.compileNew(font_vertex_shader_source, font_fragment_shader_source);
         render_data.shader.use();
         render_data.shader.setUniform("text_value", i32, 0);
@@ -694,15 +691,14 @@ const FontRenderer = struct {
     }
 };
 
-pub fn init(res_width: i32, res_height: i32) !void {
-    render_context.res_width = res_width;
-    render_context.res_height = res_height;
+pub fn init(resolution: Dim2i) !void {
+    render_context.resolution = resolution;
     glad.glEnable(glad.GL_CULL_FACE);
     glad.glEnable(glad.GL_BLEND);
     glad.glBlendFunc(glad.GL_SRC_ALPHA, glad.GL_ONE_MINUS_SRC_ALPHA);
 
-    try SpriteRenderer.init(res_width, res_height);
-    try FontRenderer.init(res_width, res_height);
+    try SpriteRenderer.init();
+    try FontRenderer.init();
 }
 
 pub fn deinit() void {

@@ -34,7 +34,7 @@ pub fn run(comptime p: ZoParams) !void {
         p.window.size,
     );
     const game_resolution: Dim2i = p.resolution orelse p.window.size;
-    try renderer.init(game_resolution.w, game_resolution.h);
+    try renderer.init(game_resolution);
     defer renderer.deinit();
     try audio.init();
     defer audio.deinit();
