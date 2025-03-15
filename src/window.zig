@@ -1,7 +1,10 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-const Dim2i = @import("math.zig").Dim2i;
+const math = @import("math.zig");
+
+const Vec2i = math.Vec2i;
+const Dim2i = math.Dim2i;
 
 const native_window = switch (builtin.os.tag) {
     .windows => @import("win32_window.zig"),
@@ -10,8 +13,8 @@ const native_window = switch (builtin.os.tag) {
 
 const LinearColor = @import("math.zig").LinearColor;
 
-pub inline fn create(comptime title: []const u8, pos_x: i32, pos_y: i32, width: i32, height: i32) !void {
-    try native_window.createWindow(title, pos_x, pos_y, width, height);
+pub inline fn create(comptime title: []const u8, position: Vec2i, size: Dim2i) !void {
+    try native_window.createWindow(title, position, size);
 }
 
 pub inline fn update() void {

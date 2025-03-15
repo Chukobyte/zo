@@ -338,16 +338,16 @@ pub fn init(h_instance: HINSTANCE, h_prev_instance: HINSTANCE, cmd_line: [*c]u8,
 
 // Window interface
 
-pub fn createWindow(comptime title: []const u8, pos_x: i32, pos_y: i32, width: i32, height: i32) !void {
+pub fn createWindow(comptime title: []const u8, position: Vec2i, size: Dim2i) !void {
     w32_data.hwnd = win.CreateWindowExW(
         0,
         std.unicode.utf8ToUtf16LeStringLiteral(class_name),
         std.unicode.utf8ToUtf16LeStringLiteral(title),
         win.WS_OVERLAPPEDWINDOW,
-        @intCast(pos_x),
-        @intCast(pos_y),
-        width,
-        height,
+        @intCast(position.x),
+        @intCast(position.y),
+        size.w,
+        size.h,
         null,
         null,
         w32_data.h_instance,

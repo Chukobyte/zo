@@ -30,10 +30,8 @@ var is_running = false;
 pub fn run(comptime p: ZoParams) !void {
     try window.create(
         p.window.title,
-        p.window.pos.x,
-        p.window.pos.y,
-        p.window.size.w,
-        p.window.size.h
+        p.window.pos,
+        p.window.size,
     );
     const game_resolution: Dim2i = p.resolution orelse p.window.size;
     try renderer.init(game_resolution.w, game_resolution.h);
