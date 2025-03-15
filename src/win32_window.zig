@@ -265,7 +265,7 @@ fn winProc(
         },
         win.WM_SIZE => {
             const new_size: Vec2i = Local.extractLoHiWord(l_param);
-            updateWindowSize(new_size.x, new_size.y);
+            updateWindowSize(Dim2i.fromVec2(new_size));
             return 0;
         },
         win.WM_KEYDOWN => {
@@ -363,7 +363,7 @@ pub fn createWindow(comptime title: []const u8, pos_x: i32, pos_y: i32, width: i
 
     try openglInit(w32_data.hwnd);
     main_window.is_active = true;
-    updateWindowSize(main_window.size.w, main_window.size.h);
+    updateWindowSize(main_window.size);
 
 }
 
@@ -375,8 +375,8 @@ pub fn updateWindow() void {
     }
 }
 
-pub fn updateWindowSize(width: i32, height: i32) void {
-    main_window.size = .{ .w = width, .h = height };
+pub fn updateWindowSize(size: Dim2i) void {
+    main_window.size = size;
     if (main_window.is_active) {
         glad.glViewport(0, 0, main_window.size.w, main_window.size.h);
     }

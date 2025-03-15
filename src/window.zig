@@ -1,6 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
+const Dim2i = @import("math.zig").Dim2i;
+
 const native_window = switch (builtin.os.tag) {
     .windows => @import("win32_window.zig"),
     else     => @compileError("Unsupported OS"),
@@ -16,8 +18,8 @@ pub inline fn update() void {
     native_window.updateWindow();
 }
 
-pub inline fn updateSize(width: i32, height: i32) void {
-    native_window.updateWindowSize(width, height);
+pub inline fn updateSize(size: Dim2i) void {
+    native_window.updateWindowSize(size);
 }
 
 pub inline fn clear(color: LinearColor) void {

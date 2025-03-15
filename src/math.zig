@@ -398,6 +398,14 @@ pub fn Dimensions2(comptime T: type) type {
     return struct {
         w: T = @as(T, 0),
         h: T = @as(T, 0),
+
+        pub inline fn fromVec2(vec: Vector2(T)) @This() {
+            return .{ .w = vec.x, .h = vec.y };
+        }
+
+        pub inline fn toVec2(self: *const @This()) Vector2(T) {
+            return .{ .x = self.w, .y = self.h };
+        }
     };
 }
 
