@@ -3,6 +3,7 @@ const std = @import("std");
 const misc = @import("misc.zig");
 
 const ArrayListUtils = misc.ArrayListUtils;
+const FlagUtils = misc.FlagUtils;
 const TypeList = misc.TypeList;
 const TypeBitMask = misc.TypeBitMask;
 
@@ -143,6 +144,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
     const sorted_components_max = ArchetypeList.getSortedComponentMax();
     const archetype_count = ArchetypeList.getArchetypeCount();
 
+    // ECSWorld struct
     return struct {
 
         const EntityData = struct {
@@ -167,6 +169,79 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             num_of_components: usize = 0,
             num_of_sorted_components: usize = 0,
         };
+
+        pub fn ArchetypeComponentIterator(arch_comps: []const type) type {
+            const comp_sort_index = ArchetypeList.getSortIndex(arch_comps);
+            const arch_index = ArchetypeList.getIndex(arch_comps);
+            const list_data = &archetype_list_data[arch_index];
+
+            return struct {
+                current_index: usize,
+                archetype: *ArchetypeData,
+                entities: []Entity,
+                components: *[arch_comps.len]*anyopaque,
+
+                pub inline fn init() @This() {
+                    var new_iterator = @This(){
+                        .current_index = 0,
+                        .archetype = list_data,
+                        .entities = undefined,
+                        .components = undefined,
+                    };
+                    new_iterator.entities = new_iterator.archetype.entities.items[0..];
+                    if (new_iterator.entities.len != 0) {
+                        new_iterator.components = new_iterator.archetype.sorted_components.items[new_iterator.entities[0]][comp_sort_index][0..arch_comps.len];
+                    }
+                    return new_iterator;
+                }
+
+                pub fn next(self: *@This()) ?*const @This() {
+                    if (self.isValid()) {
+                        self.components = self.archetype.sorted_components.items[self.entities[self.current_index]][comp_sort_index][0..arch_comps.len];
+                        self.current_index += 1;
+                        return self;
+                    }
+                    return null;
+                }
+
+                pub fn peek(self: *@This()) ?*@This() {
+                    if (self.isValid()) {
+                        return self;
+                    }
+                    return null;
+                }
+
+                pub inline fn isValid(self: *const @This()) bool {
+                    return self.current_index < self.entities.len;
+                }
+
+                pub inline fn getSlot(self: *const @This(), comptime T: type) usize {
+                    _ = self;
+                    return getComponentSlot(T);
+                }
+
+                fn getComponentSlot(comptime T: type) usize {
+                    inline for (0..list_data.num_of_components) |i| {
+                        if (T == list_data.sorted_components[comp_sort_index][i]) {
+                            return i;
+                        }
+                    }
+                    @compileError("Comp isn't in iterator!");
+                }
+
+                pub inline fn getComponent(self: *const @This(), comptime T: type) *T {
+                    return @alignCast(@ptrCast(self.components[getComponentSlot(T)]));
+                }
+
+                pub inline fn getValue(self: *const @This(), slot: comptime_int) *arch_comps[slot] {
+                    return @alignCast(@ptrCast(self.components[slot]));
+                }
+
+                pub inline fn getEntity(self: *const @This()) Entity {
+                    return self.entities[self.current_index - 1];
+                }
+            };
+        }
 
         allocator: std.mem.Allocator,
         entity_data: std.ArrayList(EntityData),
@@ -353,6 +428,85 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 }
             }
             return null;
+        }
+
+        // Archetype
+        fn refreshArchetypeState(self: *@This(), entity: Entity) !void {
+            const SystemNotifyState = enum {
+                none,
+                on_entity_registered,
+                on_entity_unregistered,
+            };
+
+            const Static = struct {
+                var SystemState: [system_types.len]SystemNotifyState = undefined;
+            };
+
+            const entity_data: *EntityData = &self.entity_data_list.items[entity];
+
+            inline for (0..archetype_count) |i| {
+                const arch_data = &self.archetype_data[i];
+                const match_signature = FlagUtils(usize).containsFlags(entity_data.component_signature.mask, arch_data.signature);
+                if (match_signature and !entity_data.is_in_archetype_map[i]) {
+                    entity_data.is_in_archetype_map[i] = true;
+                    arch_data.entities.append(entity) catch { unreachable; };
+                    if (entity >= arch_data.sorted_components.items.len) {
+                        _ = try arch_data.sorted_components.addManyAsSlice(entity + 1 - arch_data.sorted_components.items.len);
+                    }
+                    // Update sorted component arrays
+                    inline for (0..archetype_list_data[i].num_of_sorted_components) |sort_comp_i| {
+                        inline for (0..archetype_list_data[i].num_of_components) |comp_i| {
+                            // Map component pointers with order
+                            const entity_comp_index = arch_data.sorted_components_by_index[sort_comp_i][comp_i];
+                            arch_data.sorted_components.items[entity][sort_comp_i][comp_i] = entity_data.components[entity_comp_index].?;
+                            if (comp_i + 1 >= arch_data.num_of_components)  {
+                                break;
+                            }
+                        }
+                        if (sort_comp_i + 1 >= arch_data.num_of_sorted_components)  {
+                            break;
+                        }
+                    }
+
+                    for (0..arch_data.system_count) |sys_i| {
+                        const system_index = arch_data.systems[sys_i];
+                        Static.SystemState[system_index] = .on_entity_registered;
+                    }
+                } else if (!match_signature and entity_data.is_in_archetype_map[i]) {
+                    entity_data.is_in_archetype_map[i] = false;
+                    for (0..arch_data.entities.items.len) |item_index| {
+                        if (arch_data.entities.items[item_index] == entity) {
+                            _ = arch_data.entities.swapRemove(item_index);
+                            break;
+                        }
+                    }
+                    for (0..arch_data.system_count) |sys_i| {
+                        const system_index = arch_data.systems[sys_i];
+                        Static.SystemState[system_index] = .on_entity_unregistered;
+                    }
+                }
+            }
+
+            inline for (self.system_data.items, 0..system_types.len) |*system_data, i| {
+                const T: type = systems_type_list.getType(i);
+                switch (Static.SystemState[i]) {
+                    .on_entity_registered => {
+                        if (@hasDecl(T, "onEntityRegistered")) {
+                            var system: *T = @alignCast(@ptrCast(system_data.interface_instance));
+                            system.onEntityRegistered(self, entity);
+                        }
+                        Static.SystemState[i] = .none;
+                    },
+                    .on_entity_unregistered => {
+                        if (@hasDecl(T, "onEntityUnregistered")) {
+                            var system: *T = @alignCast(@ptrCast(system_data.interface_instance));
+                            system.onEntityUnregistered(self, entity);
+                        }
+                        Static.SystemState[i] = .none;
+                    },
+                    .none => {},
+                }
+            }
         }
     };
 }
