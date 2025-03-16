@@ -10,6 +10,11 @@ const ArrayListUtils = @import("misc.zig").ArrayListUtils;
 pub const GameObjectId = u32;
 
 pub const GameObject = struct {
+    const Interface = struct {
+        interface_id: usize,
+        instance: *anyopaque,
+    };
+
     id: GameObjectId,
     name: String,
     parent: ?*@This() = null,
@@ -21,6 +26,7 @@ pub const GameObject = struct {
 
 pub const GameObjectTemplate = struct {
     name: []const u8,
+    interface: ?type = null,
     update: ?*fn(f32) bool = null,
     fixed_update: ?*fn(f32) bool = null,
     init: ?*fn() bool = null,

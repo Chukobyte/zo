@@ -3,6 +3,7 @@ const std = @import("std");
 const static_assets = @import("static_assets");
 
 const game = @import("game.zig");
+const ecs = @import("ecs.zig");
 const renderer = @import("renderer.zig");
 const audio = @import("audio.zig");
 const zo = @import("zo.zig");

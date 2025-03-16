@@ -217,3 +217,15 @@ pub fn TypeBitMask(comptime types: []const type) type {
         }
     };
 }
+
+pub fn assertUnsigned(comptime T: type) void {
+    const info = @typeInfo(T);
+    switch (info) {
+        .Int => {
+            if (info.Int.signedness != .Unsigned) {
+                @compileError("Type must be an unsigned integer.");
+            }
+        },
+        else => @compileError("Type must be an unsigned integer."),
+    }
+}
