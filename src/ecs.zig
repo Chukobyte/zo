@@ -308,6 +308,10 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             self.entity_data.deinit();
         }
 
+        pub fn update(_: f32) !void {}
+
+        pub fn fixed_update(_: f32) !void {}
+
         pub fn initEntity(self: *@This(), entity_params: ?InitEntityParams) !Entity {
             const p: InitEntityParams = entity_params orelse .{};
             var newEntity: Entity = undefined;
