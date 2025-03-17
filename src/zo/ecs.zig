@@ -272,18 +272,20 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
             const SceneDefinition = struct {
                 name: []const u8,
-                // node_interface: type,
+                node_interface: ?type = null,
             };
 
             world: *ECSWorldType,
             queued_nodes_for_deletion: std.ArrayList(*Node),
+            scene_definitions: []SceneDefinition,
             current_scene: ?Scene = null,
-            queued_scene_def: ?SceneDefinition = null,
+            queue_scene_def_id: ?usize = null,
 
-            pub fn init(world: *ECSWorldType) @This() {
+            pub fn init(world: *ECSWorldType, definitions: []SceneDefinition) @This() {
                 return @This(){
                     .world = world,
                     .queued_nodes_for_deletion = std.ArrayList(*Node).init(world.allocator),
+                    .scene_definitions = definitions,
                 };
             }
 
@@ -293,7 +295,12 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             }
 
             pub fn changeScene(self: *@This(), definition: SceneDefinition) void {
-                self.queued_scene_def = definition;
+                for (self.scene_definitions, 0..self.scene_definitions.len) |scene_def, i| {
+                    if (scene_def == definition) {
+                        self.queue_scene_def_id = i;
+                        break;
+                    }
+                }
             }
 
             pub fn createNode(self: *@This(), entity: Entity) *Node {
@@ -363,13 +370,16 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             }
 
             fn internalChangeScene(self: *@This()) void {
-                if (self.queued_scene_def) |definition| {
+                if (self.queued_scene_def_id) |def_id| {
                     self.removeCurrentScene();
                     self.current_scene = .{
-                        .name = definition.name,
+                        .name = self.scene_definitions[def_id].name,
                         .nodes = std.ArrayList(Node).init(self.world.allocator),
                     };
-                    self.queued_scene_def = null;
+                    if (self.scene_definitions[def_id].node_interface) |node_interface| {
+                        self.world.initEntity(.{ .interface = node_interface, });
+                    }
+                    self.queued_scene_def_id = null;
                 }
             }
 
@@ -721,8 +731,8 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
         // Scene System
 
-        pub fn initSceneSystem(self: *@This()) SceneSystem {
-            return SceneSystem.init(self);
+        pub fn initSceneSystem(self: *@This(), definitions: []SceneSystem.SceneDefinition) SceneSystem {
+            return SceneSystem.init(self, definitions);
         }
     };
 }

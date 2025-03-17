@@ -77,11 +77,12 @@ const MainEntity = struct {
 
 const GameMain = struct {
     var world: World = undefined;
-    var scene_system: World.SceneSystem = undefined;
+    // var scene_system: World.SceneSystem = undefined;
 
     pub fn init() !void {
         world = try World.init(allocator);
-        scene_system = world.initSceneSystem();
+        // var scene_system = world.initSceneSystem(&.{ .{ .name = "Main", .node_interface = MainEntity } });
+        _ = world.initSceneSystem(&.{ .{ .name = "Main", .node_interface = MainEntity } });
         _ = try world.initEntity(.{ .interface = MainEntity, });
         map_textue = try Texture.initFromMemory2(std.heap.page_allocator, static_assets.map_texture, true);
         verdana_font = try Font.initFromMemory2(static_assets.default_font, 16, true);
