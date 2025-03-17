@@ -2,6 +2,8 @@ const std = @import("std");
 
 const misc = @import("misc.zig");
 
+const log = @import("logger.zig").log;
+
 const ArrayListUtils = misc.ArrayListUtils;
 const FlagUtils = misc.FlagUtils;
 const TypeList = misc.TypeList;
@@ -391,8 +393,8 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                     inline for (0..entity_interface_types.len) |id| {
                         if (interface.id == id) {
                             const InterfaceT = EntityInterfaceTypeList.getType(id);
-                            var interface_inst: *InterfaceT = @alignCast(@ptrCast(interface.instance));
                             if (@hasDecl(InterfaceT, "deinit")) {
+                                var interface_inst: *InterfaceT = @alignCast(@ptrCast(interface.instance));
                                 interface_inst.deinit(self, entity);
                             }
                             if (@hasDecl(InterfaceT, "update")) {
@@ -405,6 +407,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                         }
                     }
                 }
+                self.refreshArchetypeState(entity) catch {}; // Ignore
             }
         }
 
@@ -422,11 +425,6 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             if (!self.hasComponent(entity,T)) {
                 const new_comp: *T = try self.allocator.create(T);
                 @memcpy(std.mem.asBytes(new_comp), std.mem.asBytes(component));
-
-                // if (@hasDecl(T, "init")) {
-                //     new_comp.init();
-                // }
-
                 entity_data.components[comp_index] = new_comp;
                 entity_data.component_signature.set(T);
                 try self.refreshArchetypeState(entity);
@@ -459,6 +457,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 self.allocator.destroy(comp_ptr);
                 entity_data.components[comp_index] = null;
                 entity_data.component_signature.unset(T);
+                try self.refreshArchetypeState(entity);
             }
         }
 
@@ -500,7 +499,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 var SystemState: [system_types.len]SystemNotifyState = undefined;
             };
 
-            const entity_data: *EntityData = &self.entity_data_list.items[entity];
+            const entity_data: *EntityData = &self.entity_data.items[entity];
             const archetype_list_data = comptime ArchetypeListData.generate();
 
             inline for (0..archetype_count) |i| {
@@ -546,7 +545,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 }
             }
 
-            inline for (self.system_data.items, 0..system_types.len) |*system_data, i| {
+            inline for (self.system_data, 0..system_types.len) |*system_data, i| {
                 const T: type = SystemsTypeList.getType(i);
                 switch (Static.SystemState[i]) {
                     .on_entity_registered => {
