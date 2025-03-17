@@ -250,7 +250,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         }
 
         /// Scene system that has callbacks to the ecs world
-        const SceneSystem = struct {
+        pub const SceneSystem = struct {
 
             const Node = struct {
                 const State = enum {
@@ -272,12 +272,13 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
             const SceneDefinition = struct {
                 name: []const u8,
-                node_interface: type,
+                // node_interface: type,
             };
 
             world: *ECSWorldType,
             queued_nodes_for_deletion: std.ArrayList(*Node),
             current_scene: ?Scene = null,
+            queued_scene_def: ?SceneDefinition = null,
 
             pub fn init(world: *ECSWorldType) @This() {
                 return @This(){
@@ -292,11 +293,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             }
 
             pub fn changeScene(self: *@This(), definition: SceneDefinition) void {
-                self.removeCurrentScene();
-                self.current_scene = .{
-                    .name = definition.name,
-                    .nodes = std.ArrayList(Node).init(self.world.allocator),
-                };
+                self.queued_scene_def = definition;
             }
 
             pub fn createNode(self: *@This(), entity: Entity) *Node {
@@ -361,7 +358,19 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
             /// Expected to be called every new frame
             pub fn newFrame(self: *@This()) void {
+                self.internalChangeScene();
                 self.deleteNodesQueuedForDeletion();
+            }
+
+            fn internalChangeScene(self: *@This()) void {
+                if (self.queued_scene_def) |definition| {
+                    self.removeCurrentScene();
+                    self.current_scene = .{
+                        .name = definition.name,
+                        .nodes = std.ArrayList(Node).init(self.world.allocator),
+                    };
+                    self.queued_scene_def = null;
+                }
             }
 
             fn removeCurrentScene(self: *@This()) void {
@@ -378,10 +387,10 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 for (self.queued_nodes_for_deletion) |node| {
                     if (self.current_scene) |*scene| {
                         ArrayListUtils.removeByValue(*Node, &scene.nodes, node);
-                        if (node.parent_entity) |parent_entity| {
-                            if (self.getNode(parent_entity)) |parent_node| {
-                                ArrayListUtils.removeByValue(Entity, &parent_node.children_entities, node.entity);
-                            }
+                    }
+                    if (node.parent_entity) |parent_entity| {
+                        if (self.getNode(parent_entity)) |parent_node| {
+                            ArrayListUtils.removeByValue(Entity, &parent_node.children_entities, node.entity);
                         }
                     }
                     node.children.deinit();
@@ -477,15 +486,15 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             }
         }
 
-        pub fn fixed_update(self: *@This(), delta_seconds: f32) !void {
+        pub fn fixedUpdate(self: *@This(), delta_seconds: f32) !void {
             for (self.fixed_update_entities.items) |entity| {
                 const entity_data: *EntityData = &self.entity_data.items[entity];
                 inline for (0..entity_interface_types.len) |interface_id| {
                     if (entity_data.interface.?.id == interface_id) {
                         const T = EntityInterfaceTypeList.getType(interface_id);
-                        if (@hasDecl(T, "fixed_update")) {
+                        if (@hasDecl(T, "fixedUpdate")) {
                             const interface_ptr: *T = @alignCast(@ptrCast(entity_data.interface.?.instance));
-                            try interface_ptr.fixed_update(self, entity, delta_seconds);
+                            try interface_ptr.fixedUpdate(self, entity, delta_seconds);
                             break;
                         }
                     }
