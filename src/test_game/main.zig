@@ -24,6 +24,8 @@ const log = zo.log;
 const World = ecs.ECSWorld(.{
     .entity_interfaces = &.{ MainEntity },
 });
+// const SceneSystem = World.SceneSystem(.{ .definitions = &.{ .name = "Default", .node_interface = MainEntity, } });
+const SceneSystem = World.SceneSystem(.{ .definitions = &[_]ecs.SceneDefinition{ .{ .name = "Default", .node_interface = MainEntity, } } });
 
 const allocator: std.mem.Allocator = std.heap.page_allocator;
 var map_textue: Texture = undefined;
@@ -77,13 +79,12 @@ const MainEntity = struct {
 
 const GameMain = struct {
     var world: World = undefined;
-    // var scene_system: World.SceneSystem = undefined;
+    var scene_system: SceneSystem = undefined;
 
     pub fn init() !void {
         world = try World.init(allocator);
-        // var scene_system = world.initSceneSystem(&.{ .{ .name = "Main", .node_interface = MainEntity } });
-        _ = world.initSceneSystem(&.{ .{ .name = "Main", .node_interface = MainEntity } });
-        _ = try world.initEntity(.{ .interface = MainEntity, });
+        scene_system = SceneSystem.init(&world);
+        scene_system.changeScene("Default");
         map_textue = try Texture.initFromMemory2(std.heap.page_allocator, static_assets.map_texture, true);
         verdana_font = try Font.initFromMemory2(static_assets.default_font, 16, true);
         rainbow_orb_audio = try AudioSource.initWavFromMemory2(static_assets.rainbow_orb_audio);
@@ -97,6 +98,7 @@ const GameMain = struct {
     }
 
     pub fn update(delta_seconds: f32) !void {
+        try scene_system.newFrame();
         try world.update(delta_seconds);
     }
 
