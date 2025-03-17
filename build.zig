@@ -14,7 +14,7 @@ pub fn build(b: *std.Build) !void {
     }
 
     const exe = b.addExecutable(.{
-        .name = "zo",
+        .name = "zo_test",
         .root_source_file = b.path(root_source_file),
         .target = target,
         .optimize = optimize,
@@ -28,22 +28,13 @@ pub fn build(b: *std.Build) !void {
         exe.import_memory = true;
     }
 
-    const glad_lib: *std.Build.Step.Compile = try add_glad(b, target, optimize);
-    const stb_image_lib: *std.Build.Step.Compile = try add_stb_image(b, target, optimize);
-    const freetype_lib: *std.Build.Step.Compile = try add_freetype(b, target, optimize);
-    const zo_audio_lib: *std.Build.Step.Compile = try add_zo_audio(b, target, optimize);
-    exe.linkLibC();
-    exe.linkSystemLibrary("gdi32");
-    exe.linkSystemLibrary("user32");
-    exe.linkSystemLibrary("opengl32");
-    exe.linkLibrary(glad_lib);
-    exe.linkLibrary(stb_image_lib);
-    exe.linkLibrary(freetype_lib);
-    exe.linkLibrary(zo_audio_lib);
+    const zo_module = try buildZoModule(b, target, optimize);
+    exe.root_module.addImport("zo", zo_module);
 
     const static_assets_module = b.addModule("static_assets", .{
         .root_source_file = b.path("static_assets.zig"),
     });
+    static_assets_module.addImport("zo", zo_module);
     exe.root_module.addImport("static_assets",static_assets_module);
 
     b.installArtifact(exe);
@@ -51,6 +42,29 @@ pub fn build(b: *std.Build) !void {
     const run_exe = b.addRunArtifact(exe);
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_exe.step);
+}
+
+fn buildZoModule(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !*std.Build.Module {
+    const glad_lib: *std.Build.Step.Compile = try add_glad(b, target, optimize);
+    const stb_image_lib: *std.Build.Step.Compile = try add_stb_image(b, target, optimize);
+    const freetype_lib: *std.Build.Step.Compile = try add_freetype(b, target, optimize);
+    const zo_audio_lib: *std.Build.Step.Compile = try add_zo_audio(b, target, optimize);
+
+    const zo_module = b.addModule("zo", .{
+        .root_source_file = b.path("src/zo/zo.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    zo_module.link_libc = true;
+    zo_module.linkSystemLibrary("gdi32", .{});
+    zo_module.linkSystemLibrary("user32", .{});
+    zo_module.linkSystemLibrary("opengl32", .{});
+    zo_module.linkLibrary(glad_lib);
+    zo_module.linkLibrary(stb_image_lib);
+    zo_module.linkLibrary(freetype_lib);
+    zo_module.linkLibrary(zo_audio_lib);
+
+    return zo_module;
 }
 
 fn add_glad(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !*std.Build.Step.Compile {

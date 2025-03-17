@@ -3,6 +3,13 @@ pub const window = @import("window.zig");
 pub const input = @import("input.zig");
 pub const renderer = @import("renderer.zig");
 pub const audio = @import("audio.zig");
+pub const ecs = @import("ecs.zig");
+pub const logger = @import("logger.zig");
+pub const misc = @import("misc.zig");
+
+pub const log = logger.log;
+
+pub const StaticAsset = @import("static_asset.zig").StaticAsset;
 
 const Vec2i = math.Vec2i;
 const Dim2i = math.Dim2i;

@@ -2,11 +2,13 @@ const std = @import("std");
 
 const static_assets = @import("static_assets");
 
+const zo = @import("zo");
+
 const game = @import("game.zig");
-const ecs = @import("ecs.zig");
-const renderer = @import("renderer.zig");
-const audio = @import("audio.zig");
-const zo = @import("zo.zig");
+
+const ecs = zo.ecs;
+const renderer = zo.renderer;
+const audio = zo.audio;
 const window = zo.window;
 const input = zo.input;
 const math = zo.math;
@@ -17,7 +19,7 @@ const Font = renderer.Font;
 
 const AudioSource = audio.AudioSource;
 
-const log = @import("logger.zig").log;
+const log = zo.log;
 
 const World = ecs.ECSWorld(.{
     .entity_interfaces = &.{ MainEntity },

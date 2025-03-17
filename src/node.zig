@@ -1,4 +1,6 @@
-const misc = @import("misc.zig");
+const zo = @import("zo");
+
+const misc = zo.misc;
 
 const TypeList = misc.TypeList;
 

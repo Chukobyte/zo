@@ -1,7 +1,9 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-const win32 = @import("win32_window.zig");
+const zo = @import("zo");
+
+const win32 = zo.window.native_window;
 
 const zo_main = @import("main.zig").main;
 

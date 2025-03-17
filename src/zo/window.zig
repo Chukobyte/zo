@@ -6,7 +6,7 @@ const math = @import("math.zig");
 const Vec2i = math.Vec2i;
 const Dim2i = math.Dim2i;
 
-const native_window = switch (builtin.os.tag) {
+pub const native_window = switch (builtin.os.tag) {
     .windows => @import("win32_window.zig"),
     else     => @compileError("Unsupported OS"),
 };

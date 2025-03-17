@@ -35,7 +35,7 @@ const LinearColor = math.LinearColor;
 
 const String = string.String;
 
-const StaticAsset = @import("static_assets").StaticAsset;
+const StaticAsset = @import("static_asset.zig").StaticAsset;
 
 const log = @import("logger.zig").log;
 

@@ -2,7 +2,7 @@ const a = @cImport({
     @cInclude("zo_audio.h");
 });
 
-const StaticAsset = @import("static_assets").StaticAsset;
+const StaticAsset = @import("static_asset.zig").StaticAsset;
 
 const ZoAudioSource = a.ZoAudioSource;
 
