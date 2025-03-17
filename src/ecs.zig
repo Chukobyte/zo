@@ -312,11 +312,31 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         }
 
         pub fn update(self: *@This(), delta_seconds: f32) !void {
-            _ = self; _ = delta_seconds;
+            for (self.update_entities.items) |entity| {
+                const entity_data: *EntityData = &self.entity_data.items[entity];
+                inline for (0..entity_interface_types.len) |interface_id| {
+                    if (entity_data.interface.?.id == interface_id) {
+                        const T = EntityInterfaceTypeList.getType(interface_id);
+                        const interface_ptr: *T = @alignCast(@ptrCast(entity_data.interface.?.instance));
+                        interface_ptr.update(self, entity, delta_seconds);
+                        break;
+                    }
+                }
+            }
         }
 
         pub fn fixed_update(self: *@This(), delta_seconds: f32) !void {
-            _ = self; _ = delta_seconds;
+            for (self.update_entities.items) |entity| {
+                const entity_data: *EntityData = &self.entity_data.items[entity];
+                inline for (0..entity_interface_types.len) |interface_id| {
+                    if (entity_data.interface.?.id == interface_id) {
+                        const T = EntityInterfaceTypeList.getType(interface_id);
+                        const interface_ptr: *T = @alignCast(@ptrCast(entity_data.interface.?.instance));
+                        interface_ptr.fixed_update(self, entity, delta_seconds);
+                        break;
+                    }
+                }
+            }
         }
 
         pub fn initEntity(self: *@This(), entity_params: ?InitEntityParams) !Entity {
