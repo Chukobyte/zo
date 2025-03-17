@@ -7,7 +7,7 @@ const FlagUtils = misc.FlagUtils;
 const TypeList = misc.TypeList;
 const TypeBitMask = misc.TypeBitMask;
 
-const Entity = u32;
+pub const Entity = u32;
 
 const ECSWorldParams = struct {
     entity_interfaces: []const type = &[_]type{},
@@ -256,7 +256,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             const entity_data_list = std.ArrayList(EntityData).init(allocator);
             const update_entities_list = std.ArrayList(Entity).init(allocator);
             const fixed_update_entities_list = std.ArrayList(Entity).init(allocator);
-            const context: @This() = .{
+            const world: @This() = .{
                 .allocator = allocator,
                 .entity_data = entity_data_list,
                 .system_data = undefined,
@@ -268,7 +268,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             const archetype_list_data = comptime ArchetypeListData.generate();
             inline for (0..archetype_count) |i| {
                 const arch_list_data = &archetype_list_data[i];
-                const context_arch_data = &context.archetype_data[i];
+                const context_arch_data = &world.archetype_data[i];
                 context_arch_data.entities = std.ArrayList(Entity).init(allocator);
                 context_arch_data.sorted_components = std.ArrayList([sorted_components_max][component_types.len]*anyopaque).init(allocator);
                 for (0..arch_list_data.num_of_sorted_components) |comp_sort_i| {
@@ -286,18 +286,18 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 var new_system: *SystemT = try allocator.create(SystemT);
                 // All system members should have default values in order to 'default construct' them
                 @memcpy(std.mem.asBytes(new_system), std.mem.asBytes(&SystemT{}));
-                context.system_data[i].interface_instance = new_system;
+                world.system_data[i].interface_instance = new_system;
                 if (@hasDecl(SystemT, "getSignature")) {
                     const system_component_signature: []const type = new_system.getSignature();
-                    context.system_data[i].component_signature.setFlagsFromTypes(system_component_signature);
+                    world.system_data[i].component_signature.setFlagsFromTypes(system_component_signature);
                 } else {
-                    context.system_data[i].component_signature = .{};
+                    world.system_data[i].component_signature = .{};
                 }
                 if (@hasDecl(SystemT, "init")) {
-                    new_system.init(context);
+                    new_system.init(world);
                 }
             }
-            return context;
+            return world;
         }
 
         pub fn deinit(self: *@This()) void {
@@ -317,23 +317,27 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 inline for (0..entity_interface_types.len) |interface_id| {
                     if (entity_data.interface.?.id == interface_id) {
                         const T = EntityInterfaceTypeList.getType(interface_id);
-                        const interface_ptr: *T = @alignCast(@ptrCast(entity_data.interface.?.instance));
-                        interface_ptr.update(self, entity, delta_seconds);
-                        break;
+                        if (@hasDecl(T, "update")) {
+                            const interface_ptr: *T = @alignCast(@ptrCast(entity_data.interface.?.instance));
+                            try interface_ptr.update(self, entity, delta_seconds);
+                            break;
+                        }
                     }
                 }
             }
         }
 
         pub fn fixed_update(self: *@This(), delta_seconds: f32) !void {
-            for (self.update_entities.items) |entity| {
+            for (self.fixed_update_entities.items) |entity| {
                 const entity_data: *EntityData = &self.entity_data.items[entity];
                 inline for (0..entity_interface_types.len) |interface_id| {
                     if (entity_data.interface.?.id == interface_id) {
                         const T = EntityInterfaceTypeList.getType(interface_id);
-                        const interface_ptr: *T = @alignCast(@ptrCast(entity_data.interface.?.instance));
-                        interface_ptr.fixed_update(self, entity, delta_seconds);
-                        break;
+                        if (@hasDecl(T, "fixed_update")) {
+                            const interface_ptr: *T = @alignCast(@ptrCast(entity_data.interface.?.instance));
+                            try interface_ptr.fixed_update(self, entity, delta_seconds);
+                            break;
+                        }
                     }
                 }
             }
@@ -355,6 +359,16 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             entity_data.interface = .{ .id = interface_id, .instance = p.interface};
 
             if (entity_params) |entity_p| {
+                if (@hasDecl(entity_p.interface, "init")) {
+                    inline for (0..entity_interface_types.len) |id| {
+                        if (interface_id == id) {
+                            const T = EntityInterfaceTypeList.getType(interface_id);
+                            const interface_ptr: *T = @alignCast(@ptrCast(entity_data.interface.?.instance));
+                            interface_ptr.init(self, newEntity);
+                            break;
+                        }
+                    }
+                }
                 if (@hasDecl(entity_p.interface, "update")) {
                     self.update_entities.append(newEntity);
                 }
@@ -397,9 +411,9 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 const new_comp: *T = try self.allocator.create(T);
                 @memcpy(std.mem.asBytes(new_comp), std.mem.asBytes(component));
 
-                if (@hasDecl(T, "init")) {
-                    new_comp.init();
-                }
+                // if (@hasDecl(T, "init")) {
+                //     new_comp.init();
+                // }
 
                 entity_data.components[comp_index] = new_comp;
                 entity_data.component_signature.set(T);

@@ -17,8 +17,29 @@ const Font = renderer.Font;
 
 const AudioSource = audio.AudioSource;
 
+const log = @import("logger.zig").log;
+
+const MainEntity = struct {
+    pub fn init(self: *@This(), world: *World, entity: ecs.Entity) !void {
+        _ = self; _ = world; _ = entity;
+        log(.info, "init", .{});
+    }
+    pub fn deinit(self: *@This(), world: *World, entity: ecs.Entity) !void {
+        _ = self; _ = world; _ = entity;
+        log(.info, "deinit", .{});
+    }
+    pub fn update(self: *@This(), world: *World, entity: ecs.Entity, delta_seconds: f32) !void {
+        _ = self; _ = world; _ = entity; _ = delta_seconds;
+        log(.info, "update", .{});
+    }
+    pub fn fixed_update(self: *@This(), world: *World, entity: ecs.Entity, delta_seconds: f32) !void {
+        _ = self; _ = world; _ = entity; _ = delta_seconds;
+        log(.info, "fixed_update", .{});
+    }
+};
+
 const World = ecs.ECSWorld(.{
-    // .entity_interfaces = .{},
+    .entity_interfaces = &.{ MainEntity },
     // .components = .{},
     // .systems = .{},
     // .archetypes = .{},
