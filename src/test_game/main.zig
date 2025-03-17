@@ -44,6 +44,8 @@ const Entity = ecs.Entity;
 const MainEntity = struct {
     pub fn init(self: *@This(), world: *World, entity: ecs.Entity) !void {
         _ = self; _ = world; _ = entity;
+        log(.debug, "main init", .{});
+        // _ = try world.initEntity(.{ .interface = MainEntity, });
         map_textue = try Texture.initFromMemory2(std.heap.page_allocator, static_assets.map_texture, true);
         verdana_font = try Font.initFromMemory2(static_assets.default_font, 16, true);
         rainbow_orb_audio = try AudioSource.initWavFromMemory2(static_assets.rainbow_orb_audio);
@@ -51,6 +53,7 @@ const MainEntity = struct {
 
     pub fn deinit(self: *@This(), world: *World, entity: ecs.Entity) void {
         _ = self; _ = world; _ = entity;
+        log(.debug, "main deinit", .{});
         map_textue.deinit();
         verdana_font.deinit();
         rainbow_orb_audio.deinit();
@@ -58,6 +61,7 @@ const MainEntity = struct {
 
     pub fn update(self: *@This(), world: *World, entity: ecs.Entity, delta_seconds: f32) !void {
         _ = self; _ = world; _ = entity; _ = delta_seconds;
+        log(.debug, "update", .{});
         if (input.is_key_just_pressed(.{ .key = .keyboard_a })) {
             std.debug.print("a pressed!\n", .{});
         }
