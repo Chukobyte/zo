@@ -10,10 +10,10 @@ const TypeBitMask = misc.TypeBitMask;
 const Entity = u32;
 
 const ECSWorldParams = struct {
-    entity_interfaces: []const type = .{},
-    components: []const type = .{},
-    systems: []const type = .{},
-    archetypes: []const []const type = .{},
+    entity_interfaces: []const type = &[_]type{},
+    components: []const type = &[_]type{},
+    systems: []const type = &[_]type{},
+    archetypes: []const []const type = &[_][]type{},
 };
 
 const EntityInterfaceData = struct {
@@ -26,7 +26,6 @@ const InitEntityParams = struct {
 };
 
 pub fn ECSWorld(params: ECSWorldParams) type {
-    misc.assertUnsigned(params.entity_type);
     const entity_interface_types = params.entity_interfaces;
     const component_types = params.components;
     const system_types = params.systems;
@@ -52,11 +51,11 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             var archetype_list_data: [component_types.len * component_types.len]@This() = undefined;
             main: for (archetypes_array) |archetype_types| {
                 // Check if archetype already exists
-                    const archetype_signature = component_type_list.getFlags(archetype_types);
+                const archetype_signature = component_type_list.getFlags(archetype_types);
                 for (0..archetypes_count) |arch_i| {
                     const list_data: *@This() = &archetype_list_data[arch_i];
                     // The archetype already exists, now we check to see if we need to add new sort array for archetype
-                        var is_duplicate = true;
+                    var is_duplicate = true;
                     if (archetype_signature == list_data.signature) {
                         for (0..list_data.num_of_sorted_components) |sort_i| {
                             if (archetype_types != list_data.num_of_sorted_components[sort_i]) {
@@ -68,7 +67,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                             continue :main;
                         }
                         // No duplicates found, create new sorted comps row
-                            for (0..list_data.num_of_components) |i| {
+                        for (0..list_data.num_of_components) |i| {
                             list_data.sorted_components[list_data.num_of_sorted_components][i] = archetype_types[i];
                             list_data.sorted_components_by_index[list_data.num_of_sorted_components][i] = component_type_list.getIndex(component_types[i]);
                         }
@@ -78,7 +77,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 }
 
                 // Now that it doesn't exist add it
-                    archetype_list_data[archetypes_count] = @This(){
+                archetype_list_data[archetypes_count] = @This(){
                     .signature = archetype_signature,
                     .num_of_components = component_types.len,
                     .num_of_sorted_components = 1
