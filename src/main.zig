@@ -24,7 +24,7 @@ const MainEntity = struct {
         _ = self; _ = world; _ = entity;
         log(.info, "init", .{});
     }
-    pub fn deinit(self: *@This(), world: *World, entity: ecs.Entity) !void {
+    pub fn deinit(self: *@This(), world: *World, entity: ecs.Entity) void {
         _ = self; _ = world; _ = entity;
         log(.info, "deinit", .{});
     }
@@ -55,6 +55,7 @@ const GameMain = struct {
 
     pub fn init() !void {
         world = try World.init(allocator);
+        _ = try world.initEntity(.{ .interface = MainEntity, });
         map_textue = try Texture.initFromMemory2(std.heap.page_allocator, static_assets.map_texture, true);
         verdana_font = try Font.initFromMemory2(static_assets.default_font, 16, true);
         rainbow_orb_audio = try AudioSource.initWavFromMemory2(static_assets.rainbow_orb_audio);

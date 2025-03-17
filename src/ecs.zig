@@ -301,6 +301,11 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         }
 
         pub fn deinit(self: *@This()) void {
+            for (0..self.entity_data.items.len) |i| {
+                const entity: Entity = @intCast(i);
+                self.deinitEntity(entity);
+            }
+
             inline for (0..system_types.len) |i| {
                 const SystemT = SystemsTypeList.getType(i);
                 if (@hasDecl(SystemT, "deinit")) {
@@ -350,31 +355,32 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 newEntity = entity;
             } else {
                 // Create new entity
-                newEntity = self.entity_data.items.len;
+                newEntity = @intCast(self.entity_data.items.len);
                 _ = try self.entity_data.addOne();
             }
             // Reset and update entity data
             const entity_data: *EntityData = &self.entity_data.items[newEntity];
-            const interface_id = EntityInterfaceTypeList.getIndex(p.interface);
-            entity_data.interface = .{ .id = interface_id, .instance = p.interface};
-
-            if (entity_params) |entity_p| {
-                if (@hasDecl(entity_p.interface, "init")) {
+            if (p.interface) |InterfaceT| {
+                const interface_id = EntityInterfaceTypeList.getIndex(InterfaceT);
+                var interface_inst: *InterfaceT = try self.allocator.create(InterfaceT);
+                @memcpy(std.mem.asBytes(interface_inst), std.mem.asBytes(&InterfaceT{}));
+                entity_data.interface = .{ .id = interface_id, .instance = interface_inst };
+                if (@hasDecl(InterfaceT, "init")) {
                     inline for (0..entity_interface_types.len) |id| {
                         if (interface_id == id) {
-                            const T = EntityInterfaceTypeList.getType(interface_id);
-                            const interface_ptr: *T = @alignCast(@ptrCast(entity_data.interface.?.instance));
-                            interface_ptr.init(self, newEntity);
+                            try interface_inst.init(self, newEntity);
                             break;
                         }
                     }
                 }
-                if (@hasDecl(entity_p.interface, "update")) {
-                    self.update_entities.append(newEntity);
+                if (@hasDecl(InterfaceT, "update")) {
+                    try self.update_entities.append(newEntity);
                 }
-                if (@hasDecl(entity_p.interface, "fixed_update")) {
-                    self.fixed_update_entities.append(newEntity);
+                if (@hasDecl(InterfaceT, "fixed_update")) {
+                    try self.fixed_update_entities.append(newEntity);
                 }
+            } else {
+                entity_data.interface = null;
             }
             return newEntity;
         }
@@ -382,24 +388,30 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         pub fn deinitEntity(self: *@This(), entity: Entity) void {
             if (self.isEntityValid(entity)) {
                 if (self.entity_data.items[entity].interface) |interface| {
-                    const InterfaceT = EntityInterfaceTypeList.getType(interface.id);
-                    var interface_inst: *InterfaceT = @alignCast(@ptrCast(interface.instance));
-                    if (@hasDecl(InterfaceT, "deinit")) {
-                        interface_inst.deinit(entity);
-                    }
-                    if (@hasDecl(InterfaceT, "update")) {
-                        ArrayListUtils.removeByValue(Entity, &self.update_entities, entity);
-                    }
-                    if (@hasDecl(InterfaceT, "fixed_update")) {
-                        ArrayListUtils.removeByValue(Entity, &self.fixed_update_entities, entity);
+                    inline for (0..entity_interface_types.len) |id| {
+                        if (interface.id == id) {
+                            const InterfaceT = EntityInterfaceTypeList.getType(id);
+                            var interface_inst: *InterfaceT = @alignCast(@ptrCast(interface.instance));
+                            if (@hasDecl(InterfaceT, "deinit")) {
+                                interface_inst.deinit(self, entity);
+                            }
+                            if (@hasDecl(InterfaceT, "update")) {
+                                ArrayListUtils.removeByValue(Entity, &self.update_entities, &entity);
+                            }
+                            if (@hasDecl(InterfaceT, "fixed_update")) {
+                                ArrayListUtils.removeByValue(Entity, &self.fixed_update_entities, &entity);
+                            }
+                            break;
+                        }
                     }
                 }
             }
         }
 
         pub inline fn isEntityValid(self: *const @This(), entity: Entity) bool {
-            return (entity < self.entity_data.items.len
-                and self.entity_data.items[entity] != null
+            return (
+                entity < self.entity_data.items.len
+                // and self.entity_data.items[entity] != null
                 and !self.entity_data.items[entity].queued_for_deletion
             );
         }
@@ -468,8 +480,9 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
         fn getExistingEntityId(self: *@This()) ?Entity {
             for (0..self.entity_data.items.len) |i| {
-                if (self.entity_data.items[i] == null) {
-                    return i;
+                const entity: Entity = @intCast(i);
+                if (self.isEntityValid(entity)) {
+                    return entity;
                 }
             }
             return null;
