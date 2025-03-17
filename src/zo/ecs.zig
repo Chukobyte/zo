@@ -331,6 +331,19 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                             node.parent_entity = p.entity;
                             try p.children_entities.append(node.entity);
                         }
+                        // Call onEnterScene
+                        if (self.world.entity_data.items[@intCast(node.entity)].interface) |interface| {
+                            inline for (0..entity_interface_types.len) |interface_id| {
+                                if (interface.id == interface_id) {
+                                    const T = EntityInterfaceTypeList.getType(interface_id);
+                                    if (@hasDecl(T, "onEnterScene")) {
+                                        const interface_ptr: *T = @alignCast(@ptrCast(interface.instance));
+                                        try interface_ptr.onEnterScene(self.world, node.entity);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -346,6 +359,19 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                         for (node.children_entities.items) |child_entity| {
                             if (self.getNode(child_entity)) |child_node| {
                                 try self.removeNodeFromScene(child_node);
+                            }
+                        }
+                        // Call onExitScene
+                        if (self.world.entity_data.items[@intCast(node.entity)].interface) |interface| {
+                            inline for (0..entity_interface_types.len) |interface_id| {
+                                if (interface.id == interface_id) {
+                                    const T = EntityInterfaceTypeList.getType(interface_id);
+                                    if (@hasDecl(T, "onExitScene")) {
+                                        const interface_ptr: *T = @alignCast(@ptrCast(interface.instance));
+                                        interface_ptr.onExitScene(self.world, node.entity);
+                                        break;
+                                    }
+                                }
                             }
                         }
                     }

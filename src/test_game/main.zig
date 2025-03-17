@@ -40,6 +40,14 @@ const MainEntity = struct {
         _ = self; _ = world; _ = entity;
         log(.debug, "deinit", .{});
     }
+    pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
+        _ = self; _ = world; _ = entity;
+        log(.debug, "onEnterScene", .{});
+    }
+    pub fn onExitScene(self: *@This(), world: *World, entity: ecs.Entity) void {
+        _ = self; _ = world; _ = entity;
+        log(.debug, "onExitScene", .{});
+    }
     pub fn update(self: *@This(), world: *World, entity: ecs.Entity, delta_seconds: f32) !void {
         _ = self; _ = world; _ = entity; _ = delta_seconds;
         if (input.is_key_just_pressed(.{ .key = .keyboard_space })) {
