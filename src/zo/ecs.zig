@@ -523,6 +523,14 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         }
 
         pub fn update(self: *@This(), delta_seconds: f32) !void {
+            inline for (0..system_types.len) |i| {
+                const T: type = SystemsTypeList.getType(i);
+                if (@hasDecl(T, "preWorldUpdate")) {
+                    var system: *T = @alignCast(@ptrCast(self.system_data.items[i].interface_instance));
+                    try system.preWorldUpdate(self, delta_seconds);
+                }
+            }
+
             for (self.update_entities.items) |entity| {
                 const entity_data: *EntityData = &self.entity_data.items[entity];
                 inline for (0..entity_interface_types.len) |interface_id| {
@@ -536,9 +544,25 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                     }
                 }
             }
+
+            inline for (0..system_types.len) |i| {
+                const T: type = SystemsTypeList.getType(i);
+                if (@hasDecl(T, "postWorldUpdate")) {
+                    var system: *T = @alignCast(@ptrCast(self.system_data.items[i].interface_instance));
+                    try system.postWorldUpdate(self, delta_seconds);
+                }
+            }
         }
 
         pub fn fixedUpdate(self: *@This(), delta_seconds: f32) !void {
+            inline for (0..system_types.len) |i| {
+                const T: type = SystemsTypeList.getType(i);
+                if (@hasDecl(T, "preWorldFixedUpdate")) {
+                    var system: *T = @alignCast(@ptrCast(self.system_data.items[i].interface_instance));
+                    system.preWorldFixedUpdate(self, delta_seconds);
+                }
+            }
+
             for (self.fixed_update_entities.items) |entity| {
                 const entity_data: *EntityData = &self.entity_data.items[entity];
                 inline for (0..entity_interface_types.len) |interface_id| {
@@ -550,6 +574,14 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                             break;
                         }
                     }
+                }
+            }
+
+            inline for (0..system_types.len) |i| {
+                const T: type = SystemsTypeList.getType(i);
+                if (@hasDecl(T, "postWorldFixedUpdate")) {
+                    var system: *T = @alignCast(@ptrCast(self.system_data.items[i].interface_instance));
+                    system.postWorldFixedUpdate(self, delta_seconds);
                 }
             }
         }

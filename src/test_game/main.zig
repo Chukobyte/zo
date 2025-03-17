@@ -97,6 +97,7 @@ const GameMain = struct {
         map_textue.deinit();
         verdana_font.deinit();
         rainbow_orb_audio.deinit();
+        scene_system.deinit();
         world.deinit();
     }
 
