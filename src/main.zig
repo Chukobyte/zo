@@ -17,8 +17,7 @@ const Font = renderer.Font;
 
 const AudioSource = audio.AudioSource;
 
-// const World = @import("world.zig").World;
-const world = ecs.ECSWorld(.{
+const World = ecs.ECSWorld(.{
     // .entity_interfaces = .{},
     // .components = .{},
     // .systems = .{},
@@ -28,13 +27,13 @@ const world = ecs.ECSWorld(.{
 const allocator: std.mem.Allocator = std.heap.page_allocator;
 
 const GameMain = struct {
-    // var world: World = .{};
+    var world: World = undefined;
     var map_textue: Texture = undefined;
     var verdana_font: Font = undefined;
     var rainbow_orb_audio: AudioSource = undefined;
 
     pub fn init() !void {
-        // _ = try world.initScene(allocator, "Default");
+        world = try World.init(allocator);
         map_textue = try Texture.initFromMemory2(std.heap.page_allocator, static_assets.map_texture, true);
         verdana_font = try Font.initFromMemory2(static_assets.default_font, 16, true);
         rainbow_orb_audio = try AudioSource.initWavFromMemory2(static_assets.rainbow_orb_audio);
@@ -44,7 +43,7 @@ const GameMain = struct {
         map_textue.deinit();
         verdana_font.deinit();
         rainbow_orb_audio.deinit();
-        // world.deinitActiveScene();
+        world.deinit();
     }
 
     pub fn update(delta_seconds: f32) !void {
