@@ -24,7 +24,6 @@ const log = zo.log;
 const World = ecs.ECSWorld(.{
     .entity_interfaces = &.{ MainEntity },
 });
-// const SceneSystem = World.SceneSystem(.{ .definitions = &.{ .name = "Default", .node_interface = MainEntity, } });
 const SceneSystem = World.SceneSystem(.{ .definitions = &[_]ecs.SceneDefinition{ .{ .name = "Default", .node_interface = MainEntity, } } });
 
 const allocator: std.mem.Allocator = std.heap.page_allocator;
@@ -43,10 +42,6 @@ const MainEntity = struct {
     }
     pub fn update(self: *@This(), world: *World, entity: ecs.Entity, delta_seconds: f32) !void {
         _ = self; _ = world; _ = entity; _ = delta_seconds;
-        if (input.is_key_just_pressed(.{ .key = .keyboard_a })) {
-            std.debug.print("a pressed!\n", .{});
-        }
-
         if (input.is_key_just_pressed(.{ .key = .keyboard_space })) {
             try rainbow_orb_audio.play(false);
         }
@@ -98,6 +93,9 @@ const GameMain = struct {
     }
 
     pub fn update(delta_seconds: f32) !void {
+        if (input.is_key_just_pressed(.{ .key = .keyboard_a })) {
+            scene_system.changeScene("Default");
+        }
         try scene_system.newFrame();
         try world.update(delta_seconds);
     }

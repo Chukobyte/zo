@@ -312,24 +312,24 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                         log(.warn, "Scene node for entity {any} already created, returning existing one!", .{ entity });
                         return node;
                     }
-                    self.world.entity_data.items[@ptrCast(entity)].scene_node = .{
+                    self.world.entity_data.items[@intCast(entity)].scene_node = .{
                         .entity = entity,
                         .children_entities = std.ArrayList(Entity).init(self.world.allocator),
                     };
-                    return &self.world.entity_data.items[@ptrCast(entity)].scene_node.?;
+                    return &self.world.entity_data.items[@intCast(entity)].scene_node.?;
                 }
 
-                pub fn addNodeToScene(self: *@This(), node: *Node, parent: ?*Node) void {
+                pub fn addNodeToScene(self: *@This(), node: *Node, parent: ?*Node) !void {
                     if (node.state != .initialized) {
                         log(.warn, "Node with entity {any} is either in a scene or queued for deletion!", .{node.entity});
                         return;
                     }
                     if (self.current_scene) |*scene| {
-                        scene.nodes.append(node);
+                        try scene.nodes.append(node);
                         node.state = .in_scene;
                         if (parent) |p| {
                             node.parent_entity = p.entity;
-                            p.children_entities.append(node.entity);
+                            try p.children_entities.append(node.entity);
                         }
                     }
                 }
@@ -354,7 +354,9 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 pub fn getNode(self: *@This(), entity: Entity) ?*Node {
                     if (self.world.isEntityValid(entity)) {
                         if (self.world.entity_data.items[@intCast(entity)].scene_node) |*node| {
-                            return node;
+                            if (self.isNodeValid(node)) {
+                                return node;
+                            }
                         }
                     }
                     return null;
@@ -362,8 +364,8 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
                 pub fn isNodeValid(self: *@This(), node: *Node) bool {
                     return (
-                    self.world.isEntityValid(node.entity)
-                        and !node.state == .queued_for_deletion
+                        self.world.isEntityValid(node.entity)
+                        and node.state != .queued_for_deletion
                     );
                 }
 
@@ -376,6 +378,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 fn internalChangeScene(self: *@This()) !void {
                     if (self.queued_scene_def_id) |def_id| {
                         try self.removeCurrentScene();
+                        self.deleteNodesQueuedForDeletion();
                         inline for (0..scene_definitions.len) |i| {
                             if (i == def_id) {
                                 self.current_scene = .{
@@ -383,7 +386,9 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                                     .nodes = std.ArrayList(*Node).init(self.world.allocator),
                                 };
                                 if (scene_definitions[i].node_interface) |node_interface| {
-                                    _ = try self.world.initEntity(.{ .interface = node_interface, });
+                                    const newEntity = try self.world.initEntity(.{ .interface = node_interface, });
+                                    const newNode = self.createNode(newEntity);
+                                    try self.addNodeToScene(newNode, null);
                                 }
                                 self.queued_scene_def_id = null;
                                 break;
@@ -413,6 +418,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                             }
                         }
                         node.children_entities.deinit();
+                        self.world.deinitEntity(node.entity);
                     }
                     self.queued_nodes_for_deletion.clearRetainingCapacity();
                 }
