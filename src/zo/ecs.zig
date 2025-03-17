@@ -156,7 +156,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             components: [component_types.len]?*anyopaque = [_]?*anyopaque{null} ** component_types.len,
             interface: ?EntityInterfaceData = null,
             component_signature: ComponentSignature = .{},
-            queued_for_deletion: bool = false,
+            scene_node: ?SceneSystem.Node = null,
         };
 
         const SystemData = struct {
@@ -248,6 +248,147 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 }
             };
         }
+
+        /// Scene system that has callbacks to the ecs world
+        const SceneSystem = struct {
+
+            const Node = struct {
+                const State = enum {
+                    initialized,
+                    in_scene,
+                    queued_for_deletion,
+                };
+
+                entity: Entity,
+                children_entities: std.ArrayList(Entity),
+                parent_entity: ?Entity = null,
+                state: State = .initialized,
+            };
+
+            const Scene = struct {
+                name: []const u8,
+                nodes: std.ArrayList(*Node),
+            };
+
+            const SceneDefinition = struct {
+                name: []const u8,
+                node_interface: type,
+            };
+
+            world: *ECSWorldType,
+            queued_nodes_for_deletion: std.ArrayList(*Node),
+            current_scene: ?Scene = null,
+
+            pub fn init(world: *ECSWorldType) @This() {
+                return @This(){
+                    .world = world,
+                    .queued_nodes_for_deletion = std.ArrayList(*Node).init(world.allocator),
+                };
+            }
+
+            pub fn deinit(self: *@This()) void {
+                self.removeCurrentScene();
+                self.queued_nodes_for_deletion.deinit();
+            }
+
+            pub fn changeScene(self: *@This(), definition: SceneDefinition) void {
+                self.removeCurrentScene();
+                self.current_scene = .{
+                    .name = definition.name,
+                    .nodes = std.ArrayList(Node).init(self.world.allocator),
+                };
+            }
+
+            pub fn createNode(self: *@This(), entity: Entity) *Node {
+                if (self.getNode(entity)) |node| {
+                    log(.warn, "Scene node for entity {any} already created, returning existing one!", .{ entity });
+                    return node;
+                }
+                self.world.entity_data.items[@ptrCast(entity)].scene_node = .{
+                    .entity = entity,
+                    .children_entities = std.ArrayList(Entity).init(self.world.allocator),
+                };
+                return &self.world.entity_data.items[@ptrCast(entity)].scene_node.?;
+            }
+
+            pub fn addNodeToScene(self: *@This(), node: *Node, parent: ?*Node) void {
+                if (node.state != .initialized) {
+                    log(.warn, "Node with entity {any} is either in a scene or queued for deletion!", .{node.entity});
+                    return;
+                }
+                if (self.current_scene) |*scene| {
+                    scene.nodes.append(node);
+                    node.state = .in_scene;
+                    if (parent) |p| {
+                        node.parent_entity = p.entity;
+                        p.children_entities.append(node.entity);
+                    }
+                }
+            }
+
+            pub fn removeNodeFromScene(self: *@This(), node: *Node) void {
+                if (node.state != .in_scene) {
+                    log(.warn, "Attempted to remove node with entity {any} which is not in a scene!", .{node.entity});
+                    return;
+                }
+                if (self.current_scene != null) {
+                    node.state = .queued_for_deletion;
+                    self.queued_nodes_for_deletion.append(node);
+                    // Also queue children
+                    for (node.children_entities) |child_entity| {
+                        if (self.getNode(child_entity)) |child_node| {
+                            self.removeNodeFromScene(child_node);
+                        }
+                    }
+                }
+            }
+
+            pub fn getNode(self: *@This(), entity: Entity) ?*Node {
+                if (self.world.isEntityValid(entity)) {
+                    if (self.world.entity_data.items[@ptrCast(entity)].scene_node) |*node| {
+                        return node;
+                    }
+                }
+                return null;
+            }
+
+            pub fn isNodeValid(self: *@This(), node: *Node) bool {
+                return (
+                    self.world.isEntityValid(node.entity)
+                    and !node.state == .queued_for_deletion
+                );
+            }
+
+            /// Expected to be called every new frame
+            pub fn newFrame(self: *@This()) void {
+                self.deleteNodesQueuedForDeletion();
+            }
+
+            fn removeCurrentScene(self: *@This()) void {
+                if (self.current_scene) |scene| {
+                    for (scene.nodes) |node| {
+                        self.removeNodeFromScene(node);
+                    }
+                    scene.nodes.deinit();
+                    self.current_scene = null;
+                }
+            }
+
+            fn deleteNodesQueuedForDeletion(self: *@This()) void {
+                for (self.queued_nodes_for_deletion) |node| {
+                    if (self.current_scene) |*scene| {
+                        ArrayListUtils.removeByValue(*Node, &scene.nodes, node);
+                        if (node.parent_entity) |parent_entity| {
+                            if (self.getNode(parent_entity)) |parent_node| {
+                                ArrayListUtils.removeByValue(Entity, &parent_node.children_entities, node.entity);
+                            }
+                        }
+                    }
+                    node.children.deinit();
+                }
+                self.queued_nodes_for_deletion.clearRetainingCapacity();
+            }
+        };
 
         allocator: std.mem.Allocator,
         entity_data: std.ArrayList(EntityData),
@@ -417,7 +558,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             return (
                 entity < self.entity_data.items.len
                 // and self.entity_data.items[entity] != null
-                and !self.entity_data.items[entity].queued_for_deletion
+                // and !self.entity_data.items[entity].queued_for_deletion
             );
         }
 
@@ -569,54 +710,10 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             }
         }
 
-        /// Scene system that has callbacks to the ecs world
-        const SceneSystem = struct {
+        // Scene System
 
-            const Node = struct {
-                entity: Entity,
-                children_entities: std.ArrayList(Entity),
-                parent_entity: ?Entity = null,
-                queued_for_deletion: bool = false,
-            };
-
-            const Scene = struct {
-                name: []const u8,
-                nodes: std.ArrayList(Node),
-            };
-
-            const SceneDefinition = struct {
-                name: []const u8,
-                node_interface: type,
-            };
-
-            world: *ECSWorldType,
-            current_scene: ?Scene = null,
-
-            pub fn init(world: *ECSWorldType) @This() {
-                return @This(){
-                    .world = world,
-                };
-            }
-
-            pub fn deinit(self: *@This()) void {
-                self.removeCurrentScene();
-            }
-
-            pub fn changeScene(self: *@This(), definition: SceneDefinition) void {
-                self.removeCurrentScene();
-                const node_list = std.ArrayList(Node).init(self.world.allocator);
-                self.current_scene = .{
-                    .name = definition.name,
-                    .nodes = node_list,
-                };
-            }
-
-            fn removeCurrentScene(self: *@This()) void {
-                if (self.current_scene) |scene| {
-                    scene.nodes.deinit();
-                    self.current_scene = null;
-                }
-            }
-        };
+        pub fn initSceneSystem(self: *@This()) SceneSystem {
+            return SceneSystem.init(self);
+        }
     };
 }
