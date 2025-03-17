@@ -23,9 +23,6 @@ const log = zo.log;
 
 const World = ecs.ECSWorld(.{
     .entity_interfaces = &.{ MainEntity },
-    // .components = .{},
-    // .systems = .{},
-    // .archetypes = .{},
 });
 
 const allocator: std.mem.Allocator = std.heap.page_allocator;
