@@ -92,11 +92,10 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         }
     };
 
-    const archetype_list_data = ArchetypeListData.generate();
-
     const ArchetypeList = struct {
         fn getIndex(components: []const type) comptime_int {
             const types_sig = ComponentTypeList.getFlags(components);
+            const archetype_list_data = ArchetypeListData.generate();
             for (0..archetype_list_data.len) |i| {
                 const list_data = archetype_list_data[i];
                 if (types_sig == list_data.signature) {
@@ -108,6 +107,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
         fn getSortIndex(components: []const type) comptime_int {
             const arch_index = getIndex(components);
+            const archetype_list_data = ArchetypeListData.generate();
             const list_data = &archetype_list_data[arch_index];
             const num_of_sorted_components = list_data.num_of_sorted_components;
             const num_of_components = list_data.num_of_components;
@@ -126,11 +126,13 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         }
 
         fn getArchetypeCount() comptime_int {
+            const archetype_list_data = ArchetypeListData.generate();
             return archetype_list_data.len;
         }
 
         fn getSortedComponentMax() comptime_int {
             var sorted_comp_max = 0;
+            const archetype_list_data = ArchetypeListData.generate();
             for (archetype_list_data) |*list_data| {
                 if (list_data.num_of_sorted_components > sorted_comp_max) {
                     sorted_comp_max = list_data.num_of_sorted_components;
@@ -172,6 +174,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         pub fn ArchetypeComponentIterator(arch_comps: []const type) type {
             const comp_sort_index = ArchetypeList.getSortIndex(arch_comps);
             const arch_index = ArchetypeList.getIndex(arch_comps);
+            const archetype_list_data = ArchetypeListData.generate();
             const list_data = &archetype_list_data[arch_index];
 
             return struct {
@@ -262,6 +265,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 .fixed_update_entities = fixed_update_entities_list,
             };
             // Setup archetype data
+            const archetype_list_data = ArchetypeListData.generate();
             inline for (0..archetype_count) |i| {
                 const arch_list_data = &archetype_list_data[i];
                 const context_arch_data = &context.archetype_data[i];
@@ -446,6 +450,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             };
 
             const entity_data: *EntityData = &self.entity_data_list.items[entity];
+            const archetype_list_data = ArchetypeListData.generate();
 
             inline for (0..archetype_count) |i| {
                 const arch_data = &self.archetype_data[i];

@@ -19,10 +19,10 @@ const AudioSource = audio.AudioSource;
 
 // const World = @import("world.zig").World;
 const world = ecs.ECSWorld(.{
-    .entity_interfaces = .{},
-    .components = .{},
-    .systems = .{},
-    .archetypes = .{},
+    // .entity_interfaces = .{},
+    // .components = .{},
+    // .systems = .{},
+    // .archetypes = .{},
 });
 
 const allocator: std.mem.Allocator = std.heap.page_allocator;
@@ -60,7 +60,7 @@ const GameMain = struct {
             zo.quit();
         }
 
-        world.update(delta_seconds);
+        try world.update(delta_seconds);
 
         renderer.drawSprite(&.{
             .texture = &map_textue,
@@ -81,7 +81,7 @@ const GameMain = struct {
     }
 
     pub fn fixed_update(delta_seconds: f32) !void {
-        world.fixed_update(delta_seconds);
+        try world.fixed_update(delta_seconds);
     }
 };
 
