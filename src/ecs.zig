@@ -30,9 +30,9 @@ pub fn ECSWorld(params: ECSWorldParams) type {
     const component_types = params.components;
     const system_types = params.systems;
     const archetypes_array = params.archetypes;
-    const entity_interface_type_list = TypeList(entity_interface_types);
-    const component_type_list = TypeList(component_types);
-    const systems_type_list = TypeList(system_types);
+    const EntityInterfaceTypeList = TypeList(entity_interface_types);
+    const ComponentTypeList = TypeList(component_types);
+    const SystemsTypeList = TypeList(system_types);
     const ComponentSignature = TypeBitMask(component_types);
 
     const ArchetypeListData = struct {
@@ -51,7 +51,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             var archetype_list_data: [component_types.len * component_types.len]@This() = undefined;
             main: for (archetypes_array) |archetype_types| {
                 // Check if archetype already exists
-                const archetype_signature = component_type_list.getFlags(archetype_types);
+                const archetype_signature = ComponentTypeList.getFlags(archetype_types);
                 for (0..archetypes_count) |arch_i| {
                     const list_data: *@This() = &archetype_list_data[arch_i];
                     // The archetype already exists, now we check to see if we need to add new sort array for archetype
@@ -69,7 +69,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                         // No duplicates found, create new sorted comps row
                         for (0..list_data.num_of_components) |i| {
                             list_data.sorted_components[list_data.num_of_sorted_components][i] = archetype_types[i];
-                            list_data.sorted_components_by_index[list_data.num_of_sorted_components][i] = component_type_list.getIndex(component_types[i]);
+                            list_data.sorted_components_by_index[list_data.num_of_sorted_components][i] = ComponentTypeList.getIndex(component_types[i]);
                         }
                         list_data.num_of_sorted_components += 1;
                         continue :main;
@@ -84,7 +84,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 };
                 for (0..component_types.len) |i| {
                     archetype_list_data[archetypes_count].sorted_components[0][i] = component_types[i];
-                    archetype_list_data[archetypes_count].sorted_components_by_index[0][i] = component_type_list.getIndex(component_types[i]);
+                    archetype_list_data[archetypes_count].sorted_components_by_index[0][i] = ComponentTypeList.getIndex(component_types[i]);
                 }
                 archetypes_count += 1;
             }
@@ -96,7 +96,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
     const ArchetypeList = struct {
         fn getIndex(components: []const type) comptime_int {
-            const types_sig = component_type_list.getFlags(components);
+            const types_sig = ComponentTypeList.getFlags(components);
             for (0..archetype_list_data.len) |i| {
                 const list_data = archetype_list_data[i];
                 if (types_sig == list_data.signature) {
@@ -278,7 +278,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             }
             // Setup systems
             inline for (0..system_types.len) |i| {
-                const SystemT = systems_type_list.getType(i);
+                const SystemT = SystemsTypeList.getType(i);
                 var new_system: *SystemT = try allocator.create(SystemT);
                 // All system members should have default values in order to 'default construct' them
                 @memcpy(std.mem.asBytes(new_system), std.mem.asBytes(&SystemT{}));
@@ -298,7 +298,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
         pub fn deinit(self: *@This()) void {
             inline for (0..system_types.len) |i| {
-                const SystemT = systems_type_list.getType(i);
+                const SystemT = SystemsTypeList.getType(i);
                 if (@hasDecl(SystemT, "deinit")) {
                     var system: *SystemT = @alignCast(@ptrCast(self.system_data[i].interface_instance));
                     system.deinit(self);
@@ -323,7 +323,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             }
             // Reset and update entity data
             const entity_data: *EntityData = &self.entity_data.items[newEntity];
-            const interface_id = entity_interface_type_list.getIndex(p.interface);
+            const interface_id = EntityInterfaceTypeList.getIndex(p.interface);
             entity_data.interface = .{ .id = interface_id, .instance = p.interface};
 
             if (entity_params) |entity_p| {
@@ -340,7 +340,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         pub fn deinitEntity(self: *@This(), entity: Entity) void {
             if (self.isEntityValid(entity)) {
                 if (self.entity_data.items[entity].interface) |interface| {
-                    const InterfaceT = entity_interface_type_list.getType(interface.id);
+                    const InterfaceT = EntityInterfaceTypeList.getType(interface.id);
                     var interface_inst: *InterfaceT = @alignCast(@ptrCast(interface.instance));
                     if (@hasDecl(InterfaceT, "deinit")) {
                         interface_inst.deinit(entity);
@@ -364,7 +364,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
         pub fn setComponent(self: *@This(), entity: Entity, comptime T: type, component: *const T) !void {
             const entity_data: *EntityData = &self.entity_data_list.items[entity];
-            const comp_index = component_type_list.getIndex(T);
+            const comp_index = ComponentTypeList.getIndex(T);
             if (!self.hasComponent(entity,T)) {
                 const new_comp: *T = try self.allocator.create(T);
                 @memcpy(std.mem.asBytes(new_comp), std.mem.asBytes(component));
@@ -385,7 +385,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
         pub fn getComponent(self: *@This(), entity: Entity, comptime T: type) ?*T {
             const entity_data: *EntityData = &self.entity_data_list.items[entity];
-            const comp_index: usize = component_type_list.getIndex(T);
+            const comp_index: usize = ComponentTypeList.getIndex(T);
             if (entity_data.components[comp_index]) |comp| {
                 return @alignCast(@ptrCast(comp));
             }
@@ -395,7 +395,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         pub fn removeComponent(self: *@This(), entity: Entity, comptime T: type) void {
             if (self.hasComponent(entity, T)) {
                 const entity_data: *EntityData = &self.entity_data_list.items[entity];
-                const comp_index: usize = component_type_list.getIndex(T);
+                const comp_index: usize = ComponentTypeList.getIndex(T);
                 const comp_ptr: *T = @alignCast(@ptrCast(entity_data.components[comp_index]));
 
                 if (@hasDecl(T, "deinit")) {
@@ -410,7 +410,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
         pub inline fn hasComponent(self: *@This(), entity: Entity, comptime T: type) bool {
             const entity_data: *EntityData = &self.entity_data_list.items[entity];
-            const comp_index: usize = component_type_list.getIndex(T);
+            const comp_index: usize = ComponentTypeList.getIndex(T);
             return entity_data.components[comp_index] != null;
         }
 
@@ -491,7 +491,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             }
 
             inline for (self.system_data.items, 0..system_types.len) |*system_data, i| {
-                const T: type = systems_type_list.getType(i);
+                const T: type = SystemsTypeList.getType(i);
                 switch (Static.SystemState[i]) {
                     .on_entity_registered => {
                         if (@hasDecl(T, "onEntityRegistered")) {
