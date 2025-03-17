@@ -21,24 +21,41 @@ const AudioSource = audio.AudioSource;
 
 const log = zo.log;
 
-const World = ecs.ECSWorld(.{
-    .entity_interfaces = &.{ MainEntity },
-});
-
 const allocator: std.mem.Allocator = std.heap.page_allocator;
 var map_textue: Texture = undefined;
 var verdana_font: Font = undefined;
 var rainbow_orb_audio: AudioSource = undefined;
 
+const GameRunner = zo.Runner(.{
+    .window = .{
+        .title = "Test Game",
+        .pos = .{ .x = 100.0, .y = 100.0 },
+        .size = .{ .w = 640, .h = 360 },
+    },
+    .target_fps = 60,
+    .ecs_params = .{
+        .entity_interfaces = &.{ MainEntity },
+    },
+});
+
+const World = GameRunner.World;
+const Entity = ecs.Entity;
+
 const MainEntity = struct {
     pub fn init(self: *@This(), world: *World, entity: ecs.Entity) !void {
         _ = self; _ = world; _ = entity;
-        log(.debug, "init", .{});
+        map_textue = try Texture.initFromMemory2(std.heap.page_allocator, static_assets.map_texture, true);
+        verdana_font = try Font.initFromMemory2(static_assets.default_font, 16, true);
+        rainbow_orb_audio = try AudioSource.initWavFromMemory2(static_assets.rainbow_orb_audio);
     }
+
     pub fn deinit(self: *@This(), world: *World, entity: ecs.Entity) void {
         _ = self; _ = world; _ = entity;
-        log(.debug, "deinit", .{});
+        map_textue.deinit();
+        verdana_font.deinit();
+        rainbow_orb_audio.deinit();
     }
+
     pub fn update(self: *@This(), world: *World, entity: ecs.Entity, delta_seconds: f32) !void {
         _ = self; _ = world; _ = entity; _ = delta_seconds;
         if (input.is_key_just_pressed(.{ .key = .keyboard_a })) {
@@ -70,46 +87,12 @@ const MainEntity = struct {
             .position = .{ .x = 100.0, .y = 340.0 },
         });
     }
-    pub fn fixed_update(self: *@This(), world: *World, entity: ecs.Entity, delta_seconds: f32) !void {
+
+    pub fn fixedUpdate(self: *@This(), world: *World, entity: ecs.Entity, delta_seconds: f32) !void {
         _ = self; _ = world; _ = entity; _ = delta_seconds;
     }
 };
 
-const GameMain = struct {
-    var world: World = undefined;
-
-    pub fn init() !void {
-        world = try World.init(allocator);
-        _ = try world.initEntity(.{ .interface = MainEntity, });
-        map_textue = try Texture.initFromMemory2(std.heap.page_allocator, static_assets.map_texture, true);
-        verdana_font = try Font.initFromMemory2(static_assets.default_font, 16, true);
-        rainbow_orb_audio = try AudioSource.initWavFromMemory2(static_assets.rainbow_orb_audio);
-    }
-
-    pub fn deinit() void {
-        map_textue.deinit();
-        verdana_font.deinit();
-        rainbow_orb_audio.deinit();
-        world.deinit();
-    }
-
-    pub fn update(delta_seconds: f32) !void {
-        try world.update(delta_seconds);
-    }
-
-    pub fn fixed_update(delta_seconds: f32) !void {
-        try world.fixed_update(delta_seconds);
-    }
-};
-
 pub fn main() !void {
-    try zo.run(.{
-        .window = .{
-            .title = "Test Game",
-            .pos = .{ .x = 100.0, .y = 100.0 },
-            .size = .{ .w = 640, .h = 360 },
-        },
-        .game = GameMain,
-        .target_fps = 60,
-    });
+    try GameRunner.run();
 }

@@ -11,7 +11,7 @@ const TypeBitMask = misc.TypeBitMask;
 
 pub const Entity = u32;
 
-const ECSWorldParams = struct {
+pub const ECSWorldParams = struct {
     entity_interfaces: []const type = &[_]type{},
     components: []const type = &[_]type{},
     systems: []const type = &[_]type{},
@@ -149,6 +149,23 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
     // ECSWorld struct
     return struct {
+
+        const ECSWorldType = @This();
+
+        pub const Static = struct {
+            var world: ?ECSWorldType = null;
+
+            pub fn update(delta_seconds: f32) !void {
+                if (Static.world) |*w| {
+                    try w.update(delta_seconds);
+                }
+            }
+            pub fn fixedUpdate(delta_seconds: f32) !void {
+                if (Static.world) |*w| {
+                    try w.fixedUpdate(delta_seconds);
+                }
+            }
+        };
 
         const EntityData = struct {
             components: [component_types.len]?*anyopaque = [_]?*anyopaque{null} ** component_types.len,
@@ -299,6 +316,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                     new_system.init(world);
                 }
             }
+            Static.world = world;
             return world;
         }
 
@@ -316,6 +334,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 }
             }
             self.entity_data.deinit();
+            Static.world = null;
         }
 
         pub fn update(self: *@This(), delta_seconds: f32) !void {
@@ -334,15 +353,15 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             }
         }
 
-        pub fn fixed_update(self: *@This(), delta_seconds: f32) !void {
+        pub fn fixedUpdate(self: *@This(), delta_seconds: f32) !void {
             for (self.fixed_update_entities.items) |entity| {
                 const entity_data: *EntityData = &self.entity_data.items[entity];
                 inline for (0..entity_interface_types.len) |interface_id| {
                     if (entity_data.interface.?.id == interface_id) {
                         const T = EntityInterfaceTypeList.getType(interface_id);
-                        if (@hasDecl(T, "fixed_update")) {
+                        if (@hasDecl(T, "fixedUpdate")) {
                             const interface_ptr: *T = @alignCast(@ptrCast(entity_data.interface.?.instance));
-                            try interface_ptr.fixed_update(self, entity, delta_seconds);
+                            try interface_ptr.fixedUpdate(self, entity, delta_seconds);
                             break;
                         }
                     }
@@ -378,7 +397,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 if (@hasDecl(InterfaceT, "update")) {
                     try self.update_entities.append(newEntity);
                 }
-                if (@hasDecl(InterfaceT, "fixed_update")) {
+                if (@hasDecl(InterfaceT, "fixedUpdate")) {
                     try self.fixed_update_entities.append(newEntity);
                 }
             } else {
@@ -495,7 +514,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 on_entity_unregistered,
             };
 
-            const Static = struct {
+            const LocalStatic = struct {
                 var SystemState: [system_types.len]SystemNotifyState = undefined;
             };
 
@@ -528,7 +547,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
                     for (0..arch_data.system_count) |sys_i| {
                         const system_index = arch_data.systems[sys_i];
-                        Static.SystemState[system_index] = .on_entity_registered;
+                        LocalStatic.SystemState[system_index] = .on_entity_registered;
                     }
                 } else if (!match_signature and entity_data.is_in_archetype_map[i]) {
                     entity_data.is_in_archetype_map[i] = false;
@@ -540,27 +559,27 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                     }
                     for (0..arch_data.system_count) |sys_i| {
                         const system_index = arch_data.systems[sys_i];
-                        Static.SystemState[system_index] = .on_entity_unregistered;
+                        LocalStatic.SystemState[system_index] = .on_entity_unregistered;
                     }
                 }
             }
 
             inline for (self.system_data, 0..system_types.len) |*system_data, i| {
                 const T: type = SystemsTypeList.getType(i);
-                switch (Static.SystemState[i]) {
+                switch (LocalStatic.SystemState[i]) {
                     .on_entity_registered => {
                         if (@hasDecl(T, "onEntityRegistered")) {
                             var system: *T = @alignCast(@ptrCast(system_data.interface_instance));
                             system.onEntityRegistered(self, entity);
                         }
-                        Static.SystemState[i] = .none;
+                        LocalStatic.SystemState[i] = .none;
                     },
                     .on_entity_unregistered => {
                         if (@hasDecl(T, "onEntityUnregistered")) {
                             var system: *T = @alignCast(@ptrCast(system_data.interface_instance));
                             system.onEntityUnregistered(self, entity);
                         }
-                        Static.SystemState[i] = .none;
+                        LocalStatic.SystemState[i] = .none;
                     },
                     .none => {},
                 }

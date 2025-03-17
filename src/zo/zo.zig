@@ -1,3 +1,5 @@
+const std = @import("std");
+
 pub const math = @import("math.zig");
 pub const window = @import("window.zig");
 pub const input = @import("input.zig");
@@ -14,6 +16,7 @@ pub const StaticAsset = @import("static_asset.zig").StaticAsset;
 const Vec2i = math.Vec2i;
 const Dim2i = math.Dim2i;
 const LinearColor = math.LinearColor;
+const ECSWorldParams = ecs.ECSWorldParams;
 
 const Tick = @import("tick.zig").Tick;
 
@@ -26,55 +29,60 @@ pub const ZoParams = struct {
     };
 
     window: WindowParams,
-    game: type,
     target_fps: u32,
+    ecs_params: ?ECSWorldParams = null,
     fixed_target_fps: ?u32 = null,
     resolution: ?Dim2i = null,
 };
 
 var is_running = false;
 
-pub fn run(comptime p: ZoParams) !void {
-    try window.create(
-        p.window.title,
-        p.window.pos,
-        p.window.size,
-    );
-    const game_resolution: Dim2i = p.resolution orelse p.window.size;
-    try renderer.init(game_resolution);
-    defer renderer.deinit();
-    try audio.init();
-    defer audio.deinit();
+pub fn Runner(comptime p: ZoParams) type {
+    return struct {
+        pub const World = if (p.ecs_params)|ecs_params| ecs.ECSWorld(ecs_params) else undefined;
 
-    const GameTick = Tick(p.game);
+        pub fn run() !void {
+            try window.create(
+                p.window.title,
+                p.window.pos,
+                p.window.size,
+            );
+            const game_resolution: Dim2i = p.resolution orelse p.window.size;
+            try renderer.init(game_resolution);
+            defer renderer.deinit();
+            try audio.init();
+            defer audio.deinit();
 
-    var tick = GameTick.init(.{
-        .interface = p.game,
-        .target_fps = p.target_fps,
-        .fixed_target_fps = p.fixed_target_fps,
-    });
+            var tick: Tick = undefined;
 
-    is_running = true;
+            if (p.ecs_params != null) {
+                const allocator = std.heap.page_allocator;
+                var world = try World.init(allocator);
+                tick = Tick.init(.{
+                    .target_fps = p.target_fps,
+                    .fixed_target_fps = p.fixed_target_fps,
+                });
 
-    const T: type = p.game;
-    if (@hasDecl(T, "init")) {
-        try T.init();
-    }
+                // TODO: Initialize this in another place
+                _ = try world.initEntity(.{ .interface = p.ecs_params.?.entity_interfaces[0], });
+            }
 
-    while (window.isActive() and is_running) {
-        window.clear(.{ .r = 0.25, .g = 0.25, .b = 0.25 });
-        input.new_frame();
-        window.update();
+            is_running = true;
 
-        // Call user define update and fixed_update functions
-        try tick.update();
+            while (window.isActive() and is_running) {
+                window.clear(.{ .r = 0.25, .g = 0.25, .b = 0.25 });
+                input.new_frame();
+                window.update();
 
-        window.swap();
-    }
+                // Call user define update and fixed_update functions
+                if (p.ecs_params != null) {
+                    try tick.update(World.Static);
+                }
 
-    if (@hasDecl(T, "deinit")) {
-        T.deinit();
-    }
+                window.swap();
+            }
+        }
+    };
 }
 
 pub fn quit() void {
