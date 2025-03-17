@@ -150,6 +150,8 @@ pub fn ECSWorld(params: ECSWorldParams) type {
     // ECSWorld struct
     return struct {
 
+        const ECSWorldType = @This();
+
         const EntityData = struct {
             components: [component_types.len]?*anyopaque = [_]?*anyopaque{null} ** component_types.len,
             interface: ?EntityInterfaceData = null,
@@ -566,5 +568,55 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 }
             }
         }
+
+        /// Scene system that has callbacks to the ecs world
+        const SceneSystem = struct {
+
+            const Node = struct {
+                entity: Entity,
+                children_entities: std.ArrayList(Entity),
+                parent_entity: ?Entity = null,
+                queued_for_deletion: bool = false,
+            };
+
+            const Scene = struct {
+                name: []const u8,
+                nodes: std.ArrayList(Node),
+            };
+
+            const SceneDefinition = struct {
+                name: []const u8,
+                node_interface: type,
+            };
+
+            world: *ECSWorldType,
+            current_scene: ?Scene = null,
+
+            pub fn init(world: *ECSWorldType) @This() {
+                return @This(){
+                    .world = world,
+                };
+            }
+
+            pub fn deinit(self: *@This()) void {
+                self.removeCurrentScene();
+            }
+
+            pub fn changeScene(self: *@This(), definition: SceneDefinition) void {
+                self.removeCurrentScene();
+                const node_list = std.ArrayList(Node).init(self.world.allocator);
+                self.current_scene = .{
+                    .name = definition.name,
+                    .nodes = node_list,
+                };
+            }
+
+            fn removeCurrentScene(self: *@This()) void {
+                if (self.current_scene) |scene| {
+                    scene.nodes.deinit();
+                    self.current_scene = null;
+                }
+            }
+        };
     };
 }
