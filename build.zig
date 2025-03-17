@@ -8,9 +8,9 @@ pub fn build(b: *std.Build) !void {
 
     var root_source_file: []const u8 = undefined;
     if (target.result.os.tag == .windows) {
-        root_source_file = "src/win32_main.zig";
+        root_source_file = "src/test_game/win32_main.zig";
     } else {
-        root_source_file = "src/main.zig";
+        root_source_file = "src/test_game/main.zig";
     }
 
     const exe = b.addExecutable(.{
