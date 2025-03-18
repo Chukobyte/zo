@@ -259,8 +259,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             };
         }
 
-        /// Scene system that has callbacks to the ecs world
-        const Node = struct {
+        pub const Node = struct {
             const State = enum {
                 initialized,
                 in_scene,
@@ -278,6 +277,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             nodes: std.ArrayList(*Node),
         };
 
+        /// Scene system that has callbacks to the ecs world
         pub fn SceneSystem(scene_params: SceneSystemParams) type {
             const scene_definitions = scene_params.definitions;
             return struct {
@@ -318,6 +318,12 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                         .children_entities = std.ArrayList(Entity).init(self.world.allocator),
                     };
                     return &self.world.entity_data.items[@intCast(entity)].scene_node.?;
+                }
+
+                pub inline fn createNodeAndEntity(self: *@This(), entity_params: ?InitEntityParams) !*Node {
+                    const newEntity = try self.world.initEntity(entity_params);
+                    const newNode = self.createNode(newEntity);
+                    return newNode;
                 }
 
                 pub fn addNodeToScene(self: *@This(), node: *Node, parent: ?*Node) !void {
@@ -389,11 +395,47 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                     return null;
                 }
 
-                pub fn isNodeValid(self: *@This(), node: *Node) bool {
+                pub fn isNodeValid(self: *const @This(), node: *const Node) bool {
                     return (
                         self.world.isEntityValid(node.entity)
                         and node.state != .queued_for_deletion
                     );
+                }
+
+                pub fn updateNodeGlobalMatrix(self: *@This(), comptime MatrixInterfaceT: type, node: *Node) void {
+                    if (!@hasDecl(MatrixInterfaceT, "setGlobalMatrixDirty") 
+                        or !@hasDecl(MatrixInterfaceT, "isGlobalMatrixDirty")
+                        or !@hasDecl(MatrixInterfaceT, "setGlobalMatrix") 
+                        or !@hasDecl(MatrixInterfaceT, "globalMatrixMultiply")
+                        or !@hasDecl(MatrixInterfaceT, "getLocalTransform")
+                    ) {
+                        @compileError("Must implement MatrixInterfaceT methods: setGlobalMatrixDirty, isGlobalMatrixDirty, setGlobalMatrix, globalMatrixMultiply, getLocalTransform");
+                    }
+                    if (node.parent_entity) |parent_entity| {
+                        if (self.getNode(parent_entity)) |parent_node| {
+                            // Ensure the parent's transform is up-to-date.
+                            if (MatrixInterfaceT.isGlobalMatrixDirty(parent_node)) {
+                                self.updateNodeGlobalMatrix(MatrixInterfaceT, parent_node);
+                            }
+                            // Combine parent's global with local.
+                            const local_transform = MatrixInterfaceT.getLocalTransform(node);
+                            const combined = MatrixInterfaceT.globalMatrixMultiply(parent_node, &local_transform);
+                            MatrixInterfaceT.setGlobalMatrix(node, &combined);
+                        }
+                    } else {
+                        // Root node: global is the same as local.
+                        const local_transform = MatrixInterfaceT.getLocalTransform(node);
+                        MatrixInterfaceT.setGlobalMatrix(node, &local_transform);
+                    }
+                    MatrixInterfaceT.setGlobalMatrixDirty(node, false);
+
+                    // Now update all children.
+                    for (node.children_entities.items) |child_entity| {
+                        if (self.getNode(child_entity)) |child_node| {
+                            MatrixInterfaceT.setGlobalMatrixDirty(node, true);
+                            self.updateNodeGlobalMatrix(MatrixInterfaceT, child_node);
+                        }
+                    }
                 }
 
                 /// Expected to be called every new frame
@@ -413,8 +455,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                                     .nodes = std.ArrayList(*Node).init(self.world.allocator),
                                 };
                                 if (scene_definitions[i].node_interface) |node_interface| {
-                                    const newEntity = try self.world.initEntity(.{ .interface = node_interface, });
-                                    const newNode = self.createNode(newEntity);
+                                    const newNode = try self.createNodeAndEntity(.{ .interface = node_interface });
                                     try self.addNodeToScene(newNode, null);
                                 }
                                 self.queued_scene_def_id = null;
@@ -693,7 +734,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         }
 
         pub fn getComponent(self: *@This(), entity: Entity, comptime T: type) ?*T {
-            const entity_data: *EntityData = &self.entity_data_list.items[entity];
+            const entity_data: *EntityData = &self.entity_data.items[entity];
             const comp_index: usize = ComponentTypeList.getIndex(T);
             if (entity_data.components[comp_index]) |comp| {
                 return @alignCast(@ptrCast(comp));
@@ -703,7 +744,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
         pub fn removeComponent(self: *@This(), entity: Entity, comptime T: type) void {
             if (self.hasComponent(entity, T)) {
-                const entity_data: *EntityData = &self.entity_data_list.items[entity];
+                const entity_data: *EntityData = &self.entity_data.items[entity];
                 const comp_index: usize = ComponentTypeList.getIndex(T);
                 const comp_ptr: *T = @alignCast(@ptrCast(entity_data.components[comp_index]));
 
@@ -719,18 +760,18 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         }
 
         pub inline fn hasComponent(self: *@This(), entity: Entity, comptime T: type) bool {
-            const entity_data: *EntityData = &self.entity_data_list.items[entity];
+            const entity_data: *EntityData = &self.entity_data.items[entity];
             const comp_index: usize = ComponentTypeList.getIndex(T);
             return entity_data.components[comp_index] != null;
         }
 
         pub fn setComponentEnabled(self: *@This(), entity: Entity, comptime T: type, enabled: bool) void {
-            const entity_data: *EntityData = &self.entity_data_list.items[entity];
+            const entity_data: *EntityData = &self.entity_data.items[entity];
             entity_data.component_signature.setEnabled(T, enabled);
         }
 
         pub fn isComponentEnabled(self: *@This(), entity: Entity, comptime T: type) bool {
-            const entity_data: *EntityData = &self.entity_data_list.items[entity];
+            const entity_data: *EntityData = &self.entity_data.items[entity];
             return entity_data.component_signature.isEnabled(T);
         }
 

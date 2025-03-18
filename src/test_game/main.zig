@@ -44,6 +44,44 @@ const SpriteComponent = struct {
     modulate: LinearColor,
 };
 
+const NodeGlobalMatrixInterface = struct {
+    pub fn setGlobalMatrixDirty(node: *Node, is_dirty: bool) void {
+        if (global_world.getComponent(node.entity, Transform2DComponent)) |transform_comp| {
+            transform_comp.is_global_dirty = is_dirty;
+        }
+    }
+
+    pub fn isGlobalMatrixDirty(node: *Node) bool {
+        if (global_world.getComponent(node.entity, Transform2DComponent)) |transform_comp| {
+            return transform_comp.is_global_dirty;
+        }
+        log(.warn, "Attempting to check if global matrix is dirty, to node {any} which doesn't have a transform component!", .{node});
+        return false;
+    }
+
+    pub fn setGlobalMatrix(node: *Node, matrix: *const Mat4) void {
+        if (global_world.getComponent(node.entity, Transform2DComponent)) |transform_comp| {
+            transform_comp.global_matrix = matrix.*;
+        }
+    }
+
+    pub fn globalMatrixMultiply(node: *Node, matrix: *const Mat4) Mat4 {
+        if (global_world.getComponent(node.entity, Transform2DComponent)) |transform_comp| {
+            return transform_comp.global_matrix.mul(matrix);
+        }
+        log(.warn, "Attempting to multiply node {any} which doesn't have a transform component!", .{node});
+        return Mat4.Identity;
+    }
+
+    pub fn getLocalTransform(node: *Node) Mat4 {
+        if (global_world.getComponent(node.entity, Transform2DComponent)) |transform_comp| {
+            return transform_comp.local.toMat4();
+        }
+        log(.warn, "Attempting to get local transform of node {any} which doesn't have a transform component!", .{node});
+        return Mat4.Identity;
+    }
+};
+
 const SpriteRenderingSystem = struct {
     pub fn postWorldTick(_: *@This(), world: *World) !void {
         const ComponentIterator = World.ArchetypeComponentIterator(&.{ Transform2DComponent, SpriteComponent });
@@ -51,6 +89,11 @@ const SpriteRenderingSystem = struct {
         while (comp_iter.next()) |iter| {
             const transformComp = iter.getComponent(Transform2DComponent);
             const sprite_comp = iter.getComponent(SpriteComponent);
+
+            if (scene_system.getNode(iter.getEntity())) |node| {
+                scene_system.updateNodeGlobalMatrix(NodeGlobalMatrixInterface, node);
+            }
+
             log(.debug, "trans = {any}\nsprite = {any}", .{ transformComp, sprite_comp });
         }
     }
@@ -65,11 +108,14 @@ const World = ecs.ECSWorld(.{
     }),
 });
 const SceneSystem = World.SceneSystem(.{ .definitions = &[_]ecs.SceneDefinition{ .{ .name = "Default", .node_interface = MainEntity, } } });
+const Node = World.Node;
 
 const allocator: std.mem.Allocator = std.heap.page_allocator;
 var map_textue: Texture = undefined;
 var verdana_font: Font = undefined;
 var rainbow_orb_audio: AudioSource = undefined;
+var global_world: World = undefined;
+var scene_system: SceneSystem = undefined;
 
 const MainEntity = struct {
     pub fn init(self: *@This(), world: *World, entity: ecs.Entity) !void {
@@ -119,12 +165,18 @@ const MainEntity = struct {
 };
 
 const GameMain = struct {
-    var world: World = undefined;
-    var scene_system: SceneSystem = undefined;
+
+    const GameObject = struct {
+        node: *ecs.Node,
+
+        pub inline fn isValid(self: *const @This()) bool {
+            scene_system.isNodeValid(self.node);
+        }
+    };
 
     pub fn init() !void {
-        world = try World.init(allocator);
-        scene_system = SceneSystem.init(&world);
+        global_world = try World.init(allocator);
+        scene_system = SceneSystem.init(&global_world);
         scene_system.changeScene("Default");
         map_textue = try Texture.initFromMemory2(std.heap.page_allocator, static_assets.map_texture, true);
         verdana_font = try Font.initFromMemory2(static_assets.default_font, 16, true);
@@ -136,11 +188,11 @@ const GameMain = struct {
         verdana_font.deinit();
         rainbow_orb_audio.deinit();
         scene_system.deinit();
-        world.deinit();
+        global_world.deinit();
     }
 
     pub fn preTick() !void {
-        try world.preTick();
+        try global_world.preTick();
     }
 
     pub fn update(delta_seconds: f32) !void {
@@ -148,15 +200,15 @@ const GameMain = struct {
             scene_system.changeScene("Default");
         }
         try scene_system.newFrame();
-        try world.update(delta_seconds);
+        try global_world.update(delta_seconds);
     }
 
     pub fn fixedUpdate(delta_seconds: f32) !void {
-        try world.fixedUpdate(delta_seconds);
+        try global_world.fixedUpdate(delta_seconds);
     }
 
     pub fn postTick() !void {
-        try world.postTick();
+        try global_world.postTick();
     }
 
 };
