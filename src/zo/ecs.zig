@@ -497,6 +497,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         entity_data: std.ArrayList(EntityData),
         system_data: [system_types.len]SystemData,
         archetype_data: [archetype_count]ArchetypeData,
+
         update_entities: std.ArrayList(Entity),
         fixed_update_entities: std.ArrayList(Entity),
 
@@ -508,7 +509,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 .allocator = allocator,
                 .entity_data = entity_data_list,
                 .system_data = undefined,
-                .archetype_data = undefined,
+                .archetype_data = [_]ArchetypeData{.{}} ** archetype_count,
                 .update_entities = update_entities_list,
                 .fixed_update_entities = fixed_update_entities_list,
             };
@@ -538,6 +539,15 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 if (@hasDecl(SystemT, "getSignature")) {
                     const system_component_signature: []const type = new_system.getSignature();
                     world.system_data[i].component_signature.setFlagsFromTypes(system_component_signature);
+                    // Link up systems with matching archetypes
+                    inline for (0..archetype_count) |arch_i| {
+                        const arch_data = &world.archetype_data[arch_i];
+                        log(.debug, "system.mask = {any}, arch_data.signature = {any}", .{world.system_data[i].component_signature.mask, arch_data.signature});
+                        if (world.system_data[i].component_signature.mask == arch_data.signature) {
+                            arch_data.systems[arch_data.system_count] = i;
+                            arch_data.system_count += 1;
+                        }
+                    }
                 } else {
                     world.system_data[i].component_signature = .{};
                 }
@@ -718,7 +728,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         }
 
         pub fn setComponent(self: *@This(), entity: Entity, comptime T: type, component: *const T) !void {
-            const entity_data: *EntityData = &self.entity_data_list.items[entity];
+            const entity_data: *EntityData = &self.entity_data.items[entity];
             const comp_index = ComponentTypeList.getIndex(T);
             if (!self.hasComponent(entity,T)) {
                 const new_comp: *T = try self.allocator.create(T);
@@ -727,6 +737,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 entity_data.component_signature.set(T);
                 try self.refreshArchetypeState(entity);
             } else {
+                log(.debug, "comp_index = {any}", .{comp_index});
                 const current_comp: *T = @alignCast(@ptrCast(entity_data.components[comp_index].?));
                 @memcpy(std.mem.asBytes(current_comp), std.mem.asBytes(component));
             }
@@ -826,6 +837,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
                     for (0..arch_data.system_count) |sys_i| {
                         const system_index = arch_data.systems[sys_i];
+                        log(.debug, "system_index = {any}, system_count = {any}", .{system_index, arch_data.system_count});
                         Static.SystemState[system_index] = .on_entity_registered;
                     }
                 } else if (!match_signature and entity_data.is_in_archetype_map[i]) {

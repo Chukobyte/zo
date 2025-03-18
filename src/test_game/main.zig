@@ -31,9 +31,9 @@ const Transform2DComponent = struct {
     global: Transform2D = Transform2D.Identity,
     global_matrix: Mat4 = Mat4.Identity,
     is_global_dirty: bool = false,
-    z_index: u32 = 0,
+    z_index: i32 = 0,
     is_z_index_relative_to_parent: bool = true,
-    ignore_camera: bool = false,
+    in_screen_space: bool = false,
 };
 
 const SpriteComponent = struct {
@@ -42,7 +42,7 @@ const SpriteComponent = struct {
     origin: Vec2 = Vec2.Zero,
     flip_h: bool = false,
     flip_v: bool = false,
-    modulate: LinearColor,
+    modulate: LinearColor = LinearColor.White,
 };
 
 const NodeGlobalMatrixInterface = struct {
@@ -99,14 +99,20 @@ const SpriteRenderingSystem = struct {
         const ComponentIterator = World.ArchetypeComponentIterator(&.{ Transform2DComponent, SpriteComponent });
         var comp_iter = ComponentIterator.init(world);
         while (comp_iter.next()) |iter| {
-            const transformComp = iter.getComponent(Transform2DComponent);
-            const sprite_comp = iter.getComponent(SpriteComponent);
-
             if (scene_system.getNode(iter.getEntity())) |node| {
                 scene_system.updateNodeGlobalMatrix(NodeGlobalMatrixInterface, node);
+                const transform_comp = iter.getComponent(Transform2DComponent);
+                const sprite_comp = iter.getComponent(SpriteComponent);
+                try renderer.queueSpriteDraw(&.{
+                    .texture = sprite_comp.texture,
+                    .source_rect = sprite_comp.draw_source,
+                    .global_matrix = &transform_comp.global_matrix,
+                    .modulate = sprite_comp.modulate,
+                    .flip_h = sprite_comp.flip_h,
+                    .flip_v = sprite_comp.flip_v,
+                    .z_index =  transform_comp.z_index,
+                });
             }
-
-            log(.debug, "trans = {any}\nsprite = {any}", .{ transformComp, sprite_comp });
         }
     }
 };
@@ -137,7 +143,12 @@ const MainEntity = struct {
         _ = self; _ = world; _ = entity;
     }
     pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
-        _ = self; _ = world; _ = entity;
+        _ = self;
+        try world.setComponent(entity, Transform2DComponent, &.{});
+        try world.setComponent(entity, SpriteComponent, &.{
+            .texture = &map_textue,
+            .draw_source = .{ .x = 0.0, .y = 0.0, .w = @floatFromInt(map_textue.width), .h = @floatFromInt(map_textue.height) }
+        });
     }
     pub fn onExitScene(self: *@This(), world: *World, entity: ecs.Entity) void {
         _ = self; _ = world; _ = entity;
@@ -152,10 +163,10 @@ const MainEntity = struct {
             zo.quit();
         }
 
-        try renderer.queueSpriteDraw(&.{
-            .texture = &map_textue,
-            .source_rect = .{ .x = 0.0, .y = 0.0, .w = 640.0, .h = 360.0 },
-        });
+        // try renderer.queueSpriteDraw(&.{
+        //     .texture = &map_textue,
+        //     .source_rect = .{ .x = 0.0, .y = 0.0, .w = 640.0, .h = 360.0 },
+        // });
 
         try renderer.queueTextDraw(&.{
             .text = "Virginia",

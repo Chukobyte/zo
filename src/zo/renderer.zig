@@ -412,9 +412,10 @@ pub const RenderData = struct {
 pub const DrawSpriteParams = struct {
     texture: *const Texture,
     source_rect: Rect2,
-    dest_size: ?Vec2 = null,
-    transform: Transform2D = Transform2D.Identity, // Global transform
-    color: LinearColor = .{ .r = 1.0, .g = 1.0, .b = 1.0 },
+    global_matrix: *Mat4,
+    // dest_size: ?Vec2 = null,
+    // transform: Transform2D = Transform2D.Identity, // Global transform
+    modulate: LinearColor = .{ .r = 1.0, .g = 1.0, .b = 1.0 },
     flip_h: bool = false,
     flip_v: bool = false,
     z_index: i32 = 0,
@@ -531,21 +532,21 @@ const SpriteRenderer = struct {
         glad.glBindVertexArray(render_data.vao);
         glad.glBindBuffer(glad.GL_ARRAY_BUFFER, render_data.vbo);
 
-        const dest_size: Vec2 = p.dest_size orelse Vec2{ .x = p.source_rect.w, .y = p.source_rect.h };
+        // const dest_size: Vec2 = p.dest_size orelse Vec2{ .x = p.source_rect.w, .y = p.source_rect.h };
         var models: [max_sprite_count]Mat4 = undefined;
         const number_of_sprites: usize = 1;
         for (0..number_of_sprites) |i| {
-            var model: Mat4 = Mat4.Identity;
-            model.translate2(.{ .x = p.transform.position.x, .y = p.transform.position.y });
-            model.rotateZ2(std.math.degreesToRadians(p.transform.rotation));
-            model.scale2(.{ .x = p.transform.scale.x * dest_size.x, .y = p.transform.scale.y * dest_size.y, .z = 1.0 });
+            // var model: Mat4 = Mat4.Identity;
+            // model.translate2(.{ .x = p.transform.position.x, .y = p.transform.position.y });
+            // model.rotateZ2(std.math.degreesToRadians(p.transform.rotation));
+            // model.scale2(.{ .x = p.transform.scale.x * dest_size.x, .y = p.transform.scale.y * dest_size.y, .z = 1.0 });
 
-            models[i] = model;
+            models[i] = p.global_matrix.*;
 
             render_data.shader.use();
 
             const model_id: f32 = @floatFromInt(i);
-            const determinate: f32 = model.determinant();
+            const determinate: f32 = p.global_matrix.determinant();
             const texture_coords: TextureCoords = TextureCoords.generate(p.texture, &p.source_rect, p.flip_h, p.flip_v);
 
             render_data.shader.setUniformArray("models", []Mat4, &models, number_of_sprites);
@@ -569,10 +570,10 @@ const SpriteRenderer = struct {
                 verts[row + 2] = if (use_t_min) 0.0 else 1.0;
                 verts[row + 3] = if (use_s_min) texture_coords.s_min else texture_coords.s_max;
                 verts[row + 4] = if (use_t_min) texture_coords.t_min else texture_coords.t_max;
-                verts[row + 5] = @as(GLfloat, p.color.r);
-                verts[row + 6] = @as(GLfloat, p.color.g);
-                verts[row + 7] = @as(GLfloat, p.color.b);
-                verts[row + 8] = @as(GLfloat, p.color.a);
+                verts[row + 5] = @as(GLfloat, p.modulate.r);
+                verts[row + 6] = @as(GLfloat, p.modulate.g);
+                verts[row + 7] = @as(GLfloat, p.modulate.b);
+                verts[row + 8] = @as(GLfloat, p.modulate.a);
                 verts[row + 9] = if(p.texture.using_nearest_neighbor) 1.0 else 0.0;
             }
 
