@@ -542,7 +542,6 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                     // Link up systems with matching archetypes
                     inline for (0..archetype_count) |arch_i| {
                         const arch_data = &world.archetype_data[arch_i];
-                        log(.debug, "system.mask = {any}, arch_data.signature = {any}", .{world.system_data[i].component_signature.mask, arch_data.signature});
                         if (world.system_data[i].component_signature.mask == arch_data.signature) {
                             arch_data.systems[arch_data.system_count] = i;
                             arch_data.system_count += 1;
@@ -669,6 +668,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 _ = try self.entity_data.addOne();
             }
             // Reset and update entity data
+            // TODO: Make cleaner
             const entity_data: *EntityData = &self.entity_data.items[newEntity];
             if (p.interface) |InterfaceT| {
                 const interface_id = EntityInterfaceTypeList.getIndex(InterfaceT);
@@ -692,6 +692,10 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             } else {
                 entity_data.interface = null;
             }
+            inline for (0..component_types.len) |i| {
+                entity_data.components[i] = null;
+            }
+            entity_data.component_signature.unsetAll();
             return newEntity;
         }
 
@@ -737,11 +741,9 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 entity_data.component_signature.set(T);
                 try self.refreshArchetypeState(entity);
             } else {
-                log(.debug, "comp_index = {any}", .{comp_index});
                 const current_comp: *T = @alignCast(@ptrCast(entity_data.components[comp_index].?));
                 @memcpy(std.mem.asBytes(current_comp), std.mem.asBytes(component));
             }
-
         }
 
         pub fn getComponent(self: *@This(), entity: Entity, comptime T: type) ?*T {
@@ -837,7 +839,6 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
                     for (0..arch_data.system_count) |sys_i| {
                         const system_index = arch_data.systems[sys_i];
-                        log(.debug, "system_index = {any}, system_count = {any}", .{system_index, arch_data.system_count});
                         Static.SystemState[system_index] = .on_entity_registered;
                     }
                 } else if (!match_signature and entity_data.is_in_archetype_map[i]) {
