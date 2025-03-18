@@ -593,6 +593,7 @@ pub const DrawTextParams = struct {
     position: Vec2,
     scale: f32 = 1.0,
     color: LinearColor = LinearColor.White,
+    z_index: i32 = 0,
 };
 
 const FontRenderer = struct {
@@ -691,7 +692,28 @@ const FontRenderer = struct {
     }
 };
 
+pub const DrawCommand = union(enum) {
+    sprite: DrawSpriteParams,
+    text: DrawTextParams,
+
+    pub inline fn getZIndex(self: *const @This()) i32 {
+        return switch (self.*) {
+            .sprite => |sprite| sprite.z_index,
+            .text => |text| text.z_index,
+        };
+    }
+};
+
+const DrawCommandData = struct {
+    command: DrawCommand,
+    id: u32,
+};
+
+var draw_command_data: std.ArrayList(DrawCommandData) = undefined;
+var draw_command_index: u32 = 0;
+
 pub fn init(resolution: Dim2i) !void {
+    draw_command_data = std.ArrayList(DrawCommandData).init(std.heap.page_allocator);
     render_context.resolution = resolution;
     glad.glEnable(glad.GL_CULL_FACE);
     glad.glEnable(glad.GL_BLEND);
@@ -704,12 +726,48 @@ pub fn init(resolution: Dim2i) !void {
 pub fn deinit() void {
     SpriteRenderer.deinit();
     FontRenderer.deinit();
+    draw_command_data.deinit();
 }
 
-pub inline fn drawSprite(p: *const DrawSpriteParams) void {
-    SpriteRenderer.drawSprite(p);
+// TODO: Pre sort and batch draw calls
+
+pub inline fn queueSpriteDraw(p: *const DrawSpriteParams) !void {
+    try draw_command_data.append(.{
+        .command = .{ .sprite = p.* },
+        .id = draw_command_index,
+    });
+    draw_command_index += 1;
 }
 
-pub inline fn drawText(p: *const DrawTextParams) void {
-    FontRenderer.drawText(p);
+pub inline fn queueTextDraw(p: *const DrawTextParams) !void {
+    try draw_command_data.append(.{
+        .command = .{ .text = p.* },
+        .id = draw_command_index,
+    });
+    draw_command_index += 1;
+}
+
+pub fn processQueuedDrawCalls() void {
+    const Local = struct {
+        const EmptyContext = struct {};
+
+        pub fn sortDrawCommands(data: []DrawCommandData) void {
+            std.sort.insertion(DrawCommandData, data, EmptyContext{}, lessThan);
+        }
+
+        fn lessThan(_: EmptyContext, a: DrawCommandData, b: DrawCommandData) bool {
+            return a.command.getZIndex() < b.command.getZIndex();
+        }
+    };
+
+    Local.sortDrawCommands(draw_command_data.items);
+
+    for (draw_command_data.items) |*data| {
+        switch (data.command) {
+            .sprite => SpriteRenderer.drawSprite(&data.command.sprite),
+            .text => FontRenderer.drawText(&data.command.text),
+        }
+    }
+    draw_command_data.clearRetainingCapacity();
+    draw_command_index = 0;
 }

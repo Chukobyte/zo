@@ -69,6 +69,7 @@ pub fn run(comptime p: ZoParams) !void {
         // Call user define update and fixed_update functions
         try tick.update();
 
+        renderer.processQueuedDrawCalls();
         window.swap();
     }
 

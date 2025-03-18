@@ -58,21 +58,23 @@ const MainEntity = struct {
             zo.quit();
         }
 
-        renderer.drawSprite(&.{
+        try renderer.queueSpriteDraw(&.{
             .texture = &map_textue,
             .source_rect = .{ .x = 0.0, .y = 0.0, .w = 640.0, .h = 360.0 },
         });
 
-        renderer.drawText(&.{
-            .text = "Colonial America",
-            .font = &verdana_font,
-            .position = .{ .x = 200.0, .y = 200.0 },
-        });
-
-        renderer.drawText(&.{
+        try renderer.queueTextDraw(&.{
             .text = "Virginia",
             .font = &verdana_font,
             .position = .{ .x = 100.0, .y = 340.0 },
+            .z_index = 2,
+        });
+
+        try renderer.queueTextDraw(&.{
+            .text = "Colonial America",
+            .font = &verdana_font,
+            .position = .{ .x = 200.0, .y = 200.0 },
+            .z_index = 1,
         });
     }
     pub fn fixed_update(self: *@This(), world: *World, entity: ecs.Entity, delta_seconds: f32) !void {
