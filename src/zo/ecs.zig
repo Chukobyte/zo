@@ -462,7 +462,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             const entity_data_list = std.ArrayList(EntityData).init(allocator);
             const update_entities_list = std.ArrayList(Entity).init(allocator);
             const fixed_update_entities_list = std.ArrayList(Entity).init(allocator);
-            const world: @This() = .{
+            var world: @This() = .{
                 .allocator = allocator,
                 .entity_data = entity_data_list,
                 .system_data = undefined,
@@ -781,7 +781,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 }
             }
 
-            inline for (self.system_data, 0..system_types.len) |*system_data, i| {
+            inline for (self.system_data, 0..system_types.len) |system_data, i| {
                 const T: type = SystemsTypeList.getType(i);
                 switch (Static.SystemState[i]) {
                     .on_entity_registered => {

@@ -33,8 +33,17 @@ const Transform2DComponent = struct {
     ignore_camera: bool = false,
 };
 
+const SpriteComponent = struct {};
+
+const SpriteRenderingSystem = struct {
+
+};
+
 const World = ecs.ECSWorld(.{
     .entity_interfaces = &.{ MainEntity },
+    .components = &.{ Transform2DComponent, SpriteComponent },
+    .systems = &.{ SpriteRenderingSystem },
+    // .archetypes =  &.{ &.{ Transform2DComponent, SpriteRenderingSystem } },
 });
 const SceneSystem = World.SceneSystem(.{ .definitions = &[_]ecs.SceneDefinition{ .{ .name = "Default", .node_interface = MainEntity, } } });
 
