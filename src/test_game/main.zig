@@ -14,12 +14,24 @@ const input = zo.input;
 const math = zo.math;
 
 const Vec2 = math.Vec2;
+const Transform2D = math.Transform2D;
+const Mat4 = math.Mat4;
 const Texture = renderer.Texture;
 const Font = renderer.Font;
 
 const AudioSource = audio.AudioSource;
 
 const log = zo.log;
+
+const Transform2DComponent = struct {
+    local: Transform2D = Transform2D.Identity,
+    global: Transform2D = Transform2D.Identity,
+    global_matrix: Mat4 = Mat4.Identity,
+    is_global_dirty: bool = false,
+    z_index: u32 = 0,
+    is_z_index_relative_to_parent: bool = true,
+    ignore_camera: bool = false,
+};
 
 const World = ecs.ECSWorld(.{
     .entity_interfaces = &.{ MainEntity },

@@ -338,6 +338,15 @@ pub fn Transformation2D(comptime PosT: type, comptime ScaleT: type, comptime Rot
 
         // Defaults to identity, so just create an empty struct
         pub const Identity = @This(){};
+
+        pub fn toMat4(self: *const @This()) Mat4 {
+            var m = Mat4.Identity;
+            m.translate2(Vec3{ .x = self.position.x, .y = self.position.y, .z = 0 });
+            m.rotateZ2(self.rotation);
+            m.scale2(Vec3{ .x = self.scale.x, .y = self.scale.y, .z = 1 });
+            return m;
+        }
+
     };
 }
 
