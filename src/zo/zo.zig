@@ -5,6 +5,7 @@ pub const renderer = @import("renderer.zig");
 pub const audio = @import("audio.zig");
 pub const ecs = @import("ecs.zig");
 pub const logger = @import("logger.zig");
+pub const string = @import("string.zig");
 pub const misc = @import("misc.zig");
 
 pub const log = logger.log;

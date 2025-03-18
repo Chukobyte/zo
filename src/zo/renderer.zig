@@ -413,8 +413,6 @@ pub const DrawSpriteParams = struct {
     texture: *const Texture,
     source_rect: Rect2,
     global_matrix: *Mat4,
-    // dest_size: ?Vec2 = null,
-    // transform: Transform2D = Transform2D.Identity, // Global transform
     modulate: LinearColor = .{ .r = 1.0, .g = 1.0, .b = 1.0 },
     flip_h: bool = false,
     flip_v: bool = false,

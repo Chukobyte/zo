@@ -24,6 +24,8 @@ const Font = renderer.Font;
 
 const AudioSource = audio.AudioSource;
 
+const String = zo.string.String;
+
 const log = zo.log;
 
 const Transform2DComponent = struct {
@@ -43,6 +45,12 @@ const SpriteComponent = struct {
     flip_h: bool = false,
     flip_v: bool = false,
     modulate: LinearColor = LinearColor.White,
+};
+
+const TextLabelComponent = struct {
+    text: String,
+    font: *Font,
+    color: LinearColor = LinearColor.White,
 };
 
 const NodeGlobalMatrixInterface = struct {
@@ -117,12 +125,37 @@ const SpriteRenderingSystem = struct {
     }
 };
 
+const TextRenderingSystem = struct {
+    pub fn postWorldTick(_: *@This(), world: *World) !void {
+        const ComponentIterator = World.ArchetypeComponentIterator(&.{ Transform2DComponent, TextLabelComponent });
+        var comp_iter = ComponentIterator.init(world);
+        while (comp_iter.next()) |iter| {
+            if (scene_system.getNode(iter.getEntity())) |node| {
+                scene_system.updateNodeGlobalMatrix(NodeGlobalMatrixInterface, node);
+                const transform_comp = iter.getComponent(Transform2DComponent);
+                const text_label_comp = iter.getComponent(TextLabelComponent);
+                try renderer.queueTextDraw(&.{
+                    .text = text_label_comp.text.get(),
+                    .font = text_label_comp.font,
+                    .position = transform_comp.global.position,
+                    .scale = transform_comp.global.scale.x, // Only recongnizes x scale for now
+                    .color = text_label_comp.color,
+                    .z_index =  transform_comp.z_index,
+                });
+            }
+        }
+    }
+};
+
 const World = ecs.ECSWorld(.{
     .entity_interfaces = &.{ MainEntity },
+    // .components = &.{ Transform2DComponent, SpriteComponent, TextLabelComponent },
     .components = &.{ Transform2DComponent, SpriteComponent },
+    // .systems = &.{ SpriteRenderingSystem, TextRenderingSystem },
     .systems = &.{ SpriteRenderingSystem },
     .archetypes = @as([]const []const type, &.{
         &.{ Transform2DComponent, SpriteComponent },
+        // &.{ Transform2DComponent, TextLabelComponent },
     }),
 });
 const SceneSystem = World.SceneSystem(.{ .definitions = &[_]ecs.SceneDefinition{ .{ .name = "Default", .node_interface = MainEntity, } } });
