@@ -16,6 +16,7 @@ const math = zo.math;
 const Vec2 = math.Vec2;
 const Rect2 = math.Rect2;
 const Transform2D = math.Transform2D;
+const Dim2i = math.Dim2i;
 const Mat4 = math.Mat4;
 const LinearColor = math.LinearColor;
 const Texture = renderer.Texture;
@@ -75,10 +76,21 @@ const NodeGlobalMatrixInterface = struct {
 
     pub fn getLocalTransform(node: *Node) Mat4 {
         if (global_world.getComponent(node.entity, Transform2DComponent)) |transform_comp| {
-            return transform_comp.local.toMat4();
+            var local_transform = transform_comp.local;
+            const dest_size = getRenderableSize(node);
+            local_transform.scale.x *= @floatFromInt(dest_size.w);
+            local_transform.scale.y *= @floatFromInt(dest_size.h);
+            return local_transform.toMat4();
         }
         log(.warn, "Attempting to get local transform of node {any} which doesn't have a transform component!", .{node});
         return Mat4.Identity;
+    }
+
+    fn getRenderableSize(node: *Node) Dim2i {
+        if (global_world.getComponent(node.entity, SpriteComponent)) |sprite_comp| {
+            return Dim2i{ .w = sprite_comp.texture.width, .h = sprite_comp.texture.height };
+        }
+        return Dim2i{ .w = 1, .h = 1 };
     }
 };
 
