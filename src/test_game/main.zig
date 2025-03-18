@@ -24,7 +24,7 @@ const Font = renderer.Font;
 
 const AudioSource = audio.AudioSource;
 
-const String = zo.string.String;
+const String = zo.string.String128;
 
 const log = zo.log;
 
@@ -132,16 +132,16 @@ const TextRenderingSystem = struct {
         while (comp_iter.next()) |iter| {
             if (scene_system.getNode(iter.getEntity())) |node| {
                 scene_system.updateNodeGlobalMatrix(NodeGlobalMatrixInterface, node);
-                // const transform_comp = iter.getComponent(Transform2DComponent);
-                // const text_label_comp = iter.getComponent(TextLabelComponent);
-                // try renderer.queueTextDraw(&.{
-                //     .text = text_label_comp.text.get(),
-                //     .font = text_label_comp.font,
-                //     .position = transform_comp.global.position,
-                //     .scale = transform_comp.global.scale.x, // Only recongnizes x scale for now
-                //     .color = text_label_comp.color,
-                //     .z_index =  transform_comp.z_index,
-                // });
+                const transform_comp = iter.getComponent(Transform2DComponent);
+                const text_label_comp = iter.getComponent(TextLabelComponent);
+                try renderer.queueTextDraw(&.{
+                    .text = text_label_comp.text.getCString(),
+                    .font = text_label_comp.font,
+                    .position = transform_comp.global.position,
+                    .scale = transform_comp.global.scale.x, // Only recongnizes x scale for now
+                    .color = text_label_comp.color,
+                    .z_index =  transform_comp.z_index,
+                });
             }
         }
     }
@@ -181,11 +181,17 @@ const MainEntity = struct {
             .texture = &map_textue,
             .draw_source = .{ .x = 0.0, .y = 0.0, .w = @floatFromInt(map_textue.width), .h = @floatFromInt(map_textue.height) }
         });
+
         // Virgina text entity
         const virginia_text_node = try scene_system.createNodeAndEntity(null);
-        log(.debug, "entity = {any}, virginia text entity = {any}", .{ entity, virginia_text_node.entity });
         try world.setComponent(virginia_text_node.entity, Transform2DComponent, &.{ .global = .{ .position = .{ .x = 100.0, .y = 340.0 } }, .z_index = 2, });
         try world.setComponent(virginia_text_node.entity, TextLabelComponent, &.{ .text = try String.initAndSet(allocator, "Virginia", .{}), .font = &verdana_font });
+        // try scene_system.addNodeToScene(virginia_text_node, null);
+
+        // Colonial text entity
+        const colonial_text_node = try scene_system.createNodeAndEntity(null);
+        try world.setComponent(colonial_text_node.entity, Transform2DComponent, &.{ .global = .{ .position = .{ .x = 200.0, .y = 200.0 } }, .z_index = 1, });
+        try world.setComponent(colonial_text_node.entity, TextLabelComponent, &.{ .text = try String.initAndSet(allocator, "Colonial America", .{}), .font = &verdana_font });
         // try scene_system.addNodeToScene(virginia_text_node, null);
     }
     pub fn onExitScene(self: *@This(), world: *World, entity: ecs.Entity) void {
@@ -206,19 +212,19 @@ const MainEntity = struct {
         //     .source_rect = .{ .x = 0.0, .y = 0.0, .w = 640.0, .h = 360.0 },
         // });
 
-        try renderer.queueTextDraw(&.{
-            .text = "Virginia",
-            .font = &verdana_font,
-            .position = .{ .x = 100.0, .y = 340.0 },
-            .z_index = 2,
-        });
+        // try renderer.queueTextDraw(&.{
+        //     .text = "Virginia",
+        //     .font = &verdana_font,
+        //     .position = .{ .x = 100.0, .y = 340.0 },
+        //     .z_index = 2,
+        // });
 
-        try renderer.queueTextDraw(&.{
-            .text = "Colonial America",
-            .font = &verdana_font,
-            .position = .{ .x = 200.0, .y = 200.0 },
-            .z_index = 1,
-        });
+        // try renderer.queueTextDraw(&.{
+        //     .text = "Colonial America",
+        //     .font = &verdana_font,
+        //     .position = .{ .x = 200.0, .y = 200.0 },
+        //     .z_index = 1,
+        // });
     }
     pub fn fixed_update(self: *@This(), world: *World, entity: ecs.Entity, delta_seconds: f32) !void {
         _ = self; _ = world; _ = entity; _ = delta_seconds;

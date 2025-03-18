@@ -90,12 +90,13 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 // Now that it doesn't exist add it
                 archetype_list_data[archetypes_count] = @This(){
                     .signature = archetype_signature,
-                    .num_of_components = component_types.len,
+                    .num_of_components = archetype_types.len,
+                    // .num_of_components = component_types.len,
                     .num_of_sorted_components = 1
                 };
-                for (0..component_types.len) |i| {
-                    archetype_list_data[archetypes_count].sorted_components[0][i] = component_types[i];
-                    archetype_list_data[archetypes_count].sorted_components_by_index[0][i] = ComponentTypeList.getIndex(component_types[i]);
+                for (0..archetype_types.len) |i| {
+                    archetype_list_data[archetypes_count].sorted_components[0][i] = archetype_types[i];
+                    archetype_list_data[archetypes_count].sorted_components_by_index[0][i] = ComponentTypeList.getIndex(archetype_types[i]);
                 }
                 archetypes_count += 1;
             }
@@ -237,7 +238,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
                 fn getComponentSlot(comptime T: type) usize {
                     const archetype_list_data = comptime ArchetypeListData.generate();
-                    const list_data = &archetype_list_data[arch_index];
+                    const list_data: *ArchetypeListData = &archetype_list_data[arch_index];
                     inline for (0..list_data.num_of_components) |i| {
                         if (T == list_data.sorted_components[comp_sort_index][i]) {
                             return i;
@@ -834,7 +835,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                             if (entity_data.components[entity_comp_index]) |comp| {
                                 arch_data.sorted_components.items[entity][sort_comp_i][comp_i] = comp;
                             }
-                            // arch_data.sorted_components.items[entity][sort_comp_i][comp_i] = entity_data.components[entity_comp_index].?;
+                            // arch_data.sorted_components.items[entity][sort_comp_i][comp_i] = entity_data.components[entity_comp_index];
                             if (comp_i + 1 >= arch_data.num_of_components)  {
                                 break;
                             }
