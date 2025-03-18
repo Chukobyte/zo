@@ -413,7 +413,7 @@ pub const DrawSpriteParams = struct {
     texture: *const Texture,
     source_rect: Rect2,
     dest_size: ?Vec2 = null,
-    transform: Transform2D = Transform2D.Identity,
+    transform: Transform2D = Transform2D.Identity, // Global transform
     color: LinearColor = .{ .r = 1.0, .g = 1.0, .b = 1.0 },
     flip_h: bool = false,
     flip_v: bool = false,
@@ -590,7 +590,7 @@ const SpriteRenderer = struct {
 pub const DrawTextParams = struct {
     text: []const u8,
     font: *Font,
-    position: Vec2,
+    position: Vec2, // Global position
     scale: f32 = 1.0,
     color: LinearColor = LinearColor.White,
     z_index: i32 = 0,
@@ -756,7 +756,9 @@ pub fn processQueuedDrawCalls() void {
         }
 
         fn lessThan(_: EmptyContext, a: DrawCommandData, b: DrawCommandData) bool {
-            return a.command.getZIndex() < b.command.getZIndex();
+            const aZIndex: i32 = a.command.getZIndex();
+            const bZIndex: i32 = b.command.getZIndex();
+            return aZIndex < bZIndex or (aZIndex == bZIndex and a.id < b.id);
         }
     };
 
