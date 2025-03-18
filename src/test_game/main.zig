@@ -14,8 +14,10 @@ const input = zo.input;
 const math = zo.math;
 
 const Vec2 = math.Vec2;
+const Rect2 = math.Rect2;
 const Transform2D = math.Transform2D;
 const Mat4 = math.Mat4;
+const LinearColor = math.LinearColor;
 const Texture = renderer.Texture;
 const Font = renderer.Font;
 
@@ -33,10 +35,25 @@ const Transform2DComponent = struct {
     ignore_camera: bool = false,
 };
 
-const SpriteComponent = struct {};
+const SpriteComponent = struct {
+    texture: *Texture,
+    draw_source: Rect2,
+    origin: Vec2 = Vec2.Zero,
+    flip_h: bool = false,
+    flip_v: bool = false,
+    modulate: LinearColor,
+};
 
 const SpriteRenderingSystem = struct {
-
+    pub fn postWorldTick(_: *@This(), world: *World) !void {
+        const ComponentIterator = World.ArchetypeComponentIterator(&.{ Transform2DComponent, SpriteComponent });
+        var comp_iter = ComponentIterator.init(world);
+        while (comp_iter.next()) |iter| {
+            const transformComp = iter.getComponent(Transform2DComponent);
+            const sprite_comp = iter.getComponent(SpriteComponent);
+            log(.debug, "trans = {any}\nsprite = {any}", .{ transformComp, sprite_comp });
+        }
+    }
 };
 
 const World = ecs.ECSWorld(.{
@@ -122,6 +139,10 @@ const GameMain = struct {
         world.deinit();
     }
 
+    pub fn preTick() !void {
+        try world.preTick();
+    }
+
     pub fn update(delta_seconds: f32) !void {
         if (input.is_key_just_pressed(.{ .key = .keyboard_a })) {
             scene_system.changeScene("Default");
@@ -133,6 +154,11 @@ const GameMain = struct {
     pub fn fixedUpdate(delta_seconds: f32) !void {
         try world.fixedUpdate(delta_seconds);
     }
+
+    pub fn postTick() !void {
+        try world.postTick();
+    }
+
 };
 
 pub fn main() !void {

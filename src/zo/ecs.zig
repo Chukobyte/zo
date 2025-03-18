@@ -188,8 +188,6 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         pub fn ArchetypeComponentIterator(arch_comps: []const type) type {
             const comp_sort_index = ArchetypeList.getSortIndex(arch_comps);
             const arch_index = ArchetypeList.getIndex(arch_comps);
-            const archetype_list_data = comptime ArchetypeListData.generate();
-            const list_data = &archetype_list_data[arch_index];
 
             return struct {
                 current_index: usize,
@@ -197,10 +195,10 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 entities: []Entity,
                 components: *[arch_comps.len]*anyopaque,
 
-                pub inline fn init() @This() {
+                pub inline fn init(world: *ECSWorldType) @This() {
                     var new_iterator = @This(){
                         .current_index = 0,
-                        .archetype = list_data,
+                        .archetype = &world.archetype_data[arch_index],
                         .entities = undefined,
                         .components = undefined,
                     };
@@ -237,6 +235,8 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 }
 
                 fn getComponentSlot(comptime T: type) usize {
+                    const archetype_list_data = comptime ArchetypeListData.generate();
+                    const list_data = &archetype_list_data[arch_index];
                     inline for (0..list_data.num_of_components) |i| {
                         if (T == list_data.sorted_components[comp_sort_index][i]) {
                             return i;
@@ -523,6 +523,16 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             self.entity_data.deinit();
         }
 
+        pub fn preTick(self: *@This()) !void {
+            inline for (0..system_types.len) |i| {
+                const T: type = SystemsTypeList.getType(i);
+                if (@hasDecl(T, "preWorldTick")) {
+                    var system: *T = @alignCast(@ptrCast(self.system_data.items[i].interface_instance));
+                    try system.preWorldTick(self);
+                }
+            }
+        }
+
         pub fn update(self: *@This(), delta_seconds: f32) !void {
             inline for (0..system_types.len) |i| {
                 const T: type = SystemsTypeList.getType(i);
@@ -583,6 +593,16 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 if (@hasDecl(T, "postWorldFixedUpdate")) {
                     var system: *T = @alignCast(@ptrCast(self.system_data.items[i].interface_instance));
                     system.postWorldFixedUpdate(self, delta_seconds);
+                }
+            }
+        }
+
+        pub fn postTick(self: *@This()) !void {
+            inline for (0..system_types.len) |i| {
+                const T: type = SystemsTypeList.getType(i);
+                if (@hasDecl(T, "postWorldTick")) {
+                    var system: *T = @alignCast(@ptrCast(self.system_data[i].interface_instance));
+                    try system.postWorldTick(self);
                 }
             }
         }

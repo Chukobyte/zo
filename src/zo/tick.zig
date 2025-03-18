@@ -32,6 +32,10 @@ pub fn Tick(interface: type) type {
             const delta_time: u64 = new_time - self.current_time;
             self.current_time = new_time;
 
+            if (@hasDecl(interface, "preTick")) {
+                try interface.preTick();
+            }
+
             // Call the variable timestep update if provided.
             if (@hasDecl(interface, "update")) {
                 const delta_time_float: f32 = @floatFromInt(delta_time);
@@ -57,6 +61,10 @@ pub fn Tick(interface: type) type {
                         self.accumulator = 0.0;
                     }
                 }
+            }
+
+            if (@hasDecl(interface, "postTick")) {
+                try interface.postTick();
             }
 
             // TODO: Decide if we want to call sleep here to maintain target_fps
