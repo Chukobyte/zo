@@ -166,6 +166,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             interface: ?EntityInterfaceData = null,
             component_signature: ComponentSignature = .{},
             scene_node: ?Node = null,
+            is_valid: bool = false,
             is_in_archetype_map: [archetype_count]bool = [_]bool{false} ** archetype_count,
         };
 
@@ -659,17 +660,17 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
         pub fn initEntity(self: *@This(), entity_params: ?InitEntityParams) !Entity {
             const p: InitEntityParams = entity_params orelse .{};
-            var newEntity: Entity = undefined;
+            var new_entity: Entity = undefined;
             if (self.getExistingEntityId()) |entity| {
-                newEntity = entity;
+                new_entity = entity;
             } else {
                 // Create new entity
-                newEntity = @intCast(self.entity_data.items.len);
+                new_entity = @intCast(self.entity_data.items.len);
                 _ = try self.entity_data.addOne();
             }
             // Reset and update entity data
             // TODO: Make cleaner
-            const entity_data: *EntityData = &self.entity_data.items[newEntity];
+            const entity_data: *EntityData = &self.entity_data.items[new_entity];
             if (p.interface) |InterfaceT| {
                 const interface_id = EntityInterfaceTypeList.getIndex(InterfaceT);
                 var interface_inst: *InterfaceT = try self.allocator.create(InterfaceT);
@@ -678,16 +679,16 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 if (@hasDecl(InterfaceT, "init")) {
                     inline for (0..entity_interface_types.len) |id| {
                         if (interface_id == id) {
-                            try interface_inst.init(self, newEntity);
+                            try interface_inst.init(self, new_entity);
                             break;
                         }
                     }
                 }
                 if (@hasDecl(InterfaceT, "update")) {
-                    try self.update_entities.append(newEntity);
+                    try self.update_entities.append(new_entity);
                 }
                 if (@hasDecl(InterfaceT, "fixed_update")) {
-                    try self.fixed_update_entities.append(newEntity);
+                    try self.fixed_update_entities.append(new_entity);
                 }
             } else {
                 entity_data.interface = null;
@@ -696,7 +697,8 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 entity_data.components[i] = null;
             }
             entity_data.component_signature.unsetAll();
-            return newEntity;
+            entity_data.is_valid = true;
+            return new_entity;
         }
 
         pub fn deinitEntity(self: *@This(), entity: Entity) void {
@@ -720,13 +722,14 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                     }
                 }
                 self.refreshArchetypeState(entity) catch {}; // Ignore
+                self.entity_data.items[entity].is_valid = false;
             }
         }
 
         pub inline fn isEntityValid(self: *const @This(), entity: Entity) bool {
             return (
                 entity < self.entity_data.items.len
-                // and self.entity_data.items[entity] != null
+                and self.entity_data.items[entity].is_valid
                 // and !self.entity_data.items[entity].queued_for_deletion
             );
         }
@@ -791,7 +794,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         fn getExistingEntityId(self: *@This()) ?Entity {
             for (0..self.entity_data.items.len) |i| {
                 const entity: Entity = @intCast(i);
-                if (self.isEntityValid(entity)) {
+                if (!self.isEntityValid(entity)) {
                     return entity;
                 }
             }
@@ -827,7 +830,11 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                         inline for (0..archetype_list_data[i].num_of_components) |comp_i| {
                             // Map component pointers with order
                             const entity_comp_index = arch_data.sorted_components_by_index[sort_comp_i][comp_i];
-                            arch_data.sorted_components.items[entity][sort_comp_i][comp_i] = entity_data.components[entity_comp_index].?;
+                            // TODO: Figure out why we need to check this, as the data shouldn be consistent
+                            if (entity_data.components[entity_comp_index]) |comp| {
+                                arch_data.sorted_components.items[entity][sort_comp_i][comp_i] = comp;
+                            }
+                            // arch_data.sorted_components.items[entity][sort_comp_i][comp_i] = entity_data.components[entity_comp_index].?;
                             if (comp_i + 1 >= arch_data.num_of_components)  {
                                 break;
                             }

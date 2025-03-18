@@ -132,16 +132,16 @@ const TextRenderingSystem = struct {
         while (comp_iter.next()) |iter| {
             if (scene_system.getNode(iter.getEntity())) |node| {
                 scene_system.updateNodeGlobalMatrix(NodeGlobalMatrixInterface, node);
-                const transform_comp = iter.getComponent(Transform2DComponent);
-                const text_label_comp = iter.getComponent(TextLabelComponent);
-                try renderer.queueTextDraw(&.{
-                    .text = text_label_comp.text.get(),
-                    .font = text_label_comp.font,
-                    .position = transform_comp.global.position,
-                    .scale = transform_comp.global.scale.x, // Only recongnizes x scale for now
-                    .color = text_label_comp.color,
-                    .z_index =  transform_comp.z_index,
-                });
+                // const transform_comp = iter.getComponent(Transform2DComponent);
+                // const text_label_comp = iter.getComponent(TextLabelComponent);
+                // try renderer.queueTextDraw(&.{
+                //     .text = text_label_comp.text.get(),
+                //     .font = text_label_comp.font,
+                //     .position = transform_comp.global.position,
+                //     .scale = transform_comp.global.scale.x, // Only recongnizes x scale for now
+                //     .color = text_label_comp.color,
+                //     .z_index =  transform_comp.z_index,
+                // });
             }
         }
     }
@@ -149,13 +149,11 @@ const TextRenderingSystem = struct {
 
 const World = ecs.ECSWorld(.{
     .entity_interfaces = &.{ MainEntity },
-    // .components = &.{ Transform2DComponent, SpriteComponent, TextLabelComponent },
-    .components = &.{ Transform2DComponent, SpriteComponent },
-    // .systems = &.{ SpriteRenderingSystem, TextRenderingSystem },
-    .systems = &.{ SpriteRenderingSystem },
+    .components = &.{ Transform2DComponent, SpriteComponent, TextLabelComponent },
+    .systems = &.{ SpriteRenderingSystem, TextRenderingSystem },
     .archetypes = @as([]const []const type, &.{
         &.{ Transform2DComponent, SpriteComponent },
-        // &.{ Transform2DComponent, TextLabelComponent },
+        &.{ Transform2DComponent, TextLabelComponent },
     }),
 });
 const SceneSystem = World.SceneSystem(.{ .definitions = &[_]ecs.SceneDefinition{ .{ .name = "Default", .node_interface = MainEntity, } } });
@@ -177,11 +175,18 @@ const MainEntity = struct {
     }
     pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
         _ = self;
+        // Setup main entity
         try world.setComponent(entity, Transform2DComponent, &.{});
         try world.setComponent(entity, SpriteComponent, &.{
             .texture = &map_textue,
             .draw_source = .{ .x = 0.0, .y = 0.0, .w = @floatFromInt(map_textue.width), .h = @floatFromInt(map_textue.height) }
         });
+        // Virgina text entity
+        const virginia_text_node = try scene_system.createNodeAndEntity(null);
+        log(.debug, "entity = {any}, virginia text entity = {any}", .{ entity, virginia_text_node.entity });
+        try world.setComponent(virginia_text_node.entity, Transform2DComponent, &.{ .global = .{ .position = .{ .x = 100.0, .y = 340.0 } }, .z_index = 2, });
+        try world.setComponent(virginia_text_node.entity, TextLabelComponent, &.{ .text = try String.initAndSet(allocator, "Virginia", .{}), .font = &verdana_font });
+        // try scene_system.addNodeToScene(virginia_text_node, null);
     }
     pub fn onExitScene(self: *@This(), world: *World, entity: ecs.Entity) void {
         _ = self; _ = world; _ = entity;
