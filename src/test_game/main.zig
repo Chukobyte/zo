@@ -39,19 +39,13 @@ const SpriteRenderingSystem = struct {
 
 };
 
-const game_archetypes: []const []const type = &.{
-    &.{
-        Transform2DComponent,
-        SpriteComponent,
-    },
-};
-
 const World = ecs.ECSWorld(.{
     .entity_interfaces = &.{ MainEntity },
     .components = &.{ Transform2DComponent, SpriteComponent },
     .systems = &.{ SpriteRenderingSystem },
-    .archetypes = game_archetypes,
-    // .archetypes =  &.{ &.{ Transform2DComponent, SpriteRenderingSystem } },
+    .archetypes = @as([]const []const type, &.{
+        &.{ Transform2DComponent, SpriteComponent },
+    }),
 });
 const SceneSystem = World.SceneSystem(.{ .definitions = &[_]ecs.SceneDefinition{ .{ .name = "Default", .node_interface = MainEntity, } } });
 
@@ -63,19 +57,15 @@ var rainbow_orb_audio: AudioSource = undefined;
 const MainEntity = struct {
     pub fn init(self: *@This(), world: *World, entity: ecs.Entity) !void {
         _ = self; _ = world; _ = entity;
-        log(.debug, "init", .{});
     }
     pub fn deinit(self: *@This(), world: *World, entity: ecs.Entity) void {
         _ = self; _ = world; _ = entity;
-        log(.debug, "deinit", .{});
     }
     pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
         _ = self; _ = world; _ = entity;
-        log(.debug, "onEnterScene", .{});
     }
     pub fn onExitScene(self: *@This(), world: *World, entity: ecs.Entity) void {
         _ = self; _ = world; _ = entity;
-        log(.debug, "onExitScene", .{});
     }
     pub fn update(self: *@This(), world: *World, entity: ecs.Entity, delta_seconds: f32) !void {
         _ = self; _ = world; _ = entity; _ = delta_seconds;
