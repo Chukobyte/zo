@@ -166,6 +166,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             interface: ?EntityInterfaceData = null,
             component_signature: ComponentSignature = .{},
             scene_node: ?Node = null,
+            is_in_archetype_map: [archetype_count]bool = [_]bool{false},
         };
 
         const SystemData = struct {

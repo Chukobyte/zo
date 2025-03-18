@@ -39,10 +39,18 @@ const SpriteRenderingSystem = struct {
 
 };
 
+const game_archetypes: []const []const type = &.{
+    &.{
+        Transform2DComponent,
+        SpriteComponent,
+    },
+};
+
 const World = ecs.ECSWorld(.{
     .entity_interfaces = &.{ MainEntity },
     .components = &.{ Transform2DComponent, SpriteComponent },
     .systems = &.{ SpriteRenderingSystem },
+    .archetypes = game_archetypes,
     // .archetypes =  &.{ &.{ Transform2DComponent, SpriteRenderingSystem } },
 });
 const SceneSystem = World.SceneSystem(.{ .definitions = &[_]ecs.SceneDefinition{ .{ .name = "Default", .node_interface = MainEntity, } } });
