@@ -530,11 +530,13 @@ const SpriteRenderer = struct {
         glad.glBindVertexArray(render_data.vao);
         glad.glBindBuffer(glad.GL_ARRAY_BUFFER, render_data.vbo);
 
-        // const dest_size: Vec2 = p.dest_size orelse Vec2{ .x = p.source_rect.w, .y = p.source_rect.h };
+        const dest_size: Vec3 = .{ .x = @floatFromInt(p.texture.width), .y = @floatFromInt(p.texture.height), .z = 1.0 };
         var models: [max_sprite_count]Mat4 = undefined;
         const number_of_sprites: usize = 1;
         for (0..number_of_sprites) |i| {
-            models[i] = p.global_matrix.*;
+            var model = p.global_matrix.*;
+            model.scale2(dest_size);
+            models[i] = model;
 
             render_data.shader.use();
 

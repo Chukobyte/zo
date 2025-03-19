@@ -72,7 +72,7 @@ const NodeGlobalMatrixInterface = struct {
     pub fn setGlobalMatrix(node: *Node, matrix: *const Mat4) void {
         if (global_world.getComponent(node.entity, Transform2DComponent)) |transform_comp| {
             transform_comp.global_matrix = matrix.*;
-            // transform_comp.global.fromMat4(matrix);
+            transform_comp.global.fromMat4(matrix);
         }
     }
 
@@ -87,20 +87,10 @@ const NodeGlobalMatrixInterface = struct {
     pub fn getLocalTransform(node: *Node) Mat4 {
         if (global_world.getComponent(node.entity, Transform2DComponent)) |transform_comp| {
             var local_transform = transform_comp.local;
-            const dest_size = getRenderableSize(node);
-            local_transform.scale.x *= @floatFromInt(dest_size.w);
-            local_transform.scale.y *= @floatFromInt(dest_size.h);
             return local_transform.toMat4();
         }
         log(.warn, "Attempting to get local transform of node {any} which doesn't have a transform component!", .{node});
         return Mat4.Identity;
-    }
-
-    fn getRenderableSize(node: *Node) Dim2i {
-        if (global_world.getComponent(node.entity, SpriteComponent)) |sprite_comp| {
-            return Dim2i{ .w = sprite_comp.texture.width, .h = sprite_comp.texture.height };
-        }
-        return Dim2i{ .w = 1, .h = 1 };
     }
 };
 
@@ -187,13 +177,13 @@ const MainEntity = struct {
 
         // Virgina text entity
         const virginia_text_node = try scene_system.createNodeAndEntity(null);
-        try world.setComponent(virginia_text_node.entity, Transform2DComponent, &.{ .global = .{ .position = .{ .x = 100.0, .y = 340.0 } }, .z_index = 2, });
+        try world.setComponent(virginia_text_node.entity, Transform2DComponent, &.{ .local = .{ .position = .{ .x = 100.0, .y = 340.0 } }, .global = .{ .position = .{ .x = 100.0, .y = 340.0 } }, .z_index = 2, });
         try world.setComponent(virginia_text_node.entity, TextLabelComponent, &.{ .text = try String.initAndSet(allocator, "Virginia", .{}), .font = &verdana_font });
         try scene_system.addNodeToScene(virginia_text_node, main_node);
 
         // Colonial text entity
         const colonial_text_node = try scene_system.createNodeAndEntity(null);
-        try world.setComponent(colonial_text_node.entity, Transform2DComponent, &.{ .global = .{ .position = .{ .x = 200.0, .y = 200.0 } }, .z_index = 1, });
+        try world.setComponent(colonial_text_node.entity, Transform2DComponent, &.{ .local = .{ .position = .{ .x = 200.0, .y = 200.0 } }, .global = .{ .position = .{ .x = 200.0, .y = 200.0 } }, .z_index = 1, });
         try world.setComponent(colonial_text_node.entity, TextLabelComponent, &.{ .text = try String.initAndSet(allocator, "Colonial America", .{}), .font = &verdana_font });
         try scene_system.addNodeToScene(colonial_text_node, main_node);
     }
