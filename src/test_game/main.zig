@@ -201,25 +201,31 @@ const MainEntity = struct {
         }
     }
     pub fn fixedUpdate(self: *@This(), world: *World, entity: ecs.Entity, delta_seconds: f32) !void {
-        _ = self;
+        _ = self; _ = world;
+        const Local = struct {
+            /// Overrides local position
+            fn setLocalPosition(e: ecs.Entity, pos: Vec2) void {
+                const transform_comp = global_world.getComponent(e, Transform2DComponent).?;
+                transform_comp.local.position = pos;
+                transform_comp.is_global_dirty = true;
+            }
+            /// Updates local position (add to it)
+            fn updateLocalPosition(e: ecs.Entity, pos: Vec2) void {
+                const transform_comp = global_world.getComponent(e, Transform2DComponent).?;
+                transform_comp.local.position = transform_comp.local.position.add(&pos);
+                transform_comp.is_global_dirty = true;
+            }
+        };
         const move_speed: f32 = 100;
         if (input.is_key_pressed(.{ .key = .keyboard_a })) {
-            const transform_comp = world.getComponent(entity, Transform2DComponent).?;
-            transform_comp.local.position.x -= delta_seconds * move_speed;
-            transform_comp.is_global_dirty = true;
+            Local.updateLocalPosition(entity, .{ .x = -move_speed * delta_seconds, .y = 0.0 });
         } else if (input.is_key_pressed(.{ .key = .keyboard_d })) {
-            const transform_comp = world.getComponent(entity, Transform2DComponent).?;
-            transform_comp.local.position.x += delta_seconds * move_speed;
-            transform_comp.is_global_dirty = true;
+            Local.updateLocalPosition(entity, .{ .x = move_speed * delta_seconds, .y = 0.0 });
         }
         if (input.is_key_pressed(.{ .key = .keyboard_s })) {
-            const transform_comp = world.getComponent(entity, Transform2DComponent).?;
-            transform_comp.local.position.y += delta_seconds * move_speed;
-            transform_comp.is_global_dirty = true;
+            Local.updateLocalPosition(entity, .{ .x = 0.0, .y = move_speed * delta_seconds });
         } else if (input.is_key_pressed(.{ .key = .keyboard_w })) {
-            const transform_comp = world.getComponent(entity, Transform2DComponent).?;
-            transform_comp.local.position.y -= delta_seconds * move_speed;
-            transform_comp.is_global_dirty = true;
+            Local.updateLocalPosition(entity, .{ .x = 0.0, .y = -move_speed * delta_seconds });
         }
     }
 };
