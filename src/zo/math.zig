@@ -180,7 +180,7 @@ pub const Vec4u = Vector4(u32);
 pub fn Matrix4(comptime T: type) type {
     return struct {
         /// data[column][row] in column-major order
-        data: [4][4]T, // column-major order
+        data: [4][4]T,
 
         pub const Identity = @This(){
             .data = [_][4]T{
@@ -339,12 +339,27 @@ pub fn Transformation2D(comptime PosT: type, comptime ScaleT: type, comptime Rot
         // Defaults to identity, so just create an empty struct
         pub const Identity = @This(){};
 
-        pub fn toMat4(self: *const @This()) Mat4 {
+        pub fn toMat4(self: *const @This()) Matrix4(PosT) {
             var m = Mat4.Identity;
             m.translate2(Vec3{ .x = self.position.x, .y = self.position.y, .z = 0 });
             m.rotateZ2(self.rotation);
             m.scale2(Vec3{ .x = self.scale.x, .y = self.scale.y, .z = 1 });
             return m;
+        }
+
+        pub fn fromMat4(self: *@This(), matrix: *const Matrix4(PosT)) void {
+            // Extract translation from the fourth column.
+            self.position.x = matrix.data[3][0];
+            self.position.y = matrix.data[3][1];
+
+            // Extract scale: length of the first and second columns.
+            self.scale.x = std.math.sqrt(matrix.data[0][0] * matrix.data[0][0] +
+                                         matrix.data[0][1] * matrix.data[0][1]);
+            self.scale.y = std.math.sqrt(matrix.data[1][0] * matrix.data[1][0] +
+                                         matrix.data[1][1] * matrix.data[1][1]);
+
+            // Extract rotation from the first column.
+            self.rotation = std.math.atan2(matrix.data[0][1], matrix.data[0][0]);
         }
 
     };
