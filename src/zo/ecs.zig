@@ -470,7 +470,9 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 fn removeCurrentScene(self: *@This()) !void {
                     if (self.current_scene) |scene| {
                         for (scene.nodes.items) |node| {
-                            try self.removeNodeFromScene(node);
+                            if (node.state == .in_scene) {
+                                try self.removeNodeFromScene(node);
+                            }
                         }
                         scene.nodes.deinit();
                         self.current_scene = null;
