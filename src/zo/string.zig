@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const log = @import("logger.zig").log;
+
 pub fn DynamicString(stack_buffer_size: comptime_int, comptime auto_free_heap: bool) type {
     return struct {
 
@@ -67,11 +69,11 @@ pub fn DynamicString(stack_buffer_size: comptime_int, comptime auto_free_heap: b
             }
         }
 
-        pub inline fn get(self: *const @This()) []const u8 {
-            return self.buffer[0..self.len];
+        pub fn get(self: *const @This()) []const u8 {
+            return self.getCString()[0..self.len];
         }
 
-        pub inline fn getCString(self: *@This()) [:0]const u8 {
+        pub fn getCString(self: *const @This()) [:0]const u8 {
             return self.buffer;
         }
 

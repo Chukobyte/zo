@@ -656,9 +656,7 @@ const FontRenderer = struct {
         // Iterate over each character in the text.
         var x: f32 = p.position.x;
         const y: f32 = p.position.y;
-        log(.debug, "text = {s}", .{p.text});
         for (p.text) |c| {
-            log(.debug, "c = {any}", .{c});
             const ch = p.font.characters[@intCast(c)];
             const x_pos: f32 = x + @as(f32, @floatFromInt(ch.bearing.x)) * p.scale;
             const y_pos: f32 = -y - (@as(f32, @floatFromInt(ch.size.y - @as(u32, @intCast(ch.bearing.y)))) * p.scale);
