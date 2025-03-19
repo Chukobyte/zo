@@ -534,17 +534,11 @@ const SpriteRenderer = struct {
         var models: [max_sprite_count]Mat4 = undefined;
         const number_of_sprites: usize = 1;
         for (0..number_of_sprites) |i| {
-            // var model: Mat4 = Mat4.Identity;
-            // model.translate2(.{ .x = p.transform.position.x, .y = p.transform.position.y });
-            // model.rotateZ2(std.math.degreesToRadians(p.transform.rotation));
-            // model.scale2(.{ .x = p.transform.scale.x * dest_size.x, .y = p.transform.scale.y * dest_size.y, .z = 1.0 });
-
             models[i] = p.global_matrix.*;
 
             render_data.shader.use();
 
             const model_id: f32 = @floatFromInt(i);
-            const determinate: f32 = p.global_matrix.determinant();
             const texture_coords: TextureCoords = TextureCoords.generate(p.texture, &p.source_rect, p.flip_h, p.flip_v);
 
             render_data.shader.setUniformArray("models", []Mat4, &models, number_of_sprites);
@@ -552,15 +546,8 @@ const SpriteRenderer = struct {
             // Create vertex data for the sprite.
             var verts: [vertex_buffer_size]GLfloat = undefined;
             for (0..number_of_vertices) |j| {
-                var use_s_min: bool = false;
-                var use_t_min: bool = false;
-                if (determinate >= 0.0) {
-                    use_s_min = (j == 0 or j == 2 or j == 3);
-                    use_t_min = (j == 1 or j == 2 or j == 5);
-                } else {
-                    use_s_min = (j == 1 or j == 2 or j == 5);
-                    use_t_min = (j == 0 or j == 2 or j == 3);
-                }
+                const use_s_min: bool = (j == 0 or j == 2 or j == 3);
+                const use_t_min: bool = (j == 1 or j == 2 or j == 5);
                 // Compute the offset (row) in the vertex array.
                 const row: usize = (j * verts_stride) + (i * verts_stride * number_of_vertices);
                 verts[row + 0] = model_id;

@@ -182,7 +182,7 @@ const MainEntity = struct {
         try world.setComponent(entity, Transform2DComponent, &.{});
         try world.setComponent(entity, SpriteComponent, &.{
             .texture = &map_textue,
-            .draw_source = .{ .x = 0.0, .y = 0.0, .w = @floatFromInt(map_textue.width), .h = @floatFromInt(map_textue.height) }
+            .draw_source = .{ .x = 0.0, .y = 0.0, .w = @floatFromInt(map_textue.width), .h = @floatFromInt(map_textue.height) },
         });
 
         // Virgina text entity
