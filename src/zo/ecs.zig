@@ -404,6 +404,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                     );
                 }
 
+                /// Should be called when a node's local transform is modified
                 pub fn updateNodeGlobalMatrix(self: *@This(), comptime MatrixInterfaceT: type, node: *Node) void {
                     if (!@hasDecl(MatrixInterfaceT, "setGlobalMatrixDirty") 
                         or !@hasDecl(MatrixInterfaceT, "isGlobalMatrixDirty")
@@ -437,6 +438,21 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                             MatrixInterfaceT.setGlobalMatrixDirty(child_node, true);
                             self.updateNodeGlobalMatrix(MatrixInterfaceT, child_node);
                         }
+                    }
+                }
+
+                /// Expected to be called when the node's global transform is modified
+                pub fn updateNodeLocalMatrix(self: *@This(), comptime MatrixInterfaceT: type, node: *Node) void {
+                    if (node.parent_entity) |parent_entity| {
+                        if (self.getNode(parent_entity)) |parent_node| {
+                            const parent_global = MatrixInterfaceT.getGlobalMatrix(parent_node);
+                            const inv_parent = parent_global.inverse(); // Make sure you have an inverse method
+                            const node_global = MatrixInterfaceT.getGlobalMatrix(node);
+                            const new_local = inv_parent.mul(&node_global);
+                            MatrixInterfaceT.setLocalMatrix(node, &new_local);
+                        }
+                    } else {
+                        MatrixInterfaceT.setLocalMatrix(node, &MatrixInterfaceT.getGlobalMatrix(node));
                     }
                 }
 

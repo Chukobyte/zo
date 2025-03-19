@@ -76,6 +76,20 @@ const NodeGlobalMatrixInterface = struct {
         }
     }
 
+    pub fn getGlobalMatrix(node: *Node) Mat4 {
+        if (global_world.getComponent(node.entity, Transform2DComponent)) |transform_comp| {
+            return transform_comp.global_matrix;
+        }
+        return Mat4.Identity;
+    }
+
+    pub fn setLocalMatrix(node: *Node, matrix: *const Mat4) void {
+        if (global_world.getComponent(node.entity, Transform2DComponent)) |transform_comp| {
+            transform_comp.local.fromMat4(matrix);
+            transform_comp.is_global_dirty = true;
+        }
+    }
+
     pub fn globalMatrixMultiply(node: *Node, matrix: *const Mat4) Mat4 {
         if (global_world.getComponent(node.entity, Transform2DComponent)) |transform_comp| {
             return transform_comp.global_matrix.mul(matrix);
@@ -159,6 +173,9 @@ var global_world: World = undefined;
 var scene_system: SceneSystem = undefined;
 
 const MainEntity = struct {
+    var virginia_text_node: *Node = undefined;
+    var colonial_text_node: *Node = undefined;
+
     pub fn init(self: *@This(), world: *World, entity: ecs.Entity) !void {
         _ = self; _ = world; _ = entity;
     }
@@ -176,13 +193,13 @@ const MainEntity = struct {
         });
 
         // Virgina text entity
-        const virginia_text_node = try scene_system.createNodeAndEntity(null);
+        virginia_text_node = try scene_system.createNodeAndEntity(null);
         try world.setComponent(virginia_text_node.entity, Transform2DComponent, &.{ .local = .{ .position = .{ .x = 100.0, .y = 340.0 } }, .global = .{ .position = .{ .x = 100.0, .y = 340.0 } }, .z_index = 2, });
         try world.setComponent(virginia_text_node.entity, TextLabelComponent, &.{ .text = try String.initAndSet(allocator, "Virginia", .{}), .font = &verdana_font });
         try scene_system.addNodeToScene(virginia_text_node, main_node);
 
         // Colonial text entity
-        const colonial_text_node = try scene_system.createNodeAndEntity(null);
+        colonial_text_node = try scene_system.createNodeAndEntity(null);
         try world.setComponent(colonial_text_node.entity, Transform2DComponent, &.{ .local = .{ .position = .{ .x = 200.0, .y = 200.0 } }, .global = .{ .position = .{ .x = 200.0, .y = 200.0 } }, .z_index = 1, });
         try world.setComponent(colonial_text_node.entity, TextLabelComponent, &.{ .text = try String.initAndSet(allocator, "Colonial America", .{}), .font = &verdana_font });
         try scene_system.addNodeToScene(colonial_text_node, main_node);
@@ -215,6 +232,20 @@ const MainEntity = struct {
                 transform_comp.local.position = transform_comp.local.position.add(&pos);
                 transform_comp.is_global_dirty = true;
             }
+            /// Overrides global position
+            fn setGlobalPosition(e: ecs.Entity, pos: Vec2) void {
+                const transform_comp = global_world.getComponent(e, Transform2DComponent).?;
+                transform_comp.global.position = pos;
+                transform_comp.global_matrix = transform_comp.global.toMat4();
+                scene_system.updateNodeLocalMatrix(NodeGlobalMatrixInterface, scene_system.getNode(e).?);
+            }
+            /// Updates global position (add to it)
+            fn updateGlobalPosition(e: ecs.Entity, pos: Vec2) void {
+                const transform_comp = global_world.getComponent(e, Transform2DComponent).?;
+                transform_comp.global.position = transform_comp.global.position.add(&pos);
+                transform_comp.global_matrix = transform_comp.global.toMat4();
+                scene_system.updateNodeLocalMatrix(NodeGlobalMatrixInterface, scene_system.getNode(e).?);
+            }
         };
         const move_speed: f32 = 100;
         if (input.is_key_pressed(.{ .key = .keyboard_a })) {
@@ -226,6 +257,17 @@ const MainEntity = struct {
             Local.updateLocalPosition(entity, .{ .x = 0.0, .y = move_speed * delta_seconds });
         } else if (input.is_key_pressed(.{ .key = .keyboard_w })) {
             Local.updateLocalPosition(entity, .{ .x = 0.0, .y = -move_speed * delta_seconds });
+        }
+
+        if (input.is_key_pressed(.{ .key = .keyboard_l })) {
+            Local.updateGlobalPosition(virginia_text_node.entity, .{ .x = move_speed * delta_seconds, .y = 0.0 });
+        } else if (input.is_key_pressed(.{ .key = .keyboard_j })) {
+            Local.updateGlobalPosition(virginia_text_node.entity, .{ .x = -move_speed * delta_seconds, .y = 0.0 });
+        }
+        if (input.is_key_pressed(.{ .key = .keyboard_k })) {
+            Local.updateGlobalPosition(virginia_text_node.entity, .{ .x = 0.0, .y = move_speed * delta_seconds });
+        } else if (input.is_key_pressed(.{ .key = .keyboard_i })) {
+            Local.updateGlobalPosition(virginia_text_node.entity, .{ .x = 0.0, .y = -move_speed * delta_seconds });
         }
     }
 };
