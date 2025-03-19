@@ -187,13 +187,13 @@ const MainEntity = struct {
         const virginia_text_node = try scene_system.createNodeAndEntity(null);
         try world.setComponent(virginia_text_node.entity, Transform2DComponent, &.{ .global = .{ .position = .{ .x = 100.0, .y = 340.0 } }, .z_index = 2, });
         try world.setComponent(virginia_text_node.entity, TextLabelComponent, &.{ .text = try String.initAndSet(allocator, "Virginia", .{}), .font = &verdana_font });
-        // try scene_system.addNodeToScene(virginia_text_node, null);
+        try scene_system.addNodeToScene(virginia_text_node, null);
 
         // Colonial text entity
         const colonial_text_node = try scene_system.createNodeAndEntity(null);
         try world.setComponent(colonial_text_node.entity, Transform2DComponent, &.{ .global = .{ .position = .{ .x = 200.0, .y = 200.0 } }, .z_index = 1, });
         try world.setComponent(colonial_text_node.entity, TextLabelComponent, &.{ .text = try String.initAndSet(allocator, "Colonial America", .{}), .font = &verdana_font });
-        // try scene_system.addNodeToScene(virginia_text_node, null);
+        try scene_system.addNodeToScene(colonial_text_node, null);
     }
     pub fn onExitScene(self: *@This(), world: *World, entity: ecs.Entity) void {
         _ = self; _ = world; _ = entity;

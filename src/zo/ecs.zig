@@ -328,7 +328,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                     return newNode;
                 }
 
-                pub fn addNodeToScene(self: *@This(), node: *Node, parent: ?*Node) !void {
+                pub fn addNodeToScene(self: *@This(), node: *Node, parent: ?*Node) anyerror!void {
                     if (node.state != .initialized) {
                         log(.warn, "Node with entity {any} is either in a scene or queued for deletion!", .{node.entity});
                         return;
