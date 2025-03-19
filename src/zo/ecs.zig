@@ -409,10 +409,12 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                     if (!@hasDecl(MatrixInterfaceT, "setGlobalMatrixDirty") 
                         or !@hasDecl(MatrixInterfaceT, "isGlobalMatrixDirty")
                         or !@hasDecl(MatrixInterfaceT, "setGlobalMatrix") 
+                        or !@hasDecl(MatrixInterfaceT, "getGlobalMatrix")
                         or !@hasDecl(MatrixInterfaceT, "globalMatrixMultiply")
                         or !@hasDecl(MatrixInterfaceT, "getLocalTransform")
+                        or !@hasDecl(MatrixInterfaceT, "setLocalMatrix")
                     ) {
-                        @compileError("Must implement MatrixInterfaceT methods: setGlobalMatrixDirty, isGlobalMatrixDirty, setGlobalMatrix, globalMatrixMultiply, getLocalTransform");
+                        @compileError("Must implement MatrixInterfaceT methods: setGlobalMatrixDirty, isGlobalMatrixDirty, getGlobalMatrix, setGlobalMatrix, globalMatrixMultiply, getLocalTransform, setLocalMatrix");
                     }
                     if (node.parent_entity) |parent_entity| {
                         if (self.getNode(parent_entity)) |parent_node| {

@@ -61,7 +61,7 @@ pub const TextLabelComponent = struct {
     color: LinearColor = LinearColor.White,
 };
 
-const NodeGlobalMatrixInterface = struct {
+const NodeMatrixInterface = struct {
     pub fn setGlobalMatrixDirty(node: *Node, is_dirty: bool) void {
         if (global.world.getComponent(node.entity, Transform2DComponent)) |transform_comp| {
             transform_comp.is_global_dirty = is_dirty;
@@ -121,7 +121,7 @@ pub const SpriteRenderingSystem = struct {
         var comp_iter = ComponentIterator.init(world);
         while (comp_iter.next()) |iter| {
             if (global.scene_system.getNode(iter.getEntity())) |node| {
-                global.scene_system.updateNodeGlobalMatrix(NodeGlobalMatrixInterface, node);
+                global.scene_system.updateNodeGlobalMatrix(NodeMatrixInterface, node);
                 const transform_comp = iter.getComponent(Transform2DComponent);
                 const sprite_comp = iter.getComponent(SpriteComponent);
                 try renderer.queueSpriteDraw(&.{
@@ -144,7 +144,7 @@ pub const TextRenderingSystem = struct {
         var comp_iter = ComponentIterator.init(world);
         while (comp_iter.next()) |iter| {
             if (global.scene_system.getNode(iter.getEntity())) |node| {
-                global.scene_system.updateNodeGlobalMatrix(NodeGlobalMatrixInterface, node);
+                global.scene_system.updateNodeGlobalMatrix(NodeMatrixInterface, node);
                 const transform_comp = iter.getComponent(Transform2DComponent);
                 const text_label_comp = iter.getComponent(TextLabelComponent);
                 try renderer.queueTextDraw(&.{
@@ -158,6 +158,18 @@ pub const TextRenderingSystem = struct {
             }
         }
     }
+};
+
+const SpriteObject = struct {};
+const TextLabelObject = struct {};
+
+const GameObjectClass = union(enum) {
+    sprite: SpriteObject,
+    text: TextLabelObject,
+};
+
+const GameObject = struct {
+    class: GameObjectClass,
 };
 
 const allocator: std.mem.Allocator = std.heap.page_allocator;
@@ -230,14 +242,14 @@ pub const MainEntity = struct {
                 const transform_comp = global.world.getComponent(e, Transform2DComponent).?;
                 transform_comp.global.position = pos;
                 transform_comp.global_matrix = transform_comp.global.toMat4();
-                global.scene_system.updateNodeLocalMatrix(NodeGlobalMatrixInterface, global.scene_system.getNode(e).?);
+                global.scene_system.updateNodeLocalMatrix(NodeMatrixInterface, global.scene_system.getNode(e).?);
             }
             /// Updates global position (add to it)
             fn updateGlobalPosition(e: ecs.Entity, pos: Vec2) void {
                 const transform_comp = global.world.getComponent(e, Transform2DComponent).?;
                 transform_comp.global.position = transform_comp.global.position.add(&pos);
                 transform_comp.global_matrix = transform_comp.global.toMat4();
-                global.scene_system.updateNodeLocalMatrix(NodeGlobalMatrixInterface, global.scene_system.getNode(e).?);
+                global.scene_system.updateNodeLocalMatrix(NodeMatrixInterface, global.scene_system.getNode(e).?);
             }
         };
         const move_speed: f32 = 100;
