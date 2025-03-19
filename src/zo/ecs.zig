@@ -434,7 +434,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                     // Now update all children.
                     for (node.children_entities.items) |child_entity| {
                         if (self.getNode(child_entity)) |child_node| {
-                            MatrixInterfaceT.setGlobalMatrixDirty(node, true);
+                            MatrixInterfaceT.setGlobalMatrixDirty(child_node, true);
                             self.updateNodeGlobalMatrix(MatrixInterfaceT, child_node);
                         }
                     }
