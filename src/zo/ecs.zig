@@ -690,7 +690,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 if (@hasDecl(InterfaceT, "update")) {
                     try self.update_entities.append(new_entity);
                 }
-                if (@hasDecl(InterfaceT, "fixed_update")) {
+                if (@hasDecl(InterfaceT, "fixedUpdate")) {
                     try self.fixed_update_entities.append(new_entity);
                 }
             } else {
@@ -717,7 +717,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                             if (@hasDecl(InterfaceT, "update")) {
                                 ArrayListUtils.removeByValue(Entity, &self.update_entities, &entity);
                             }
-                            if (@hasDecl(InterfaceT, "fixed_update")) {
+                            if (@hasDecl(InterfaceT, "fixedUpdate")) {
                                 ArrayListUtils.removeByValue(Entity, &self.fixed_update_entities, &entity);
                             }
                             break;

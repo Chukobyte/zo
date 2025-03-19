@@ -44,17 +44,17 @@ pub fn Tick(interface: type) type {
             }
 
             // Process fixed update logic.
-            if (@hasDecl(interface, "fixed_update")) {
+            if (@hasDecl(interface, "fixedUpdate")) {
                 self.accumulator += self.fixed_delta_time;
                 var stepped: bool = false;
                 while (self.accumulator >= self.fixed_update_interval) {
-                    try interface.fixed_update(self.fixed_delta_time);
+                    try interface.fixedUpdate(self.fixed_delta_time);
                     self.accumulator -= self.fixed_update_interval;
                     stepped = true;
                 }
                 // If no fixed update was performed, call it at least once.
                 if (!stepped) {
-                    try interface.fixed_update(self.fixed_delta_time);
+                    try interface.fixedUpdate(self.fixed_delta_time);
                     self.accumulator -= self.fixed_update_interval;
                     // Optionally, clamp the accumulator if needed.
                     if (self.accumulator < 0.0) {
