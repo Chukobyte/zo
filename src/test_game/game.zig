@@ -169,7 +169,54 @@ const GameObjectClass = union(enum) {
 };
 
 const GameObject = struct {
+    node: *Node,
     class: GameObjectClass,
+
+    pub fn initInScene(object_class: GameObjectClass, entity_interface: ?type) !@This() {
+        const new_node: *Node = try global.scene_system.createNodeAndEntity(.{ .interface = entity_interface orelse null });
+        return @This(){
+            .node = new_node,
+            .class = object_class,
+        };
+    }
+
+    pub fn initFromNode(object_class: GameObjectClass, node: *Node) !@This() {
+        return @This(){
+            .node = node,
+            .class = object_class,
+        };
+    }
+
+    pub fn deinit(self: *@This()) void {
+        global.scene_system.removeNodeFromScene(self.node);
+    }
+
+    /// Overrides local position
+    pub fn setLocalPosition(self: *@This(), pos: Vec2) void {
+        const transform_comp = global.world.getComponent(self.node.entity, Transform2DComponent).?;
+        transform_comp.local.position = pos;
+        transform_comp.is_global_dirty = true;
+    }
+    /// Updates local position (add to it)
+    pub fn updateLocalPosition(self: *@This(), pos: Vec2) void {
+        const transform_comp = global.world.getComponent(self.node.entity, Transform2DComponent).?;
+        transform_comp.local.position = transform_comp.local.position.add(&pos);
+        transform_comp.is_global_dirty = true;
+    }
+    /// Overrides global position
+    pub fn setGlobalPosition(self: *@This(), pos: Vec2) void {
+        const transform_comp = global.world.getComponent(self.node.entity, Transform2DComponent).?;
+        transform_comp.global.position = pos;
+        transform_comp.global_matrix = transform_comp.global.toMat4();
+        global.scene_system.updateNodeLocalMatrix(NodeMatrixInterface, global.scene_system.getNode(self.node.entity).?);
+    }
+    /// Updates global position (add to it)
+    pub fn updateGlobalPosition(self: *@This(), pos: Vec2) void {
+        const transform_comp = global.world.getComponent(self.node.entity, Transform2DComponent).?;
+        transform_comp.global.position = transform_comp.global.position.add(&pos);
+        transform_comp.global_matrix = transform_comp.global.toMat4();
+        global.scene_system.updateNodeLocalMatrix(NodeMatrixInterface, global.scene_system.getNode(self.node.entity).?);
+    }
 };
 
 const allocator: std.mem.Allocator = std.heap.page_allocator;
