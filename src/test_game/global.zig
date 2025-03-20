@@ -16,8 +16,8 @@ pub const World = ecs.ECSWorld(.{
         &.{ game.Transform2DComponent, game.TextLabelComponent },
     }),
 });
-pub const SceneSystem = World.SceneSystem(.{ .definitions = &[_]ecs.SceneDefinition{
-    .{ .name = "Default", .node_interface = game.MainEntity, },
+pub const SceneSystem = World.SceneSystem(.{ .definitions = &.{
+    game.MainSceneDefinition,
 } });
 
 pub var world: World = undefined;

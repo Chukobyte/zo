@@ -267,6 +267,12 @@ var map_textue: Texture = undefined;
 var verdana_font: Font = undefined;
 var rainbow_orb_audio: AudioSource = undefined;
 
+pub const MainSceneDefinition = struct {
+    pub fn getNodeInterface() type {
+        return MainEntity;
+    }
+};
+
 pub const MainEntity = struct {
     var main_object: GameObject = undefined;
     var virginia_text: GameObject = undefined;
@@ -330,7 +336,7 @@ pub const GameMain = struct {
 
     pub fn init() !void {
         try global.init(allocator);
-        global.scene_system.changeScene("Default");
+        global.scene_system.changeScene(MainSceneDefinition);
         map_textue = try Texture.initFromMemory2(std.heap.page_allocator, static_assets.map_texture, true);
         verdana_font = try Font.initFromMemory2(static_assets.default_font, 16, true);
         rainbow_orb_audio = try AudioSource.initWavFromMemory2(static_assets.rainbow_orb_audio);

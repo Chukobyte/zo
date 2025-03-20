@@ -28,12 +28,11 @@ const InitEntityParams = struct {
 };
 
 pub const SceneDefinition = struct {
-    name: []const u8,
     node_interface: ?type = null,
 };
 
 pub const SceneSystemParams = struct {
-    definitions: []const SceneDefinition,
+    definitions: []const type,
 };
 
 pub fn ECSWorld(params: ECSWorldParams) type {
@@ -282,6 +281,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         /// Scene system that has callbacks to the ecs world
         pub fn SceneSystem(scene_params: SceneSystemParams) type {
             const scene_definitions = scene_params.definitions;
+            const SceneDefTypeList = TypeList(scene_definitions);
             return struct {
 
                 world: *ECSWorldType,
@@ -301,13 +301,11 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                     self.queued_nodes_for_deletion.deinit();
                 }
 
-                pub fn changeScene(self: *@This(), scene_name: []const u8) void {
-                    inline for (scene_definitions, 0..scene_definitions.len) |scene_def, i| {
-                        if (std.mem.eql(u8, scene_def.name, scene_name)) {
-                            self.queued_scene_def_id = i;
-                            break;
-                        }
-                    }
+                pub fn changeScene(self: *@This(), comptime SceneDefT: type) void {
+                    // if (!SceneDefTypeList.hasType(SceneDefT)) {
+                    //     @compileLog("Scene def doesn't exist!  Scene def = ", SceneDefT);
+                    // }
+                    self.queued_scene_def_id = SceneDefTypeList.getIndex(SceneDefT);
                 }
 
                 pub fn createNode(self: *@This(), entity: Entity) *Node {
@@ -471,10 +469,13 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                         inline for (0..scene_definitions.len) |i| {
                             if (i == def_id) {
                                 self.current_scene = .{
-                                    .name = scene_definitions[i].name,
+                                    // .name = scene_definitions[i].name,
+                                    .name = "Default",
                                     .nodes = std.ArrayList(*Node).init(self.world.allocator),
                                 };
-                                if (scene_definitions[i].node_interface) |node_interface| {
+                                const SceneDefT = SceneDefTypeList.getType(i);
+                                if (@hasDecl(SceneDefT, "getNodeInterface")) {
+                                    const node_interface = SceneDefT.getNodeInterface();
                                     const newNode = try self.createNodeAndEntity(.{ .interface = node_interface });
                                     try self.addNodeToScene(newNode, null);
                                 }

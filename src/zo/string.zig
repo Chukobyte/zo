@@ -35,7 +35,7 @@ pub fn DynamicString(stack_buffer_size: comptime_int, comptime auto_free_heap: b
             return new_string;
         }
 
-        pub fn deinit(self: *const @This()) void {
+        pub fn deinit(self: *@This()) void {
             self.freeHeap();
         }
 
