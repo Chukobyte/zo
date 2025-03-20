@@ -168,26 +168,45 @@ const GameObjectClass = union(enum) {
     text_label: TextLabelObject,
 };
 
+fn GameObjectParams(object_class: GameObjectClass) type {
+    switch (object_class) {
+        .sprite => return struct {
+            texture: *Texture,
+            draw_source: Rect2,
+            transform: Transform2D = Transform2D.Identity,
+            z_index: i32 = 0,
+        },
+        .text_label => return struct {
+            text: []const u8,
+            font: *Font,
+            transform: Transform2D = Transform2D.Identity,
+            z_index: i32 = 0,
+        },
+    }
+}
+
 const GameObject = struct {
     node: *Node,
     class: GameObjectClass,
 
-    pub fn initInScene(object_class: GameObjectClass, parent: ?*Node, entity_interface: ?type) !@This() {
+    pub fn initInScene(comptime object_class: GameObjectClass, comptime params: GameObjectParams(object_class), parent: ?*Node, entity_interface: ?type) !@This() {
         const new_node: *Node = try global.scene_system.createNodeAndEntity(.{ .interface = entity_interface orelse null });
         try global.scene_system.addNodeToScene(new_node, parent);
-        const game_object: GameObject = @This(){
+        var game_object: GameObject = @This(){
             .node = new_node,
-            .class = undefined,
+            .class = object_class,
         };
-        game_object.setupClassAndComponents(object_class);
+        try game_object.setupClassAndComponents(object_class, params);
         return game_object;
     }
 
-    pub fn initFromNode(object_class: GameObjectClass, node: *Node) !@This() {
-        return @This(){
+    pub fn initFromNode(comptime object_class: GameObjectClass, comptime params: GameObjectParams(object_class), node: *Node) !@This() {
+        var game_object: GameObject = @This(){
             .node = node,
             .class = object_class,
         };
+        try game_object.setupClassAndComponents(object_class, params);
+        return game_object;
     }
 
     pub fn deinit(self: *@This()) void {
@@ -221,17 +240,17 @@ const GameObject = struct {
         global.scene_system.updateNodeLocalMatrix(NodeMatrixInterface, global.scene_system.getNode(self.node.entity).?);
     }
 
-    fn setupClassAndComponents(self: *@This(), object_class: GameObjectClass) void {
+    fn setupClassAndComponents(self: *@This(), comptime object_class: GameObjectClass, comptime params: GameObjectParams(object_class)) !void {
         switch (object_class) {
             .sprite => {
                 self.class = .{ .sprite = SpriteObject{} };
-                global.world.setComponent(self.node.entity, Transform2DComponent, &.{});
-                global.world.setComponent(self.node.entity, SpriteComponent, &.{ .texture = undefined, .draw_source = undefined });
+                try global.world.setComponent(self.node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
+                try global.world.setComponent(self.node.entity, SpriteComponent, &.{ .texture = params.texture, .draw_source = params.draw_source });
             },
             .text_label => {
                 self.class = .{ .text_label = TextLabelObject{} };
-                global.world.setComponent(self.node.entity, Transform2DComponent, &.{});
-                global.world.setComponent(self.node.entity, TextLabelComponent, &.{ .text = undefined, .font = undefined });
+                try global.world.setComponent(self.node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
+                try global.world.setComponent(self.node.entity, TextLabelComponent, &.{ .text = try String.initAndSet(std.heap.page_allocator, params.text, .{}), .font = params.font });
             },
         }
     }
@@ -243,8 +262,8 @@ var verdana_font: Font = undefined;
 var rainbow_orb_audio: AudioSource = undefined;
 
 pub const MainEntity = struct {
-    var virginia_text_node: *Node = undefined;
-    var colonial_text_node: *Node = undefined;
+    var virginia_text: GameObject = undefined;
+    var colonial_text: GameObject = undefined;
 
     pub fn init(self: *@This(), world: *World, entity: ecs.Entity) !void {
         _ = self; _ = world; _ = entity;
@@ -262,17 +281,8 @@ pub const MainEntity = struct {
             .draw_source = .{ .x = 0.0, .y = 0.0, .w = @floatFromInt(map_textue.width), .h = @floatFromInt(map_textue.height) },
         });
 
-        // Virgina text entity
-        virginia_text_node = try global.scene_system.createNodeAndEntity(null);
-        try world.setComponent(virginia_text_node.entity, Transform2DComponent, &.{ .local = .{ .position = .{ .x = 100.0, .y = 340.0 } }, .global = .{ .position = .{ .x = 100.0, .y = 340.0 } }, .z_index = 2, });
-        try world.setComponent(virginia_text_node.entity, TextLabelComponent, &.{ .text = try String.initAndSet(allocator, "Virginia", .{}), .font = &verdana_font });
-        try global.scene_system.addNodeToScene(virginia_text_node, main_node);
-
-        // Colonial text entity
-        colonial_text_node = try global.scene_system.createNodeAndEntity(null);
-        try world.setComponent(colonial_text_node.entity, Transform2DComponent, &.{ .local = .{ .position = .{ .x = 200.0, .y = 200.0 } }, .global = .{ .position = .{ .x = 200.0, .y = 200.0 } }, .z_index = 1, });
-        try world.setComponent(colonial_text_node.entity, TextLabelComponent, &.{ .text = try String.initAndSet(allocator, "Colonial America", .{}), .font = &verdana_font });
-        try global.scene_system.addNodeToScene(colonial_text_node, main_node);
+        virginia_text = try GameObject.initInScene(.text_label, .{ .text = "Virginia", .font = &verdana_font, .transform = .{ .position = .{ .x = 100.0, .y = 340.0 } }, .z_index = 2 }, main_node, null);
+        colonial_text = try GameObject.initInScene(.text_label, .{ .text = "Colonial America", .font = &verdana_font, .transform = .{ .position = .{ .x = 200.0, .y = 200.0 } }, .z_index = 1 }, main_node, null);
     }
     pub fn onExitScene(self: *@This(), world: *World, entity: ecs.Entity) void {
         _ = self; _ = world; _ = entity;
@@ -330,14 +340,14 @@ pub const MainEntity = struct {
         }
 
         if (input.is_key_pressed(.{ .key = .keyboard_l })) {
-            Local.updateGlobalPosition(virginia_text_node.entity, .{ .x = move_speed * delta_seconds, .y = 0.0 });
+            virginia_text.updateGlobalPosition(.{ .x = move_speed * delta_seconds, .y = 0.0 });
         } else if (input.is_key_pressed(.{ .key = .keyboard_j })) {
-            Local.updateGlobalPosition(virginia_text_node.entity, .{ .x = -move_speed * delta_seconds, .y = 0.0 });
+            virginia_text.updateGlobalPosition(.{ .x = -move_speed * delta_seconds, .y = 0.0 });
         }
         if (input.is_key_pressed(.{ .key = .keyboard_k })) {
-            Local.updateGlobalPosition(virginia_text_node.entity, .{ .x = 0.0, .y = move_speed * delta_seconds });
+            virginia_text.updateGlobalPosition(.{ .x = 0.0, .y = move_speed * delta_seconds });
         } else if (input.is_key_pressed(.{ .key = .keyboard_i })) {
-            Local.updateGlobalPosition(virginia_text_node.entity, .{ .x = 0.0, .y = -move_speed * delta_seconds });
+            virginia_text.updateGlobalPosition(.{ .x = 0.0, .y = -move_speed * delta_seconds });
         }
     }
 };
