@@ -29,6 +29,12 @@ pub fn DynamicString(stack_buffer_size: comptime_int, comptime auto_free_heap: b
             return new_string;
         }
 
+        pub inline fn initAndSetRaw(allocator: std.mem.Allocator, input: []const u8) !@This() {
+            var new_string = @This(){ .allocator = allocator };
+            try new_string.setRaw(input);
+            return new_string;
+        }
+
         pub fn deinit(self: *const @This()) void {
             if (self.heap_buffer) |buffer| {
                 self.allocator.free(buffer);
@@ -56,6 +62,34 @@ pub fn DynamicString(stack_buffer_size: comptime_int, comptime auto_free_heap: b
                 }
             }
             self.len = string_length - 1;
+        }
+
+        pub fn setRaw(self: *@This(), input: []const u8) !void {
+            const string_length = input.len + 1; // +1 for null terminator
+
+            if (string_length > stack_buffer_size) {
+                self.mode = .heap;
+                if (self.heap_buffer == null or self.heap_buffer.?.len < string_length) {
+                    if (self.heap_buffer) |buffer| {
+                        self.allocator.free(buffer);
+                    }
+                    self.heap_buffer = try self.allocator.alloc(u8, string_length);
+                }
+                @memcpy(self.heap_buffer.?[0..input.len], input);
+                self.heap_buffer.?[input.len] = 0; // Null terminator
+                self.buffer = self.heap_buffer.?[0..input.len :0];
+            } else {
+                self.mode = .stack;
+                @memcpy(self.stack_buffer[0..input.len], input);
+                self.stack_buffer[input.len] = 0; // Null terminator
+                self.buffer = self.stack_buffer[0..input.len :0];
+
+                if (auto_free_heap) {
+                    self.freeHeap();
+                }
+            }
+
+            self.len = input.len;
         }
 
         /// Will free heap if no longer being used

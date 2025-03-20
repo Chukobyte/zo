@@ -189,7 +189,7 @@ const GameObject = struct {
     node: *Node,
     class: GameObjectClass,
 
-    pub fn initInScene(comptime object_class: GameObjectClass, comptime params: GameObjectParams(object_class), parent: ?*Node, entity_interface: ?type) !@This() {
+    pub fn initInScene(comptime object_class: GameObjectClass, params: GameObjectParams(object_class), parent: ?*Node, entity_interface: ?type) !@This() {
         const new_node: *Node = try global.scene_system.createNodeAndEntity(.{ .interface = entity_interface orelse null });
         try global.scene_system.addNodeToScene(new_node, parent);
         var game_object: GameObject = @This(){
@@ -200,7 +200,7 @@ const GameObject = struct {
         return game_object;
     }
 
-    pub fn initFromNode(comptime object_class: GameObjectClass, comptime params: GameObjectParams(object_class), node: *Node) !@This() {
+    pub fn initFromNode(comptime object_class: GameObjectClass, params: GameObjectParams(object_class), node: *Node) !@This() {
         var game_object: GameObject = @This(){
             .node = node,
             .class = object_class,
@@ -240,7 +240,7 @@ const GameObject = struct {
         global.scene_system.updateNodeLocalMatrix(NodeMatrixInterface, global.scene_system.getNode(self.node.entity).?);
     }
 
-    fn setupClassAndComponents(self: *@This(), comptime object_class: GameObjectClass, comptime params: GameObjectParams(object_class)) !void {
+    fn setupClassAndComponents(self: *@This(), comptime object_class: GameObjectClass, params: GameObjectParams(object_class)) !void {
         switch (object_class) {
             .sprite => {
                 self.class = .{ .sprite = SpriteObject{} };
@@ -250,7 +250,7 @@ const GameObject = struct {
             .text_label => {
                 self.class = .{ .text_label = TextLabelObject{} };
                 try global.world.setComponent(self.node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
-                try global.world.setComponent(self.node.entity, TextLabelComponent, &.{ .text = try String.initAndSet(std.heap.page_allocator, params.text, .{}), .font = params.font });
+                try global.world.setComponent(self.node.entity, TextLabelComponent, &.{ .text = try String.initAndSetRaw(std.heap.page_allocator, params.text), .font = params.font });
             },
         }
     }
@@ -262,6 +262,7 @@ var verdana_font: Font = undefined;
 var rainbow_orb_audio: AudioSource = undefined;
 
 pub const MainEntity = struct {
+    var main_object: GameObject = undefined;
     var virginia_text: GameObject = undefined;
     var colonial_text: GameObject = undefined;
 
@@ -272,15 +273,10 @@ pub const MainEntity = struct {
         _ = self; _ = world; _ = entity;
     }
     pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
-        _ = self;
-        const main_node = global.scene_system.getNode(entity).?;
+        _ = self; _ = world;
         // Setup main entity
-        try world.setComponent(entity, Transform2DComponent, &.{});
-        try world.setComponent(entity, SpriteComponent, &.{
-            .texture = &map_textue,
-            .draw_source = .{ .x = 0.0, .y = 0.0, .w = @floatFromInt(map_textue.width), .h = @floatFromInt(map_textue.height) },
-        });
-
+        const main_node = global.scene_system.getNode(entity).?;
+        main_object = try GameObject.initFromNode(.sprite, .{ .texture = &map_textue, .draw_source = .{ .x = 0.0, .y = 0.0, .w = @floatFromInt(map_textue.width), .h = @floatFromInt(map_textue.height) } }, main_node);
         virginia_text = try GameObject.initInScene(.text_label, .{ .text = "Virginia", .font = &verdana_font, .transform = .{ .position = .{ .x = 100.0, .y = 340.0 } }, .z_index = 2 }, main_node, null);
         colonial_text = try GameObject.initInScene(.text_label, .{ .text = "Colonial America", .font = &verdana_font, .transform = .{ .position = .{ .x = 200.0, .y = 200.0 } }, .z_index = 1 }, main_node, null);
     }
@@ -298,45 +294,17 @@ pub const MainEntity = struct {
         }
     }
     pub fn fixedUpdate(self: *@This(), world: *World, entity: ecs.Entity, delta_seconds: f32) !void {
-        _ = self; _ = world;
-        const Local = struct {
-            /// Overrides local position
-            fn setLocalPosition(e: ecs.Entity, pos: Vec2) void {
-                const transform_comp = global.world.getComponent(e, Transform2DComponent).?;
-                transform_comp.local.position = pos;
-                transform_comp.is_global_dirty = true;
-            }
-            /// Updates local position (add to it)
-            fn updateLocalPosition(e: ecs.Entity, pos: Vec2) void {
-                const transform_comp = global.world.getComponent(e, Transform2DComponent).?;
-                transform_comp.local.position = transform_comp.local.position.add(&pos);
-                transform_comp.is_global_dirty = true;
-            }
-            /// Overrides global position
-            fn setGlobalPosition(e: ecs.Entity, pos: Vec2) void {
-                const transform_comp = global.world.getComponent(e, Transform2DComponent).?;
-                transform_comp.global.position = pos;
-                transform_comp.global_matrix = transform_comp.global.toMat4();
-                global.scene_system.updateNodeLocalMatrix(NodeMatrixInterface, global.scene_system.getNode(e).?);
-            }
-            /// Updates global position (add to it)
-            fn updateGlobalPosition(e: ecs.Entity, pos: Vec2) void {
-                const transform_comp = global.world.getComponent(e, Transform2DComponent).?;
-                transform_comp.global.position = transform_comp.global.position.add(&pos);
-                transform_comp.global_matrix = transform_comp.global.toMat4();
-                global.scene_system.updateNodeLocalMatrix(NodeMatrixInterface, global.scene_system.getNode(e).?);
-            }
-        };
+        _ = self; _ = world; _ = entity;
         const move_speed: f32 = 100;
         if (input.is_key_pressed(.{ .key = .keyboard_a })) {
-            Local.updateLocalPosition(entity, .{ .x = -move_speed * delta_seconds, .y = 0.0 });
+            main_object.updateLocalPosition(.{ .x = -move_speed * delta_seconds, .y = 0.0 });
         } else if (input.is_key_pressed(.{ .key = .keyboard_d })) {
-            Local.updateLocalPosition(entity, .{ .x = move_speed * delta_seconds, .y = 0.0 });
+            main_object.updateLocalPosition(.{ .x = move_speed * delta_seconds, .y = 0.0 });
         }
         if (input.is_key_pressed(.{ .key = .keyboard_s })) {
-            Local.updateLocalPosition(entity, .{ .x = 0.0, .y = move_speed * delta_seconds });
+            main_object.updateLocalPosition(.{ .x = 0.0, .y = move_speed * delta_seconds });
         } else if (input.is_key_pressed(.{ .key = .keyboard_w })) {
-            Local.updateLocalPosition(entity, .{ .x = 0.0, .y = -move_speed * delta_seconds });
+            main_object.updateLocalPosition(.{ .x = 0.0, .y = -move_speed * delta_seconds });
         }
 
         if (input.is_key_pressed(.{ .key = .keyboard_l })) {
