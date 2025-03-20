@@ -189,6 +189,7 @@ const GameObject = struct {
     node: *Node,
     class: GameObjectClass,
 
+    /// Initializes game object and add to scene
     pub fn initInScene(comptime object_class: GameObjectClass, params: GameObjectParams(object_class), parent: ?*Node, entity_interface: ?type) !@This() {
         const new_node: *Node = try global.scene_system.createNodeAndEntity(.{ .interface = entity_interface orelse null });
         try global.scene_system.addNodeToScene(new_node, parent);
@@ -200,6 +201,7 @@ const GameObject = struct {
         return game_object;
     }
 
+    /// Initializes game object, assumes it's already in the scene
     pub fn initFromNode(comptime object_class: GameObjectClass, params: GameObjectParams(object_class), node: *Node) !@This() {
         var game_object: GameObject = @This(){
             .node = node,
@@ -238,6 +240,10 @@ const GameObject = struct {
         transform_comp.global.position = transform_comp.global.position.add(&pos);
         transform_comp.global_matrix = transform_comp.global.toMat4();
         global.scene_system.updateNodeLocalMatrix(NodeMatrixInterface, global.scene_system.getNode(self.node.entity).?);
+    }
+
+    pub inline fn isValid(self: *const @This()) bool {
+        return global.scene_system.isNodeValid(self.node);
     }
 
     fn setupClassAndComponents(self: *@This(), comptime object_class: GameObjectClass, params: GameObjectParams(object_class)) !void {
