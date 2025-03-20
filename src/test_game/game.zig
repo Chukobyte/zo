@@ -2,8 +2,6 @@
 
 const std = @import("std");
 
-const static_assets = @import("static_assets");
-
 const zo = @import("zo");
 
 const game = @import("game.zig");
@@ -337,9 +335,9 @@ pub const GameMain = struct {
     pub fn init() !void {
         try global.init(allocator);
         global.scene_system.changeScene(MainSceneDefinition);
-        map_textue = try Texture.initFromMemory2(std.heap.page_allocator, static_assets.map_texture, true);
-        verdana_font = try Font.initFromMemory2(static_assets.default_font, 16, true);
-        rainbow_orb_audio = try AudioSource.initWavFromMemory2(static_assets.rainbow_orb_audio);
+        map_textue = global.assets.textures.map;
+        verdana_font = global.assets.fonts.verdana;
+        rainbow_orb_audio = global.assets.audio.rainbow_orb;
     }
 
     pub fn deinit() void {
@@ -354,9 +352,6 @@ pub const GameMain = struct {
     }
 
     pub fn update(delta_seconds: f32) !void {
-        // if (input.is_key_just_pressed(.{ .key = .keyboard_a })) {
-        //     global.scene_system.changeScene("Default");
-        // }
         try global.scene_system.newFrame();
         try global.world.update(delta_seconds);
     }
