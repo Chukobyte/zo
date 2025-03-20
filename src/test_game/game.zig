@@ -165,19 +165,22 @@ const TextLabelObject = struct {};
 
 const GameObjectClass = union(enum) {
     sprite: SpriteObject,
-    text: TextLabelObject,
+    text_label: TextLabelObject,
 };
 
 const GameObject = struct {
     node: *Node,
     class: GameObjectClass,
 
-    pub fn initInScene(object_class: GameObjectClass, entity_interface: ?type) !@This() {
+    pub fn initInScene(object_class: GameObjectClass, parent: ?*Node, entity_interface: ?type) !@This() {
         const new_node: *Node = try global.scene_system.createNodeAndEntity(.{ .interface = entity_interface orelse null });
-        return @This(){
+        try global.scene_system.addNodeToScene(new_node, parent);
+        const game_object: GameObject = @This(){
             .node = new_node,
-            .class = object_class,
+            .class = undefined,
         };
+        game_object.setupClassAndComponents(object_class);
+        return game_object;
     }
 
     pub fn initFromNode(object_class: GameObjectClass, node: *Node) !@This() {
@@ -216,6 +219,21 @@ const GameObject = struct {
         transform_comp.global.position = transform_comp.global.position.add(&pos);
         transform_comp.global_matrix = transform_comp.global.toMat4();
         global.scene_system.updateNodeLocalMatrix(NodeMatrixInterface, global.scene_system.getNode(self.node.entity).?);
+    }
+
+    fn setupClassAndComponents(self: *@This(), object_class: GameObjectClass) void {
+        switch (object_class) {
+            .sprite => {
+                self.class = .{ .sprite = SpriteObject{} };
+                global.world.setComponent(self.node.entity, Transform2DComponent, &.{});
+                global.world.setComponent(self.node.entity, SpriteComponent, &.{ .texture = undefined, .draw_source = undefined });
+            },
+            .text_label => {
+                self.class = .{ .text_label = TextLabelObject{} };
+                global.world.setComponent(self.node.entity, Transform2DComponent, &.{});
+                global.world.setComponent(self.node.entity, TextLabelComponent, &.{ .text = undefined, .font = undefined });
+            },
+        }
     }
 };
 
