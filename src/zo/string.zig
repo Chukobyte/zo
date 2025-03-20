@@ -36,9 +36,7 @@ pub fn DynamicString(stack_buffer_size: comptime_int, comptime auto_free_heap: b
         }
 
         pub fn deinit(self: *const @This()) void {
-            if (self.heap_buffer) |buffer| {
-                self.allocator.free(buffer);
-            }
+            self.freeHeap();
         }
 
         pub fn set(self: *@This(), comptime fmt: []const u8, args: anytype) !void {
