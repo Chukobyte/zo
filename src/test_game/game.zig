@@ -85,104 +85,67 @@ pub const MapSceneDefinition = struct {
 };
 
 pub const MapEntity = struct {
-    var main_object: GameObject = undefined;
-    var virginia_text: GameObject = undefined;
-    var colonial_text: GameObject = undefined;
+    selected_location_cursor: GameObject = undefined,
+    location_index: usize = 0,
 
-    pub fn init(self: *@This(), world: *World, entity: ecs.Entity) !void {
-        _ = self; _ = world; _ = entity;
-    }
-    pub fn deinit(self: *@This(), world: *World, entity: ecs.Entity) void {
-        _ = self; _ = world; _ = entity;
-    }
     pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
-        _ = self; _ = world;
-        // Setup main entity
-        const main_node = global.scene_system.getNode(entity).?;
-        const map_texuture_size: Dim2 = .{ .w = @floatFromInt(global.assets.textures.map.width), .h = @floatFromInt(global.assets.textures.map.height) };
-        main_object = try GameObject.initFromNode(
-            .sprite,
-            .{ .texture = &global.assets.textures.map, .draw_source = .{ .x = 0.0, .y = 0.0, .w = map_texuture_size.w, .h = map_texuture_size.h } },
-            main_node
-        );
-        virginia_text = try GameObject.initInScene(
+        _ = world; _ = entity;
+        const intitial_map_pos = state.map_locations[self.location_index].map_position;
+        self.selected_location_cursor = try GameObject.initInScene(
             .text_label,
-            .{ .text = "Virginia", .font = &global.assets.fonts.verdana_16, .transform = .{ .position = .{ .x = 100.0, .y = 340.0 } }, .z_index = 2 },
-            main_node,
-            null
-        );
-        colonial_text = try GameObject.initInScene(
-            .text_label,
-            .{ .text = "Colonial America", .font = &global.assets.fonts.verdana_16, .transform = .{ .position = .{ .x = 200.0, .y = 200.0 } }, .z_index = 1 },
-            main_node,
+            .{ .text = "{}", .font = &global.assets.fonts.verdana_16, .transform = .{ .position = intitial_map_pos }, },
+            null,
             null
         );
     }
+
     pub fn onExitScene(self: *@This(), world: *World, entity: ecs.Entity) void {
         _ = self; _ = world; _ = entity;
     }
-    pub fn update(self: *@This(), world: *World, entity: ecs.Entity, delta_seconds: f32) !void {
-        _ = self; _ = world; _ = entity; _ = delta_seconds;
-        if (input.is_key_just_pressed(.{ .key = .keyboard_space })) {
-            try global.assets.audio.rainbow_orb.play(false);
-        }
 
+    pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
         if (input.is_key_just_pressed(.{ .key = .keyboard_escape })) {
             zo.quit();
         }
     }
-    pub fn fixedUpdate(self: *@This(), world: *World, entity: ecs.Entity, delta_seconds: f32) !void {
-        _ = self; _ = world; _ = entity;
-        const move_speed: f32 = 100;
-        if (input.is_key_pressed(.{ .key = .keyboard_a })) {
-            main_object.updateLocalPosition(.{ .x = -move_speed * delta_seconds, .y = 0.0 });
-        } else if (input.is_key_pressed(.{ .key = .keyboard_d })) {
-            main_object.updateLocalPosition(.{ .x = move_speed * delta_seconds, .y = 0.0 });
+
+    pub fn fixedUpdate(self: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
+        const InputMoveDirection = enum {
+            none,
+            up,
+            down
+        };
+        var move_direction: InputMoveDirection = .none;
+        if (input.is_key_pressed(.{ .key = .keyboard_left }) or input.is_key_pressed(.{ .key = .keyboard_a })) {
+
+        } else if (input.is_key_pressed(.{ .key = .keyboard_right }) or input.is_key_pressed(.{ .key = .keyboard_d })) {
+
+        } else if (input.is_key_pressed(.{ .key = .keyboard_down }) or input.is_key_pressed(.{ .key = .keyboard_s })) {
+            move_direction = .down;
+        } else if (input.is_key_pressed(.{ .key = .keyboard_up }) or input.is_key_pressed(.{ .key = .keyboard_w })) {
+            move_direction = .up;
         }
-        if (input.is_key_pressed(.{ .key = .keyboard_s })) {
-            main_object.updateLocalPosition(.{ .x = 0.0, .y = move_speed * delta_seconds });
-        } else if (input.is_key_pressed(.{ .key = .keyboard_w })) {
-            main_object.updateLocalPosition(.{ .x = 0.0, .y = -move_speed * delta_seconds });
+
+        switch (move_direction) {
+            .none => {},
+            .up => {
+                if (self.location_index + 1 >= state.map_locations.len) {
+                    self.location_index = 0;
+                } else {
+                    self.location_index += 1;
+                }
+                const new_location = state.map_locations[self.location_index].map_position;
+                self.selected_location_cursor.setLocalPosition(new_location);
+            },
+            .down => {
+                if (self.location_index == 0) {
+                    self.location_index = state.map_locations.len - 1;
+                } else {
+                    self.location_index -= 1;
+                }
+                const new_location = state.map_locations[self.location_index].map_position;
+                self.selected_location_cursor.setLocalPosition(new_location);
+            },
         }
-
-        if (input.is_key_pressed(.{ .key = .keyboard_l })) {
-            virginia_text.updateGlobalPosition(.{ .x = move_speed * delta_seconds, .y = 0.0 });
-        } else if (input.is_key_pressed(.{ .key = .keyboard_j })) {
-            virginia_text.updateGlobalPosition(.{ .x = -move_speed * delta_seconds, .y = 0.0 });
-        }
-        if (input.is_key_pressed(.{ .key = .keyboard_k })) {
-            virginia_text.updateGlobalPosition(.{ .x = 0.0, .y = move_speed * delta_seconds });
-        } else if (input.is_key_pressed(.{ .key = .keyboard_i })) {
-            virginia_text.updateGlobalPosition(.{ .x = 0.0, .y = -move_speed * delta_seconds });
-        }
-    }
-};
-
-pub const GameMain = struct {
-
-    pub fn init() !void {
-        try global.init(global.allocator);
-        global.scene_system.changeScene(InitSceneDefinition);
-    }
-
-    pub fn deinit() void {
-        global.deinit();
-    }
-
-    pub fn preTick() !void {
-        try global.world.preTick();
-    }
-
-    pub fn update(delta_seconds: f32) !void {
-        try global.scene_system.newFrame();
-        try global.world.update(delta_seconds);
-    }
-
-    pub fn fixedUpdate(delta_seconds: f32) !void {
-        try global.world.fixedUpdate(delta_seconds);
-    }
-
-    pub fn postTick() !void {
-        try global.world.postTick();
     }
 };
