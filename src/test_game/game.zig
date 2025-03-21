@@ -59,8 +59,7 @@ pub const MainMenuSceneDefinition = struct {
 };
 
 pub const MainMenuEntity = struct {
-    pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
-        _ = self; _ = world; _ = entity;
+    pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
         const title_text = try GameObject.initInScene(
             .text_label,
             .{ .text = "Test Game", .font = &global.assets.fonts.verdana_32, .transform = .{ .position = .{ .x = 200.0, .y = 100.0 } }, },
@@ -75,8 +74,7 @@ pub const MainMenuEntity = struct {
         );
         _ = title_text; _ = instructions_text;
     }
-    pub fn update(self: *@This(), world: *World, entity: ecs.Entity, delta_seconds: f32) !void {
-        _ = self; _ = world; _ = entity; _ = delta_seconds;
+    pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
         if (input.is_key_just_pressed(.{ .key = .keyboard_space })) {
             global.scene_system.changeScene(MapSceneDefinition);
         }
