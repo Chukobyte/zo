@@ -468,18 +468,17 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                         self.deleteNodesQueuedForDeletion();
                         inline for (0..scene_definitions.len) |i| {
                             if (i == def_id) {
+                                self.queued_scene_def_id = null;
                                 self.current_scene = .{
-                                    // .name = scene_definitions[i].name,
-                                    .name = "Default",
-                                    .nodes = std.ArrayList(*Node).init(self.world.allocator),
-                                };
+                                .name = "Default",
+                                .nodes = std.ArrayList(*Node).init(self.world.allocator),
+                            };
                                 const SceneDefT = SceneDefTypeList.getType(i);
                                 if (@hasDecl(SceneDefT, "getNodeInterface")) {
                                     const node_interface = SceneDefT.getNodeInterface();
                                     const newNode = try self.createNodeAndEntity(.{ .interface = node_interface });
                                     try self.addNodeToScene(newNode, null);
                                 }
-                                self.queued_scene_def_id = null;
                                 break;
                             }
                         }

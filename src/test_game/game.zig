@@ -36,13 +36,47 @@ const GameObject = object.GameObject;
 
 const log = zo.log;
 
-pub const MainSceneDefinition = struct {
+// Scenes
+
+// INIT
+pub const InitSceneDefinition = struct {
     pub fn getNodeInterface() type {
-        return MainEntity;
+        return InitEntity;
     }
 };
 
-pub const MainEntity = struct {
+pub const InitEntity = struct {
+    pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
+        global.scene_system.changeScene(MapSceneDefinition);
+    }
+};
+
+// MAIN MENU
+pub const MainMenuSceneDefinition = struct {
+    pub fn getNodeInterface() type {
+        return MainMenuEntity;
+    }
+};
+
+pub const MainMenuEntity = struct {};
+
+// LOCATION
+pub const LocationSceneDefinition = struct {
+    pub fn getNodeInterface() type {
+        return LocationEntity;
+    }
+};
+
+pub const LocationEntity = struct {};
+
+// MAP
+pub const MapSceneDefinition = struct {
+    pub fn getNodeInterface() type {
+        return MapEntity;
+    }
+};
+
+pub const MapEntity = struct {
     var main_object: GameObject = undefined;
     var virginia_text: GameObject = undefined;
     var colonial_text: GameObject = undefined;
@@ -120,7 +154,7 @@ pub const GameMain = struct {
 
     pub fn init() !void {
         try global.init(global.allocator);
-        global.scene_system.changeScene(MainSceneDefinition);
+        global.scene_system.changeScene(InitSceneDefinition);
     }
 
     pub fn deinit() void {

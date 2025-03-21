@@ -19,7 +19,7 @@ const SpriteRenderingSystem = component_systems.SpriteRenderingSystem;
 const TextRenderingSystem = component_systems.TextRenderingSystem;
 
 pub const World = ecs.ECSWorld(.{
-    .entity_interfaces = &.{ game.MainEntity },
+    .entity_interfaces = &.{ game.InitEntity, game.MainMenuEntity, game.LocationEntity, game.MapEntity },
     .components = &.{ Transform2DComponent, SpriteComponent, TextLabelComponent },
     .systems = &.{ SpriteRenderingSystem, TextRenderingSystem },
     .archetypes = @as([]const []const type, &.{
@@ -29,7 +29,7 @@ pub const World = ecs.ECSWorld(.{
 });
 
 pub const SceneSystem = World.SceneSystem(.{ .definitions = &.{
-    game.MainSceneDefinition,
+    game.InitSceneDefinition, game.MainMenuSceneDefinition, game.LocationSceneDefinition, game.MapSceneDefinition,
 } });
 
 pub const AssetManager = struct {
