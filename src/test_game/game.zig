@@ -16,6 +16,8 @@ const Dim2 = math.Dim2;
 const World = global.World;
 const Node = World.Node;
 const GameObject = object.GameObject;
+const Location = state.Location;
+const TextLabelComponent = component_systems.TextLabelComponent;
 
 const log = zo.log;
 
@@ -86,7 +88,8 @@ pub const MapSceneDefinition = struct {
 
 pub const MapEntity = struct {
     selected_location_cursor: GameObject = undefined,
-    location_index: usize = 0,
+    selected_location_name: GameObject = undefined,
+    location_index: usize = 9,
 
     pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
         _ = world; _ = entity;
@@ -98,10 +101,16 @@ pub const MapEntity = struct {
             null
         );
 
-        const intitial_map_pos = state.map_locations[self.location_index].map_position;
+        const intitial_location = &state.map_locations[self.location_index];
         self.selected_location_cursor = try GameObject.initInScene(
             .text_label,
-            .{ .text = "{}", .font = &global.assets.fonts.verdana_16, .transform = .{ .position = intitial_map_pos }, },
+            .{ .text = "{}", .font = &global.assets.fonts.verdana_16, .transform = .{ .position = intitial_location.map_position }, },
+            null,
+            null
+        );
+        self.selected_location_name = try GameObject.initInScene(
+            .text_label,
+            .{ .text = intitial_location.name, .font = &global.assets.fonts.verdana_16, .transform = .{ .position = .{ .x = 100.0, .y = 340.0 } }, },
             null,
             null
         );
@@ -117,23 +126,30 @@ pub const MapEntity = struct {
         }
     }
 
-    pub fn fixedUpdate(self: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
+    pub fn fixedUpdate(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
+        if (self.checkForLocationChange()) |new_location| {
+            self.selected_location_cursor.setLocalPosition(new_location.map_position);
+            var text_label_comp = world.getComponent(self.selected_location_name.node.entity, TextLabelComponent);
+            try text_label_comp.?.text.setRaw(new_location.name);
+        }
+    }
+
+    fn checkForLocationChange(self: *@This()) ?*const Location {
         if (input.is_key_just_pressed(.{ .key = .keyboard_down }) or input.is_key_pressed(.{ .key = .keyboard_s })) {
             if (self.location_index + 1 >= state.map_locations.len) {
                 self.location_index = 0;
             } else {
                 self.location_index += 1;
             }
-            const new_location = state.map_locations[self.location_index].map_position;
-            self.selected_location_cursor.setLocalPosition(new_location);
+            return &state.map_locations[self.location_index];
         } else if (input.is_key_just_pressed(.{ .key = .keyboard_up }) or input.is_key_pressed(.{ .key = .keyboard_w })) {
             if (self.location_index == 0) {
                 self.location_index = state.map_locations.len - 1;
             } else {
                 self.location_index -= 1;
             }
-            const new_location = state.map_locations[self.location_index].map_position;
-            self.selected_location_cursor.setLocalPosition(new_location);
+            return &state.map_locations[self.location_index];
         }
+        return null;
     }
 };
