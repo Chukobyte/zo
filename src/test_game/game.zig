@@ -90,6 +90,14 @@ pub const MapEntity = struct {
 
     pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
         _ = world; _ = entity;
+        const map_texuture_size: Dim2 = .{ .w = @floatFromInt(global.assets.textures.map.width), .h = @floatFromInt(global.assets.textures.map.height) };
+        _ = try GameObject.initInScene(
+            .sprite,
+            .{ .texture = &global.assets.textures.map, .draw_source = .{ .x = 0.0, .y = 0.0, .w = map_texuture_size.w, .h = map_texuture_size.h } },
+            null,
+            null
+        );
+
         const intitial_map_pos = state.map_locations[self.location_index].map_position;
         self.selected_location_cursor = try GameObject.initInScene(
             .text_label,
@@ -110,42 +118,22 @@ pub const MapEntity = struct {
     }
 
     pub fn fixedUpdate(self: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
-        const InputMoveDirection = enum {
-            none,
-            up,
-            down
-        };
-        var move_direction: InputMoveDirection = .none;
-        if (input.is_key_pressed(.{ .key = .keyboard_left }) or input.is_key_pressed(.{ .key = .keyboard_a })) {
-
-        } else if (input.is_key_pressed(.{ .key = .keyboard_right }) or input.is_key_pressed(.{ .key = .keyboard_d })) {
-
-        } else if (input.is_key_pressed(.{ .key = .keyboard_down }) or input.is_key_pressed(.{ .key = .keyboard_s })) {
-            move_direction = .down;
-        } else if (input.is_key_pressed(.{ .key = .keyboard_up }) or input.is_key_pressed(.{ .key = .keyboard_w })) {
-            move_direction = .up;
-        }
-
-        switch (move_direction) {
-            .none => {},
-            .up => {
-                if (self.location_index + 1 >= state.map_locations.len) {
-                    self.location_index = 0;
-                } else {
-                    self.location_index += 1;
-                }
-                const new_location = state.map_locations[self.location_index].map_position;
-                self.selected_location_cursor.setLocalPosition(new_location);
-            },
-            .down => {
-                if (self.location_index == 0) {
-                    self.location_index = state.map_locations.len - 1;
-                } else {
-                    self.location_index -= 1;
-                }
-                const new_location = state.map_locations[self.location_index].map_position;
-                self.selected_location_cursor.setLocalPosition(new_location);
-            },
+        if (input.is_key_just_pressed(.{ .key = .keyboard_down }) or input.is_key_pressed(.{ .key = .keyboard_s })) {
+            if (self.location_index + 1 >= state.map_locations.len) {
+                self.location_index = 0;
+            } else {
+                self.location_index += 1;
+            }
+            const new_location = state.map_locations[self.location_index].map_position;
+            self.selected_location_cursor.setLocalPosition(new_location);
+        } else if (input.is_key_just_pressed(.{ .key = .keyboard_up }) or input.is_key_pressed(.{ .key = .keyboard_w })) {
+            if (self.location_index == 0) {
+                self.location_index = state.map_locations.len - 1;
+            } else {
+                self.location_index -= 1;
+            }
+            const new_location = state.map_locations[self.location_index].map_position;
+            self.selected_location_cursor.setLocalPosition(new_location);
         }
     }
 };
