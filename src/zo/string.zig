@@ -115,6 +115,7 @@ pub fn DynamicString(stack_buffer_size: comptime_int, comptime auto_free_heap: b
     };
 }
 
+pub const String4 = DynamicString(4, false);
 pub const String8 = DynamicString(8, false);
 pub const String16 = DynamicString(16, false);
 pub const String32 = DynamicString(32, false);

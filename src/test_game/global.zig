@@ -2,11 +2,9 @@
 
 const std = @import("std");
 const zo = @import("zo");
-
 const static_assets = @import("static_assets");
-
 const game = @import("game.zig");
-
+const component_systems = @import("component_systems.zig");
 const ecs = zo.ecs;
 const renderer = zo.renderer;
 const audio = zo.audio;
@@ -14,14 +12,19 @@ const audio = zo.audio;
 const Texture = renderer.Texture;
 const Font = renderer.Font;
 const AudioSource = audio.AudioSource;
+const Transform2DComponent = component_systems.Transform2DComponent;
+const SpriteComponent = component_systems.SpriteComponent;
+const TextLabelComponent = component_systems.TextLabelComponent;
+const SpriteRenderingSystem = component_systems.SpriteRenderingSystem;
+const TextRenderingSystem = component_systems.TextRenderingSystem;
 
 pub const World = ecs.ECSWorld(.{
     .entity_interfaces = &.{ game.MainEntity },
-    .components = &.{ game.Transform2DComponent, game.SpriteComponent, game.TextLabelComponent },
-    .systems = &.{ game.SpriteRenderingSystem, game.TextRenderingSystem },
+    .components = &.{ Transform2DComponent, SpriteComponent, TextLabelComponent },
+    .systems = &.{ SpriteRenderingSystem, TextRenderingSystem },
     .archetypes = @as([]const []const type, &.{
-        &.{ game.Transform2DComponent, game.SpriteComponent },
-        &.{ game.Transform2DComponent, game.TextLabelComponent },
+        &.{ Transform2DComponent, SpriteComponent },
+        &.{ Transform2DComponent, TextLabelComponent },
     }),
 });
 
@@ -57,7 +60,7 @@ pub const AssetManager = struct {
     }
 };
 
-var allocator: std.mem.Allocator = undefined;
+pub var allocator: std.mem.Allocator = std.heap.page_allocator;
 
 pub var world: World = undefined;
 pub var scene_system: SceneSystem = undefined;
