@@ -51,19 +51,19 @@ pub const Location = struct {
 };
 
 pub const map_locations: [13]Location = .{
-    .{ .name = "New Hampshire", .map_position = .{ .x = 530.0, .y = 90.0 } },
+    .{ .name = "New Hampshire", .map_position = .{ .x = 527.0, .y = 90.0 } },
     .{ .name = "Rhode Island", .map_position = .{ .x = 568.0, .y = 106.0 } },
-    .{ .name = "Connecticut", .map_position = .{ .x = 558.0, .y = 107.0 } },
-    .{ .name = "Massachusettes", .map_position = .{ .x = 540.0, .y = 107.0 } },
+    .{ .name = "Connecticut", .map_position = .{ .x = 556.0, .y = 108.0 } },
+    .{ .name = "Massachusettes", .map_position = .{ .x = 534.0, .y = 107.0 } },
     .{ .name = "New York", .map_position = .{ .x = 475.0, .y = 107.0 } },
-    .{ .name = "New Jersey", .map_position = .{ .x = 500.0, .y = 138.0 } },
-    .{ .name = "Delaware", .map_position = .{ .x = 485.0, .y = 158.0 } },
+    .{ .name = "New Jersey", .map_position = .{ .x = 495.0, .y = 140.0 } },
+    .{ .name = "Delaware", .map_position = .{ .x = 481.0, .y = 158.0 } },
     .{ .name = "Pennsylvania", .map_position = .{ .x = 445.0, .y = 134.0 } },
     .{ .name = "Maryland", .map_position = .{ .x = 445.0, .y = 158.0 } },
     .{ .name = "Virginia", .map_position = .{ .x = 428.0, .y = 180.0 } },
     .{ .name = "North Carolina", .map_position = .{ .x = 425.0, .y = 215.0 } },
-    .{ .name = "South Carolina", .map_position = .{ .x = 368.0, .y = 237.0 } },
-    .{ .name = "Georgia", .map_position = .{ .x = 337.0, .y = 258.0 } },
+    .{ .name = "South Carolina", .map_position = .{ .x = 370.0, .y = 238.0 } },
+    .{ .name = "Georgia", .map_position = .{ .x = 339.0, .y = 258.0 } },
 };
 
 pub const character_pool: []Character = &.{
