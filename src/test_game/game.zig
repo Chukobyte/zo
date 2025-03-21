@@ -47,7 +47,7 @@ pub const InitSceneDefinition = struct {
 
 pub const InitEntity = struct {
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
-        global.scene_system.changeScene(MapSceneDefinition);
+        global.scene_system.changeScene(MainMenuSceneDefinition);
     }
 };
 
@@ -58,7 +58,34 @@ pub const MainMenuSceneDefinition = struct {
     }
 };
 
-pub const MainMenuEntity = struct {};
+pub const MainMenuEntity = struct {
+    pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
+        _ = self; _ = world; _ = entity;
+        const title_text = try GameObject.initInScene(
+            .text_label,
+            .{ .text = "Test Game", .font = &global.assets.fonts.verdana_32, .transform = .{ .position = .{ .x = 200.0, .y = 100.0 } }, },
+            null,
+            null
+        );
+        const instructions_text = try GameObject.initInScene(
+            .text_label,
+            .{ .text = "Press Space to Play", .font = &global.assets.fonts.verdana_16, .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
+            null,
+            null
+        );
+        _ = title_text; _ = instructions_text;
+    }
+    pub fn update(self: *@This(), world: *World, entity: ecs.Entity, delta_seconds: f32) !void {
+        _ = self; _ = world; _ = entity; _ = delta_seconds;
+        if (input.is_key_just_pressed(.{ .key = .keyboard_space })) {
+            global.scene_system.changeScene(MapSceneDefinition);
+        }
+
+        if (input.is_key_just_pressed(.{ .key = .keyboard_escape })) {
+            zo.quit();
+        }
+    }
+};
 
 // LOCATION
 pub const LocationSceneDefinition = struct {
@@ -99,13 +126,13 @@ pub const MapEntity = struct {
         );
         virginia_text = try GameObject.initInScene(
             .text_label,
-            .{ .text = "Virginia", .font = &global.assets.fonts.verdana, .transform = .{ .position = .{ .x = 100.0, .y = 340.0 } }, .z_index = 2 },
+            .{ .text = "Virginia", .font = &global.assets.fonts.verdana_16, .transform = .{ .position = .{ .x = 100.0, .y = 340.0 } }, .z_index = 2 },
             main_node,
             null
         );
         colonial_text = try GameObject.initInScene(
             .text_label,
-            .{ .text = "Colonial America", .font = &global.assets.fonts.verdana, .transform = .{ .position = .{ .x = 200.0, .y = 200.0 } }, .z_index = 1 },
+            .{ .text = "Colonial America", .font = &global.assets.fonts.verdana_16, .transform = .{ .position = .{ .x = 200.0, .y = 200.0 } }, .z_index = 1 },
             main_node,
             null
         );
