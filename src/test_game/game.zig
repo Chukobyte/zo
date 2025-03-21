@@ -2,36 +2,18 @@
 
 const std = @import("std");
 const zo = @import("zo");
-const game = @import("game.zig");
 const component_systems = @import("component_systems.zig");
 const object = @import("object.zig");
 const global = @import("global.zig");
 
 const ecs = zo.ecs;
-const renderer = zo.renderer;
 const audio = zo.audio;
-const window = zo.window;
 const input = zo.input;
 const math = zo.math;
 
-const Vec2 = math.Vec2;
-const Rect2 = math.Rect2;
-const Transform2D = math.Transform2D;
 const Dim2 = math.Dim2;
-const Dim2i = math.Dim2i;
-const Mat4 = math.Mat4;
-const LinearColor = math.LinearColor;
-const Texture = renderer.Texture;
-const Font = renderer.Font;
-const AudioSource = audio.AudioSource;
-const String = zo.string.String4;
 const World = global.World;
-const SceneSystem = global.SceneSystem;
 const Node = World.Node;
-const Transform2DComponent = component_systems.Transform2DComponent;
-const SpriteComponent = component_systems.SpriteComponent;
-const TextLabelComponent = component_systems.TextLabelComponent;
-const NodeMatrixInterface = component_systems.NodeMatrixInterface;
 const GameObject = object.GameObject;
 
 const log = zo.log;
