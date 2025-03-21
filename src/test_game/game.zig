@@ -5,6 +5,7 @@ const zo = @import("zo");
 const component_systems = @import("component_systems.zig");
 const object = @import("object.zig");
 const global = @import("global.zig");
+const state = @import("state.zig");
 
 const ecs = zo.ecs;
 const audio = zo.audio;
