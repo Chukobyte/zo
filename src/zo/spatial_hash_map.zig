@@ -42,5 +42,17 @@ pub fn SpatialHashMap(comptime p: SpatialHashMapParams) type {
             }
             return entry.value_ptr;
         }
+
+        pub fn getExistingCell(self: *@This(), pos: KeyT) !?*Cell {
+            const entry = try self.map.getOrPut(pos);
+            if (entry.found_existing) {
+                return entry.value_ptr;
+            }
+            return null;
+        }
+
+        pub inline fn hasCell(self: *@This(), pos: KeyT) bool {
+            return self.getExistingCell(pos) catch { return null; } != null;
+        }
     };
 }
