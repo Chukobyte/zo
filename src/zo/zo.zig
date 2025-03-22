@@ -1,3 +1,4 @@
+pub const std = @import("std");
 pub const math = @import("math.zig");
 pub const window = @import("window.zig");
 pub const input = @import("input.zig");
@@ -31,6 +32,7 @@ pub const ZoParams = struct {
     target_fps: u32,
     fixed_target_fps: ?u32 = null,
     resolution: ?Dim2i = null,
+    allocator: std.mem.Allocator = std.heap.page_allocator,
 };
 
 var is_running = false;
@@ -46,6 +48,8 @@ pub fn run(comptime p: ZoParams) !void {
     defer renderer.deinit();
     try audio.init();
     defer audio.deinit();
+    try input.init(p.allocator);
+    defer input.deinit();
 
     const GameTick = Tick(p.game);
 

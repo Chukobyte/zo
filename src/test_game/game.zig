@@ -135,14 +135,14 @@ pub const MapEntity = struct {
     }
 
     fn checkForLocationChange(self: *@This()) ?*const Location {
-        if (input.is_key_just_pressed(.{ .key = .keyboard_down }) or input.is_key_pressed(.{ .key = .keyboard_s })) {
+        if (input.is_key_just_pressed(.{ .key = .keyboard_down }) or input.is_key_just_pressed(.{ .key = .keyboard_s })) {
             if (self.location_index + 1 >= state.map_locations.len) {
                 self.location_index = 0;
             } else {
                 self.location_index += 1;
             }
             return &state.map_locations[self.location_index];
-        } else if (input.is_key_just_pressed(.{ .key = .keyboard_up }) or input.is_key_pressed(.{ .key = .keyboard_w })) {
+        } else if (input.is_key_just_pressed(.{ .key = .keyboard_up }) or input.is_key_just_pressed(.{ .key = .keyboard_w })) {
             if (self.location_index == 0) {
                 self.location_index = state.map_locations.len - 1;
             } else {

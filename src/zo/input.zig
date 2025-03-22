@@ -2,6 +2,7 @@ const std = @import("std");
 
 const math = @import("math.zig");
 
+const Delegate = @import("delegate.zig").Delegate;
 const Vec2i = math.Vec2i;
 
 pub const InputSource = enum {
@@ -215,8 +216,6 @@ pub const InputEvent = struct {
     device_index: u32 = 0,
 };
 
-// SkaInputSourceType sourceType, SkaInputKey key, SkaInputTriggerType triggerType, SkaInputDeviceIndex deviceIndex, f32 gamepadAxisValue
-
 pub const RegisterInputParams = struct {
     source: InputSource,
     key: InputKey,
@@ -224,6 +223,8 @@ pub const RegisterInputParams = struct {
     device_index: u32 = 0,
     gamepad_axis_value: f32 = 0.0,
 };
+
+pub const RegisteredInputDelegate = Delegate(fn(*const RegisterInputParams) void);
 
 pub const InputQueryParams = struct {
     key: InputKey,
@@ -290,14 +291,20 @@ const InputState = struct {
     }
 };
 
+pub var registered_input_delegate: RegisteredInputDelegate = undefined;
 var state: InputState = .{};
+
+pub fn init(allocator: std.mem.Allocator) !void {
+    registered_input_delegate = RegisteredInputDelegate.init(allocator);
+}
+
+pub fn deinit() void {}
 
 pub fn register_mouse_move_event(new_position: Vec2i) void {
     state.mouse.position = new_position;
 }
 
 pub fn register_input_event(event_params: RegisterInputParams) void {
-    // std.debug.print("register input event, key = {}\n", .{ event_params.key });
     var key_state: *InputKeyState = &state.key_state[event_params.device_index][@intFromEnum(event_params.key)];
     switch (event_params.trigger) {
         .pressed =>  {
@@ -322,6 +329,7 @@ pub fn register_input_event(event_params: RegisterInputParams) void {
         },
         else => {}
     }
+    registered_input_delegate.broadcast(.{ &event_params });
 }
 
 pub fn new_frame() void {
