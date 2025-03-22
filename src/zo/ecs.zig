@@ -298,6 +298,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
                 pub fn deinit(self: *@This()) void {
                     self.removeCurrentScene() catch {};
+                    self.deleteNodesQueuedForDeletion();
                     self.queued_nodes_for_deletion.deinit();
                 }
 
@@ -559,7 +560,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 @memcpy(std.mem.asBytes(new_system), std.mem.asBytes(&SystemT{}));
                 world.system_data[i].interface_instance = new_system;
                 if (@hasDecl(SystemT, "getSignature")) {
-                    const system_component_signature: []const type = new_system.getSignature();
+                    const system_component_signature: []const type = SystemT.getSignature();
                     world.system_data[i].component_signature.setFlagsFromTypes(system_component_signature);
                     // Link up systems with matching archetypes
                     inline for (0..archetype_count) |arch_i| {
@@ -593,6 +594,10 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 }
             }
             self.entity_data.deinit();
+            for (0..self.archetype_data.len) |i| {
+                self.archetype_data[i].entities.deinit();
+                self.archetype_data[i].sorted_components.deinit();
+            }
         }
 
         pub fn preTick(self: *@This()) !void {
@@ -631,8 +636,8 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             inline for (0..system_types.len) |i| {
                 const T: type = SystemsTypeList.getType(i);
                 if (@hasDecl(T, "postWorldUpdate")) {
-                    var system: *T = @alignCast(@ptrCast(self.system_data.items[i].interface_instance));
-                    try system.postWorldUpdate(self, delta_seconds);
+                    var system: *T = @alignCast(@ptrCast(self.system_data[i].interface_instance));
+                    system.postWorldUpdate(self, delta_seconds);
                 }
             }
         }
@@ -742,6 +747,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                         }
                     }
                 }
+                self.removeAllComponents(entity);
                 self.refreshArchetypeState(entity) catch {}; // Ignore
                 self.entity_data.items[entity].is_valid = false;
             }
@@ -792,7 +798,13 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 self.allocator.destroy(comp_ptr);
                 entity_data.components[comp_index] = null;
                 entity_data.component_signature.unset(T);
-                try self.refreshArchetypeState(entity);
+                self.refreshArchetypeState(entity) catch { log(.warn, "Failed to refresh archetype state for entity {d}", .{ entity }); };
+            }
+        }
+
+        pub fn removeAllComponents(self: *@This(), entity: Entity) void {
+            inline for (component_types) |CompT| {
+                self.removeComponent(entity, CompT);
             }
         }
 
