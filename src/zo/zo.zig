@@ -7,6 +7,8 @@ pub const audio = @import("audio.zig");
 pub const ecs = @import("ecs.zig");
 pub const logger = @import("logger.zig");
 pub const string = @import("string.zig");
+pub const spatial_hash_map = @import("spatial_hash_map.zig");
+pub const delegate = @import("delegate.zig");
 pub const misc = @import("misc.zig");
 
 pub const log = logger.log;

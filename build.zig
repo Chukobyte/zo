@@ -42,6 +42,8 @@ pub fn build(b: *std.Build) !void {
     const run_exe = b.addRunArtifact(exe);
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_exe.step);
+
+    buildTest(b, target, optimize, zo_module, static_assets_module);
 }
 
 fn buildZoModule(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !*std.Build.Module {
@@ -345,4 +347,21 @@ fn add_zo_audio(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.b
     b.installArtifact(audio_lib);
 
     return audio_lib;
+}
+
+fn buildTest(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, zo_module: *std.Build.Module, static_assets_module: *std.Build.Module) void {
+    const test_exe = b.addTest(.{
+        .root_source_file = b.path("src/test/unit_test.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    test_exe.root_module.addImport("zo", zo_module);
+    test_exe.root_module.addImport("static_assets", static_assets_module);
+
+    const run_test = b.addRunArtifact(test_exe);
+    run_test.has_side_effects = true;
+
+    const test_step = b.step("test", "Run unit tests for zo");
+    test_step.dependOn(&run_test.step);
 }
