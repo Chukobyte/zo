@@ -5,7 +5,7 @@ const log = @import("logger.zig").log;
 pub fn DynamicString(stack_buffer_size: comptime_int, comptime auto_free_heap: bool) type {
     return struct {
 
-        const Mode = enum {
+        pub const Mode = enum {
             stack,
             heap,
         };

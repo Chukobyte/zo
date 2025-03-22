@@ -2,6 +2,7 @@ const std = @import("std");
 const testing = std.testing;
 const zo = @import("zo");
 const ecs = zo.ecs;
+const string = zo.string;
 
 const Vec2i = zo.math.Vec2i;
 const Delegate = zo.delegate.Delegate;
@@ -99,4 +100,84 @@ test "ECS with system that updates position" {
     try testing.expect(updated != null);
     try testing.expectEqual(@as(f32, 6.0), updated.?.x);
     try testing.expectEqual(@as(f32, 11.0), updated.?.y);
+}
+
+test "DynamicString: empty string" {
+    const allocator = std.testing.allocator;
+    var ds = string.String32.init(allocator);
+    defer ds.deinit();
+    // Should be empty since init calls set("").
+    try testing.expectEqualStrings("", ds.get());
+    try testing.expect(ds.isEmpty());
+}
+
+test "DynamicString: set short string (stack allocation)" {
+    const allocator = std.testing.allocator;
+    var ds = string.String32.init(allocator);
+    defer ds.deinit();
+    try ds.set("Hi", .{});
+    try testing.expectEqualStrings("Hi", ds.get());
+    try testing.expectEqual(2, ds.len);
+    // Because the string "Hi" fits in 32 bytes, it remains in stack mode.
+    try testing.expectEqual(string.String32.Mode.stack, ds.mode);
+}
+
+test "DynamicString: set long string (heap allocation)" {
+    // Use a string type with a small stack buffer.
+    const allocator = std.testing.allocator;
+    var ds = string.String4.init(allocator);
+    defer ds.deinit();
+    // "Hello" is 5 characters plus the null terminator (6 bytes total)
+    // which exceeds the 4-byte stack buffer.
+    try ds.set("Hello", .{});
+    try testing.expectEqualStrings("Hello", ds.get());
+    try testing.expectEqual(5, ds.len);
+    try testing.expectEqual(string.String4.Mode.heap, ds.mode);
+    ds.deinit();
+}
+
+test "DynamicString: setRaw short string" {
+    const allocator = std.testing.allocator;
+    var ds = string.String32.init(allocator);
+    defer ds.deinit();
+    try ds.setRaw("Test");
+    try testing.expectEqualStrings("Test", ds.get());
+    try testing.expectEqual(4, ds.len);
+    try testing.expectEqual(string.String32.Mode.stack, ds.mode);
+    ds.deinit();
+}
+
+test "DynamicString: setRaw long string" {
+    // For a longer string, use a type with a small stack buffer.
+    const allocator = std.testing.allocator;
+    var ds = string.String8.init(allocator);
+    defer ds.deinit();
+    // "LongerStr" is 9 characters plus null terminator = 10 bytes, exceeding 8.
+    try ds.setRaw("LongerStr");
+    try testing.expectEqualStrings("LongerStr", ds.get());
+    try testing.expectEqual(9, ds.len);
+    try testing.expectEqual(string.String8.Mode.heap, ds.mode);
+    ds.deinit();
+}
+
+test "DynamicString: initAndSet and initAndSetRaw" {
+    const allocator = std.testing.allocator;
+    var ds = try string.String32.initAndSet(allocator, "Hello {s}!", .{"World"});
+    defer ds.deinit();
+    try testing.expectEqualStrings("Hello World!", ds.get());
+
+    var ds2 = try string.String32.initAndSetRaw(allocator, "RawData");
+    defer ds2.deinit();
+    try testing.expectEqualStrings("RawData", ds2.get());
+}
+
+test "DynamicString: freeHeap frees heap buffer" {
+    const allocator = std.testing.allocator;
+    var ds = string.String4.init(allocator);
+    defer ds.deinit();
+    // "Overflow" is longer than 4 bytes, so it should go to heap mode.
+    try ds.set("Overflow", .{});
+    try testing.expectEqual(string.String4.Mode.heap, ds.mode);
+    ds.freeHeap();
+    try testing.expect(ds.heap_buffer == null);
 }
