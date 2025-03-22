@@ -192,15 +192,15 @@ pub const InputKey = enum(c_uint) {
     mouse_button_right,
     mouse_button_middle,
 
-    pub fn is_keyboard_key(self: InputKey) bool {
+    pub fn isKeyboardKey(self: InputKey) bool {
         return @intFromEnum(self) >= @intFromEnum(InputKey.keyboard_tab) and @intFromEnum(self) <= @intFromEnum(InputKey.keyboard_app_back);
     }
 
-    pub fn is_mouse_key(self: InputKey) bool {
+    pub fn isMouseKey(self: InputKey) bool {
         return @intFromEnum(self) >= @intFromEnum(InputKey.mouse_button_left) and @intFromEnum(self) <= @intFromEnum(InputKey.mouse_button_middle);
     }
 
-    pub fn is_gamepad_key(self: InputKey) bool {
+    pub fn isGamepadKey(self: InputKey) bool {
         return @intFromEnum(self) >= @intFromEnum(InputKey.gamepad_dpad_down) and @intFromEnum(self) <= @intFromEnum(InputKey.gamepad_right_analog_down);
     }
 };
@@ -211,7 +211,7 @@ pub const Mouse = struct {
 
 pub const InputEvent = struct {
     source: InputSource,
-    interaction_status: InteractionStatus,
+    status: InteractionStatus,
     key: InputKey,
     device_index: u32 = 0,
 };
@@ -224,7 +224,7 @@ pub const RegisterInputParams = struct {
     gamepad_axis_value: f32 = 0.0,
 };
 
-pub const RegisteredInputDelegate = Delegate(fn(*const RegisterInputParams) void);
+pub const RegisteredInputDelegate = Delegate(fn(*const InputEvent) void);
 
 pub const InputQueryParams = struct {
     key: InputKey,
@@ -259,7 +259,7 @@ const InputState = struct {
     mouse: Mouse = .{},
     cleanup_keys_state: CleanupKeysState = .{},
 
-    fn add_pressed_cleanup(self: *InputState, key: InputKey, device_index: u32) void {
+    fn addPressedCleanup(self: *InputState, key: InputKey, device_index: u32) void {
         self.cleanup_keys_state.pressed_cleanup_keys[self.cleanup_keys_state.pressed_cleanup_keys_count] = .{
             .key = key,
             .device_index = device_index,
@@ -267,7 +267,7 @@ const InputState = struct {
         self.cleanup_keys_state.pressed_cleanup_keys_count += 1;
     }
 
-    fn add_released_cleanup(self: *InputState, key: InputKey, device_index: u32) void {
+    fn addReleasedCleanup(self: *InputState, key: InputKey, device_index: u32) void {
         self.cleanup_keys_state.released_cleanup_keys[self.cleanup_keys_state.released_cleanup_keys_count] = .{
             .key = key,
             .device_index = device_index,
@@ -275,7 +275,7 @@ const InputState = struct {
         self.cleanup_keys_state.released_cleanup_keys_count += 1;
     }
 
-    fn cleanup_keys(self: *InputState) void {
+    fn cleanupKeys(self: *InputState) void {
         // Just pressed
         for (0..self.cleanup_keys_state.pressed_cleanup_keys_count) |i| {
             const cleanup_key: *CleanupKeys = &self.cleanup_keys_state.pressed_cleanup_keys[i];
@@ -300,18 +300,21 @@ pub fn init(allocator: std.mem.Allocator) !void {
 
 pub fn deinit() void {}
 
-pub fn register_mouse_move_event(new_position: Vec2i) void {
+pub fn registerMouseMoveEvent(new_position: Vec2i) void {
     state.mouse.position = new_position;
 }
 
-pub fn register_input_event(event_params: RegisterInputParams) void {
+pub fn registerInputEvent(event_params: RegisterInputParams) void {
     var key_state: *InputKeyState = &state.key_state[event_params.device_index][@intFromEnum(event_params.key)];
+    var interaction_status: InteractionStatus = undefined;
     switch (event_params.trigger) {
         .pressed =>  {
             if (!key_state.is_pressed) {
                 key_state.is_just_pressed = true;
-                state.add_pressed_cleanup(event_params.key, event_params.device_index);
+                interaction_status = .just_pressed;
+                state.addPressedCleanup(event_params.key, event_params.device_index);
             } else {
+                interaction_status = .pressed;
                 key_state.is_just_pressed = false;
             }
             key_state.is_pressed = true;
@@ -324,30 +327,32 @@ pub fn register_input_event(event_params: RegisterInputParams) void {
                 key_state.is_just_pressed = false;
                 key_state.is_just_released = true;
                 key_state.strength = 0.0;
-                state.add_released_cleanup(event_params.key, event_params.device_index);
+                interaction_status = .just_released;
+                state.addReleasedCleanup(event_params.key, event_params.device_index);
             }
         },
         else => {}
     }
-    registered_input_delegate.broadcast(.{ &event_params });
+    const input_event: InputEvent = .{ .source = event_params.source, .status = interaction_status, .key = event_params.key, .device_index = event_params.device_index };
+    registered_input_delegate.broadcast(.{ &input_event });
 }
 
-pub fn new_frame() void {
-    state.cleanup_keys();
+pub fn newFrame() void {
+    state.cleanupKeys();
 }
 
-pub fn is_key_pressed(params: InputQueryParams) bool {
+pub fn isKeyPressed(params: InputQueryParams) bool {
     return state.key_state[params.device_index][@intFromEnum(params.key)].is_pressed;
 }
 
-pub fn is_key_just_pressed(params: InputQueryParams) bool {
+pub fn isKeyJustPressed(params: InputQueryParams) bool {
     return state.key_state[params.device_index][@intFromEnum(params.key)].is_just_pressed;
 }
 
-pub fn is_key_just_released(params: InputQueryParams) bool {
+pub fn isKeyJustReleased(params: InputQueryParams) bool {
     return state.key_state[params.device_index][@intFromEnum(params.key)].is_just_released;
 }
 
-pub fn get_key_strength(params: InputQueryParams) f32 {
+pub fn getKeyStrength(params: InputQueryParams) f32 {
     return state.key_state[params.device_index][@intFromEnum(params.key)].strength;
 }

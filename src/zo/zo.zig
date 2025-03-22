@@ -68,7 +68,7 @@ pub fn run(comptime p: ZoParams) !void {
 
     while (window.isActive() and is_running) {
         window.clear(.{ .r = 0.25, .g = 0.25, .b = 0.25 });
-        input.new_frame();
+        input.newFrame();
         window.update();
 
         // Call user define update and fixed_update functions

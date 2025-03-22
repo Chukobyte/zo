@@ -271,42 +271,42 @@ fn winProc(
         win.WM_KEYDOWN => {
             const vk_code: u32 = @intCast(w_param);
             const key: InputKey = convert_vkcode_to_key(vk_code);
-            input.register_input_event(.{ .source = .keyboard, .key = key, .trigger = .pressed });
+            input.registerInputEvent(.{ .source = .keyboard, .key = key, .trigger = .pressed });
             return 0;
         },
         win.WM_KEYUP => {
             const vk_code: u32 = @intCast(w_param);
             const key: InputKey = convert_vkcode_to_key(vk_code);
-            input.register_input_event(.{ .source = .keyboard, .key = key, .trigger = .released });
+            input.registerInputEvent(.{ .source = .keyboard, .key = key, .trigger = .released });
             return 0;
         },
         win.WM_LBUTTONDOWN => {
-            input.register_input_event(.{ .source = .mouse, .key = .mouse_button_left, .trigger = .pressed });
+            input.registerInputEvent(.{ .source = .mouse, .key = .mouse_button_left, .trigger = .pressed });
             return 0;
         },
         win.WM_LBUTTONUP => {
-            input.register_input_event(.{ .source = .mouse, .key = .mouse_button_left, .trigger = .released });
+            input.registerInputEvent(.{ .source = .mouse, .key = .mouse_button_left, .trigger = .released });
             return 0;
         },
         win.WM_RBUTTONDOWN => {
-            input.register_input_event(.{ .source = .mouse, .key = .mouse_button_right, .trigger = .pressed });
+            input.registerInputEvent(.{ .source = .mouse, .key = .mouse_button_right, .trigger = .pressed });
             return 0;
         },
         win.WM_RBUTTONUP => {
-            input.register_input_event(.{ .source = .mouse, .key = .mouse_button_right, .trigger = .released });
+            input.registerInputEvent(.{ .source = .mouse, .key = .mouse_button_right, .trigger = .released });
             return 0;
         },
         win.WM_MBUTTONDOWN => {
-            input.register_input_event(.{ .source = .mouse, .key = .mouse_button_middle, .trigger = .pressed });
+            input.registerInputEvent(.{ .source = .mouse, .key = .mouse_button_middle, .trigger = .pressed });
             return 0;
         },
         win.WM_MBUTTONUP => {
-            input.register_input_event(.{ .source = .mouse, .key = .mouse_button_right, .trigger = .released });
+            input.registerInputEvent(.{ .source = .mouse, .key = .mouse_button_right, .trigger = .released });
             return 0;
         },
         win.WM_MOUSEMOVE => {
             const new_position: Vec2i = Local.extractLoHiWord(l_param);
-            input.register_mouse_move_event(new_position);
+            input.registerMouseMoveEvent(new_position);
             return 0;
         },
         else => {

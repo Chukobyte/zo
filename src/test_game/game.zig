@@ -58,13 +58,25 @@ pub const MainMenuEntity = struct {
             null
         );
         _ = title_text; _ = instructions_text;
+        // TODO: Testing subscribing to event delegates, will remove later
+        // const Local = struct {
+        //     pub fn onRegisteredInput(event: *const input.InputEvent) void {
+        //         log(.debug, "key = {any}, status = {any}", .{ event.key, event.status });
+        //     }
+        // };
+        // _ = input.registered_input_delegate.subscribe(Local.onRegisteredInput);
     }
+
+    pub fn onExitScene(_: *@This(), _: *World, _: ecs.Entity) void {
+        // input.registered_input_delegate.clearAndFree();
+    }
+
     pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
-        if (input.is_key_just_pressed(.{ .key = .keyboard_space })) {
+        if (input.isKeyJustPressed(.{ .key = .keyboard_space })) {
             global.scene_system.changeScene(MapSceneDefinition);
         }
 
-        if (input.is_key_just_pressed(.{ .key = .keyboard_escape })) {
+        if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
             zo.quit();
         }
     }
@@ -121,7 +133,7 @@ pub const MapEntity = struct {
     }
 
     pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
-        if (input.is_key_just_pressed(.{ .key = .keyboard_escape })) {
+        if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
             zo.quit();
         }
     }
@@ -135,14 +147,14 @@ pub const MapEntity = struct {
     }
 
     fn checkForLocationChange(self: *@This()) ?*const Location {
-        if (input.is_key_just_pressed(.{ .key = .keyboard_down }) or input.is_key_just_pressed(.{ .key = .keyboard_s })) {
+        if (input.isKeyJustPressed(.{ .key = .keyboard_down }) or input.isKeyJustPressed(.{ .key = .keyboard_s })) {
             if (self.location_index + 1 >= state.map_locations.len) {
                 self.location_index = 0;
             } else {
                 self.location_index += 1;
             }
             return &state.map_locations[self.location_index];
-        } else if (input.is_key_just_pressed(.{ .key = .keyboard_up }) or input.is_key_just_pressed(.{ .key = .keyboard_w })) {
+        } else if (input.isKeyJustPressed(.{ .key = .keyboard_up }) or input.isKeyJustPressed(.{ .key = .keyboard_w })) {
             if (self.location_index == 0) {
                 self.location_index = state.map_locations.len - 1;
             } else {
