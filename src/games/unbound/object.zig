@@ -117,8 +117,9 @@ pub const GameObject = struct {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
                 try global.world.setComponent(node.entity, TextLabelComponent, &.{ .class = .{ .text_box = .{ .text = try MultiLineString.init(global.allocator), .size = params.size } }, .font = params.font });
                 if (params.text) |text| {
+                    const transform_comp = global.world.getComponent(node.entity, Transform2DComponent).?;
                     const text_label_comp = global.world.getComponent(node.entity, TextLabelComponent).?;
-                    _ = text; _ = text_label_comp;
+                    text_label_comp.class.text_box.setText(params.font, text, transform_comp.global.scale.x);
                 }
             },
         }

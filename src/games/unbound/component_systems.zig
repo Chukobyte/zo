@@ -45,6 +45,33 @@ pub const TextLabelComponent = struct {
     const TextBoxClass = struct {
         text: MultiLineString,
         size: Dim2u,
+
+        pub fn setText(self: *@This(), font: *const Font, text: []const u8, scale: f32) !void {
+            const max_line_width = self.size.w;
+            var width: f32 = 0.0;
+            self.text.clear();
+            var line_string = String.init(self.text.allocator);
+            defer line_string.deinit();
+            for (text) |c| {
+                const index: usize = @intCast(c);
+                if (index >= font.characters.len) { continue; }
+                const ch = font.characters[index];
+                // ch.advance is in 26.6 fixed point, so we shift right by 6 to get pixels.
+                const advance_pixels: f32 = @floatFromInt(ch.advance >> 6);
+                const new_width: 32 = advance_pixels * scale;
+                if (width + new_width >= max_line_width) {
+                    self.text.addLine(line_string.get());
+                    line_string.set("{s}", .{ c });
+                    width = new_width;
+                } else {
+                    line_string.set("{s}{s}", .{ line_string.get(), c });
+                    width += new_width;
+                }
+            }
+            if (!line_string.isEmpty()) {
+                self.text.addLine(line_string.get());
+            }
+        }
     };
     const Class = union(enum) {
         label: LabelClass,
