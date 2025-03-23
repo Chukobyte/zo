@@ -6,15 +6,26 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const zo_module = try buildZoModule(b, target, optimize);
+    const static_assets_module = b.addModule("static_assets", .{
+        .root_source_file = b.path("static_assets.zig"),
+    });
+    static_assets_module.addImport("zo", zo_module);
+
+    buildUnboundaGame(b, target, optimize, zo_module, static_assets_module);
+    buildTest(b, target, optimize, zo_module, static_assets_module);
+}
+
+fn buildUnboundaGame(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, zo_module: *std.Build.Module, static_assets_module: *std.Build.Module) void {
     var root_source_file: []const u8 = undefined;
     if (target.result.os.tag == .windows) {
-        root_source_file = "src/test_game/win32_main.zig";
+        root_source_file = "src/games/unbound/win32_main.zig";
     } else {
-        root_source_file = "src/test_game/main.zig";
+        root_source_file = "src/games/unbound/main.zig";
     }
 
     const exe = b.addExecutable(.{
-        .name = "zo_test",
+        .name = "unbound",
         .root_source_file = b.path(root_source_file),
         .target = target,
         .optimize = optimize,
@@ -28,22 +39,14 @@ pub fn build(b: *std.Build) !void {
         exe.import_memory = true;
     }
 
-    const zo_module = try buildZoModule(b, target, optimize);
     exe.root_module.addImport("zo", zo_module);
-
-    const static_assets_module = b.addModule("static_assets", .{
-        .root_source_file = b.path("static_assets.zig"),
-    });
-    static_assets_module.addImport("zo", zo_module);
     exe.root_module.addImport("static_assets",static_assets_module);
 
     b.installArtifact(exe);
 
     const run_exe = b.addRunArtifact(exe);
-    const run_step = b.step("run", "Run the app");
+    const run_step = b.step("run", "Run unbound game");
     run_step.dependOn(&run_exe.step);
-
-    buildTest(b, target, optimize, zo_module, static_assets_module);
 }
 
 fn buildZoModule(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !*std.Build.Module {
