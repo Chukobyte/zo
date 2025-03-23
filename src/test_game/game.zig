@@ -142,7 +142,7 @@ pub const MapEntity = struct {
         if (self.checkForLocationChange()) |new_location| {
             self.selected_location_cursor.setLocalPosition(new_location.map_position);
             var text_label_comp = world.getComponent(self.selected_location_name.node.entity, TextLabelComponent);
-            try text_label_comp.?.text.setRaw(new_location.name);
+            try text_label_comp.?.class.label.text.setRaw(new_location.name);
         }
     }
 

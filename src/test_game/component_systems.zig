@@ -37,7 +37,18 @@ pub const SpriteComponent = struct {
 };
 
 pub const TextLabelComponent = struct {
-    text: String,
+    const LabelClass = struct {
+        text: String,
+    };
+    const TextBoxClass = struct {
+
+    };
+    const Class = union(enum) {
+        label: LabelClass,
+        text_box: TextBoxClass,
+    };
+
+    class: Class,
     font: *Font,
     color: LinearColor = LinearColor.White,
 };
@@ -128,14 +139,19 @@ pub const TextRenderingSystem = struct {
                 global.scene_system.updateNodeGlobalMatrix(NodeMatrixInterface, node);
                 const transform_comp = iter.getComponent(Transform2DComponent);
                 const text_label_comp = iter.getComponent(TextLabelComponent);
-                try renderer.queueTextDraw(&.{
-                    .text = text_label_comp.text.getCString(),
-                    .font = text_label_comp.font,
-                    .position = transform_comp.global.position,
-                    .scale = transform_comp.global.scale.x, // Only recongnizes x scale for now
-                    .color = text_label_comp.color,
-                    .z_index =  transform_comp.z_index,
-                });
+                switch (text_label_comp.class) {
+                    .label => {
+                        try renderer.queueTextDraw(&.{
+                            .text = text_label_comp.class.label.text.getCString(),
+                            .font = text_label_comp.font,
+                            .position = transform_comp.global.position,
+                            .scale = transform_comp.global.scale.x, // Only recongnizes x scale for now
+                            .color = text_label_comp.color,
+                            .z_index =  transform_comp.z_index,
+                        });
+                    },
+                    .text_box => {},
+                }
             }
         }
     }

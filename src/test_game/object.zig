@@ -19,12 +19,10 @@ const SpriteComponent = component_systems.SpriteComponent;
 const TextLabelComponent = component_systems.TextLabelComponent;
 const NodeMatrixInterface = component_systems.NodeMatrixInterface;
 
-const SpriteObject = struct {};
-const TextLabelObject = struct {};
-
-const GameObjectClass = union(enum) {
-    sprite: SpriteObject,
-    text_label: TextLabelObject,
+const GameObjectClass = enum {
+    sprite,
+    text_label,
+    text_box,
 };
 
 fn GameObjectParams(object_class: GameObjectClass) type {
@@ -41,6 +39,10 @@ fn GameObjectParams(object_class: GameObjectClass) type {
             transform: Transform2D = Transform2D.Identity,
             z_index: i32 = 0,
         },
+        .text_box => return struct {
+            transform: Transform2D = Transform2D.Identity,
+            z_index: i32 = 0,
+        },
     }
 }
 
@@ -52,22 +54,12 @@ pub const GameObject = struct {
     pub fn initInScene(comptime object_class: GameObjectClass, params: GameObjectParams(object_class), parent: ?*Node, entity_interface: ?type) !@This() {
         const new_node: *Node = try global.scene_system.createNodeAndEntity(.{ .interface = entity_interface orelse null });
         try global.scene_system.addNodeToScene(new_node, parent);
-        var game_object: GameObject = @This(){
-            .node = new_node,
-            .class = object_class,
-        };
-        try game_object.setupClassAndComponents(object_class, params);
-        return game_object;
+        return try init(new_node, object_class, params);
     }
 
     /// Initializes game object, assumes it's already in the scene
     pub fn initFromNode(comptime object_class: GameObjectClass, params: GameObjectParams(object_class), node: *Node) !@This() {
-        var game_object: GameObject = @This(){
-            .node = node,
-            .class = object_class,
-        };
-        try game_object.setupClassAndComponents(object_class, params);
-        return game_object;
+        return try init(node, object_class, params);
     }
 
     pub fn deinit(self: *@This()) void {
@@ -105,18 +97,24 @@ pub const GameObject = struct {
         return global.scene_system.isNodeValid(self.node);
     }
 
-    fn setupClassAndComponents(self: *@This(), comptime object_class: GameObjectClass, params: GameObjectParams(object_class)) !void {
+    fn init(node: *Node, comptime object_class: GameObjectClass, params: GameObjectParams(object_class)) !@This() {
         switch (object_class) {
             .sprite => {
-                self.class = .{ .sprite = SpriteObject{} };
-                try global.world.setComponent(self.node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
-                try global.world.setComponent(self.node.entity, SpriteComponent, &.{ .texture = params.texture, .draw_source = params.draw_source });
+                try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
+                try global.world.setComponent(node.entity, SpriteComponent, &.{ .texture = params.texture, .draw_source = params.draw_source });
             },
             .text_label => {
-                self.class = .{ .text_label = TextLabelObject{} };
-                try global.world.setComponent(self.node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
-                try global.world.setComponent(self.node.entity, TextLabelComponent, &.{ .text = try String.initAndSetRaw(global.allocator, params.text), .font = params.font });
+                try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
+                try global.world.setComponent(node.entity, TextLabelComponent, &.{ .class = .{ .label = .{ .text = try String.initAndSetRaw(global.allocator, params.text) } }, .font = params.font });
+            },
+            .text_box => {
+                try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
+                try global.world.setComponent(node.entity, TextLabelComponent, &.{ .class = .{ .text_box = .{  } }, .font = params.font });
             },
         }
+        return @This(){
+            .node = node,
+            .class = object_class,
+        };
     }
 };
