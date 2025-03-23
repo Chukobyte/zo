@@ -17,6 +17,7 @@ const String = zo.string.HeapString;
 const MultiLineString = zo.string.HeapMultiLineString;
 const World = global.World;
 const Node = World.Node;
+const Entity = zo.ecs.Entity;
 
 const log = zo.log;
 
@@ -188,7 +189,7 @@ pub const NodeMatrixInterface = struct {
 
 pub const SpriteRenderingSystem = struct {
     pub fn postWorldTick(_: *@This(), world: *World) !void {
-        const ComponentIterator = World.ArchetypeComponentIterator(&.{ Transform2DComponent, SpriteComponent });
+        const ComponentIterator = World.ArchetypeComponentIterator(getSignature());
         var comp_iter = ComponentIterator.init(world);
         while (comp_iter.next()) |iter| {
             if (global.scene_system.getNode(iter.getEntity())) |node| {
@@ -207,11 +208,15 @@ pub const SpriteRenderingSystem = struct {
             }
         }
     }
+
+    pub fn getSignature() []const type {
+        return &.{ Transform2DComponent, SpriteComponent };
+    }
 };
 
 pub const TextRenderingSystem = struct {
     pub fn postWorldTick(_: *@This(), world: *World) !void {
-        const ComponentIterator = World.ArchetypeComponentIterator(&.{ Transform2DComponent, TextLabelComponent });
+        const ComponentIterator = World.ArchetypeComponentIterator(getSignature());
         var comp_iter = ComponentIterator.init(world);
         while (comp_iter.next()) |iter| {
             if (global.scene_system.getNode(iter.getEntity())) |node| {
@@ -249,5 +254,18 @@ pub const TextRenderingSystem = struct {
                 }
             }
         }
+    }
+
+    pub fn onEntityUnregistered(_: *@This(), world: *World, entity: Entity) void {
+        if (world.getComponent(entity, TextLabelComponent)) | text_label_comp| {
+            switch (text_label_comp.class) {
+                .label => text_label_comp.class.label.text.deinit(),
+                .text_box => text_label_comp.class.text_box.text.deinit(),
+            }
+        }
+    }
+
+    pub fn getSignature() []const type {
+        return &.{ Transform2DComponent, TextLabelComponent };
     }
 };
