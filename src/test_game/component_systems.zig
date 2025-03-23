@@ -11,7 +11,7 @@ const LinearColor = math.LinearColor;
 const Mat4 = math.Mat4;
 const Font = renderer.Font;
 const Texture = renderer.Texture;
-const String = zo.string.String;
+const String = zo.string.HeapString;
 const World = global.World;
 const Node = World.Node;
 
