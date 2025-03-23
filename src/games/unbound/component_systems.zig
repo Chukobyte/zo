@@ -153,7 +153,23 @@ pub const TextRenderingSystem = struct {
                             .z_index =  transform_comp.z_index,
                         });
                     },
-                    .text_box => {},
+                    .text_box => {
+                        var text_box = &text_label_comp.class.text_box;
+                        const global_pos = transform_comp.global.position;
+                        for (0..text_box.text.lines.items.len) |i| {
+                            var line_string = &text_box.text.lines.items[i];
+                            const line_height: f32 = text_label_comp.font.text_height * @as(f32, @floatFromInt(i));
+                            const line_pos: Vec2 = .{ .x = global_pos.x, .y = global_pos.y + line_height };
+                            try renderer.queueTextDraw(&.{
+                                .text = line_string.getCString(),
+                                .font = text_label_comp.font,
+                                .position = line_pos,
+                                .scale = transform_comp.global.scale.x, // Only recongnizes x scale for now
+                                .color = text_label_comp.color,
+                                .z_index =  transform_comp.z_index,
+                            });
+                        }
+                    },
                 }
             }
         }
