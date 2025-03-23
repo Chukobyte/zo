@@ -181,3 +181,26 @@ test "DynamicString: freeHeap frees heap buffer" {
     ds.freeHeap();
     try testing.expect(ds.heap_buffer == null);
 }
+
+test "DynamicString: copy string" {
+    const allocator = std.testing.allocator;
+
+    // Create an original string.
+    var original = try string.String32.initAndSet(allocator, "Hello {s}!", .{"Clone"});
+    defer original.deinit();
+
+    // Clone the original string.
+    var copy = try original.copy();
+    defer copy.deinit();
+
+    // Check that both strings have the same content, length, and mode.
+    try testing.expectEqualStrings(original.get(), copy.get());
+    try testing.expectEqual(original.len, copy.len);
+    try testing.expectEqual(original.mode, copy.mode);
+
+    // Modify the original string.
+    try original.set("Modified", .{});
+
+    // Verify that the clone remains unchanged.
+    try testing.expect(!original.equal(&copy));
+}

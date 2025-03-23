@@ -112,6 +112,15 @@ pub fn DynamicString(stack_buffer_size: comptime_int, comptime auto_free_heap: b
         pub inline fn isEmpty(self: *const @This()) bool {
             return self.len == 0;
         }
+
+        pub inline fn equal(self: *const @This(), other: *const @This()) bool {
+            return std.mem.eql(u8, self.get(), other.get());
+        }
+
+        /// Performs a deep copy
+        pub inline fn copy(self: *const @This()) !@This() {
+            return @This().initAndSetRaw(self.allocator, self.get());
+        }
     };
 }
 
