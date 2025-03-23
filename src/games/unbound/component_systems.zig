@@ -10,6 +10,7 @@ const Vec2 = math.Vec2;
 const Rect2 = math.Rect2;
 const LinearColor = math.LinearColor;
 const Mat4 = math.Mat4;
+const Dim2 = math.Dim2;
 const Dim2u = math.Dim2u;
 const Font = renderer.Font;
 const Texture = renderer.Texture;
@@ -131,6 +132,11 @@ pub const TextLabelComponent = struct {
     class: Class,
     font: *Font,
     color: LinearColor = LinearColor.White,
+};
+
+pub const ClickableComponent = struct {
+    size: Dim2,
+    mouse_hovering: bool = false,
 };
 
 pub const NodeMatrixInterface = struct {
