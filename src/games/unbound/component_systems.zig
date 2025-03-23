@@ -1,3 +1,4 @@
+const std = @import("std");
 const zo = @import("zo");
 const global = @import("global.zig");
 
@@ -45,34 +46,90 @@ pub const TextLabelComponent = struct {
     const TextBoxClass = struct {
         text: MultiLineString,
         size: Dim2u,
+        line_spacing: f32 = 0.0,
+
+        const Word = struct {
+            text: String,
+            width: f32 = 0.0,
+        };
 
         pub fn setText(self: *@This(), font: *const Font, text: []const u8, scale: f32) !void {
-            const max_line_width = @as(f32, @floatFromInt(self.size.w));
-            var width: f32 = 0.0;
             self.text.clear();
-            var line_string = String.init(self.text.allocator);
-            defer line_string.deinit();
+            const max_line_width = @as(f32, @floatFromInt(self.size.w));
+            var space_width: f32 = 0;
+            var line_width: f32 = 0.0;
+            var line_text = String.init(self.text.allocator);
+            var words = try self.getWords(font, text, scale, &space_width);
+            for (words.items) |*word| {
+                if (line_width + word.width + space_width >= max_line_width) {
+                    try self.text.addLine(line_text.get());
+                    try line_text.setRaw(word.text.get());
+                    line_width = word.width;
+                } else {
+                    if (line_text.isEmpty()) {
+                        try line_text.setRaw(word.text.get());
+                        line_width = word.width;
+                    } else {
+                        var current_text = try line_text.copy();
+                        defer current_text.deinit();
+                        try line_text.appendChar(' ');
+                        try line_text.appendRaw(word.text.get());
+                        line_width += word.width + space_width;
+                    }
+                }
+            }
+            if (line_width > 0 and words.items.len > 0) {
+                const last_word = &words.items[words.items.len - 1];
+                if (line_width + last_word.width + space_width >= max_line_width) {
+                    try self.text.addLine(line_text.get());
+                    try self.text.addLine(last_word.text.get());
+                } else {
+                    try line_text.appendChar(' ');
+                    try line_text.appendRaw(last_word.text.get());
+                    try self.text.addLine(line_text.get());
+                }
+            }
+            // Clean up
+            for (words.items) |*word| {
+                word.text.deinit();
+            }
+            words.deinit();
+        }
+
+        fn getWords(self: *@This(), font: *const Font, text: []const u8, scale: f32, space_width: ?*f32) !std.ArrayList(Word) {
+            var words = std.ArrayList(Word).init(self.text.allocator);
+            var current_word: Word = .{ .text = String.init(self.text.allocator) };
             for (text) |c| {
                 const index: usize = @intCast(c);
                 if (index >= font.characters.len) { continue; }
                 const ch = font.characters[index];
                 // ch.advance is in 26.6 fixed point, so we shift right by 6 to get pixels.
                 const advance_pixels: f32 = @floatFromInt(ch.advance >> 6);
-                const new_width: f32 = advance_pixels * scale;
-                if (width + new_width >= max_line_width) {
-                    try self.text.addLine(line_string.get());
-                    try line_string.set("{c}", .{ c });
-                    width = new_width;
+                const new_char_width: f32 = advance_pixels * scale;
+
+                if (c == ' ') {
+                    try words.append(current_word);
+                    current_word.text = String.init(self.text.allocator);
+                    current_word.width = 0.0;
                 } else {
-                    try line_string.appendChar(c);
-                    width += new_width;
+                    try current_word.text.appendChar(c);
+                    current_word.width += new_char_width;
                 }
             }
-            if (!line_string.isEmpty()) {
-                try self.text.addLine(line_string.get());
+            if (current_word.width > 0.0) {
+                try words.append(current_word);
+            } else {
+                current_word.text.deinit();
             }
+            if (space_width) |s_width| {
+                const ch = font.characters[@intCast(' ')];
+                const advance_pixels: f32 = @floatFromInt(ch.advance >> 6);
+                s_width.* = advance_pixels * scale;
+            }
+           return words;
         }
     };
+
     const Class = union(enum) {
         label: LabelClass,
         text_box: TextBoxClass,
@@ -185,7 +242,7 @@ pub const TextRenderingSystem = struct {
                         const global_pos = transform_comp.global.position;
                         for (0..text_box.text.lines.items.len) |i| {
                             var line_string = &text_box.text.lines.items[i];
-                            const line_height: f32 = text_label_comp.font.text_height * @as(f32, @floatFromInt(i));
+                            const line_height: f32 = (text_label_comp.font.text_height + text_box.line_spacing) * @as(f32, @floatFromInt(i));
                             const line_pos: Vec2 = .{ .x = global_pos.x, .y = global_pos.y + line_height };
                             try renderer.queueTextDraw(&.{
                                 .text = line_string.getCString(),

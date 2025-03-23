@@ -60,7 +60,7 @@ pub const MainMenuEntity = struct {
         // TODO: Test text boxes
         _ = try GameObject.initInScene(
             .text_box,
-            .{ .font = &global.assets.fonts.verdana_16, .size = .{ .w = 60, .h = 50 }, .text = "Testing this long string of text to try it out!", .transform = .{ .position = .{ .x = 200.0, .y = 300.0 } }, },
+            .{ .font = &global.assets.fonts.verdana_16, .size = .{ .w = 75, .h = 50 }, .text = "Testing this long string of text to try it out!", .transform = .{ .position = .{ .x = 200.0, .y = 280.0 } }, },
             null,
             null
         );

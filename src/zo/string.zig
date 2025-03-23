@@ -90,6 +90,40 @@ pub fn DynamicString(stack_buffer_size: comptime_int, comptime auto_free_heap: b
             self.len = input.len;
         }
 
+        pub fn appendRaw(self: *@This(), input: []const u8) !void {
+            const new_len = self.len + input.len;
+            if (new_len <= self.stack_buffer.len) {
+                self.mode = .stack;
+                @memcpy(self.stack_buffer[0..self.len], self.buffer);
+                var i: usize = self.len;
+                for (input) |c| {
+                    self.stack_buffer[i] = c;
+                    i += 1;
+                }
+                self.stack_buffer[new_len] = 0;
+                self.buffer = self.stack_buffer[0..new_len : 0];
+                if (auto_free_heap) {
+                    self.freeHeap();
+                }
+            } else {
+                self.mode = .heap;
+                var new_buf = try self.allocator.alloc(u8, new_len + 1);
+                @memcpy(new_buf[0..self.len], self.buffer);
+                var i: usize = self.len;
+                for (input) |c| {
+                    new_buf[i] = c;
+                    i += 1;
+                }
+                new_buf[new_len] = 0;
+                if (self.heap_buffer) |old_buf| {
+                    self.allocator.free(old_buf);
+                }
+                self.heap_buffer = new_buf;
+                self.buffer = new_buf[0..new_len : 0];
+            }
+            self.len = new_len;
+        }
+
         pub fn appendChar(self: *@This(), c: u8) !void {
             const new_len = self.len + 1;
             const total_size = new_len + 1;
@@ -147,7 +181,11 @@ pub fn DynamicString(stack_buffer_size: comptime_int, comptime auto_free_heap: b
 
         /// Performs a deep copy
         pub inline fn copy(self: *const @This()) !@This() {
-            return @This().initAndSetRaw(self.allocator, self.get());
+            return try @This().initAndSetRaw(self.allocator, self.get());
+        }
+
+        pub inline fn clear(self: *@This()) void {
+            self.setRaw("") catch {};
         }
     };
 }
