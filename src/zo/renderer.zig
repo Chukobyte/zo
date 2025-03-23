@@ -306,9 +306,10 @@ pub const Font = struct {
     vao: GLuint,
     vbo: GLuint,
     size: i32,
+    text_height: f32,
     characters: [128]FontCharacter, // First 128 of ASCII set
 
-    const EmptyFont: @This() = .{ .vao = undefined, .vbo = undefined, .size = undefined, .characters = undefined };
+    const EmptyFont: @This() = .{ .vao = undefined, .vbo = undefined, .size = undefined, .text_height = undefined, .characters = undefined };
 
     pub fn init(file_path: []const u8, font_size: usize, nearest_neighbor: bool) !@This() {
         var face: ft.FT_Face = undefined;
@@ -343,6 +344,21 @@ pub const Font = struct {
         _ = self;
     }
 
+    pub fn getTextWidth(self: *const Font, text: []const u8, scale: f32) f32 {
+        var width: f32 = 0.0;
+        for (text) |c| {
+            const index: usize = @intCast(c);
+            // Skip characters outside our ASCII range.
+            if (index >= self.characters.len) continue;
+            const ch = self.characters[index];
+            // ch.advance is in 26.6 fixed point, so we shift right by 6 to get pixels.
+            const advance_pixels: f32 = @floatFromInt(ch.advance >> 6);
+            width += advance_pixels * scale;
+        }
+        return width;
+    }
+
+
     fn internalInit(self: *@This(), face: ft.FT_Face, nearest_neighbor: bool) !void {
         // Set size to load glyphs, width set to 0 to dynamically adjust
         if (ft.FT_Set_Pixel_Sizes(face, 0, @intCast(self.size)) != 0) {
@@ -351,6 +367,8 @@ pub const Font = struct {
         // Disable byte alignment restriction
         glad.glPixelStorei(glad.GL_UNPACK_ALIGNMENT, 1);
         // Load first 128 characters of ASCII set
+        var max_ascent: f32 = 0.0;
+        var max_descent: f32 = 0.0;
         var c: ft.FT_ULong = 0;
         while (c < 128) : (c += 1) {
             // Load character glyph
@@ -377,6 +395,12 @@ pub const Font = struct {
             const filter_type: GLint = if (nearest_neighbor) glad.GL_NEAREST else glad.GL_LINEAR;
             glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_MIN_FILTER, filter_type);
             glad.glTexParameteri(glad.GL_TEXTURE_2D, glad.GL_TEXTURE_MAG_FILTER, filter_type);
+
+            const ascent: f32 = @floatFromInt(face.*.glyph.*.bitmap_top);
+            const descent: f32 = @as(f32, @floatFromInt(face.*.glyph.*.bitmap.rows)) - ascent;
+            if (max_ascent < ascent) { max_ascent = ascent; }
+            if (max_descent < descent) { max_descent = descent; }
+
             self.characters[c] = .{
                 .texture_id = text_texture,
                 .size = .{ .x = face.*.glyph.*.bitmap.width, .y = face.*.glyph.*.bitmap.rows },
@@ -384,6 +408,9 @@ pub const Font = struct {
                 .advance = @intCast(face.*.glyph.*.advance.x),
             };
         }
+
+        self.text_height = max_ascent + max_descent;
+
         glad.glBindTexture(glad.GL_TEXTURE_2D, 0);
 
         // Configure vao and vbo
