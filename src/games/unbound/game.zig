@@ -58,12 +58,12 @@ pub const MainMenuEntity = struct {
             null
         );
         // TODO: Test text boxes
-        // _ = try GameObject.initInScene(
-        //     .text_box,
-        //     .{ .font = &global.assets.fonts.verdana_16, .size = .{ .w = 10, .h = 50 }, .text = "Testing this long string of text to try it out!", .transform = .{ .position = .{ .x = 200.0, .y = 300.0 } }, },
-        //     null,
-        //     null
-        // );
+        _ = try GameObject.initInScene(
+            .text_box,
+            .{ .font = &global.assets.fonts.verdana_16, .size = .{ .w = 60, .h = 50 }, .text = "Testing this long string of text to try it out!", .transform = .{ .position = .{ .x = 200.0, .y = 300.0 } }, },
+            null,
+            null
+        );
         _ = title_text; _ = instructions_text;
         // TODO: Testing subscribing to event delegates, will remove later
         // const Local = struct {

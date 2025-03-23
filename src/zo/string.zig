@@ -90,6 +90,34 @@ pub fn DynamicString(stack_buffer_size: comptime_int, comptime auto_free_heap: b
             self.len = input.len;
         }
 
+        pub fn appendChar(self: *@This(), c: u8) !void {
+            const new_len = self.len + 1;
+            const total_size = new_len + 1;
+
+            if (total_size <= self.stack_buffer.len) {
+                @memcpy(self.stack_buffer[0..self.len], self.buffer);
+                self.stack_buffer[self.len] = c;
+                self.stack_buffer[new_len] = 0; // Null terminator.
+                self.buffer = self.stack_buffer[0..new_len : 0];
+                self.len = new_len;
+                if (auto_free_heap) {
+                    self.freeHeap();
+                }
+            } else {
+                self.mode = .heap;
+                var new_buf = try self.allocator.alloc(u8, total_size);
+                @memcpy(new_buf[0..self.len], self.buffer);
+                new_buf[self.len] = c;
+                new_buf[new_len] = 0;
+                if (self.heap_buffer) |old_buf| {
+                    self.allocator.free(old_buf);
+                }
+                self.heap_buffer = new_buf;
+                self.buffer = new_buf[0..new_len : 0];
+                self.len = new_len;
+            }
+        }
+
         /// Will free heap if no longer being used
         pub fn freeHeap(self: *@This()) void {
             if (self.mode == .stack) {

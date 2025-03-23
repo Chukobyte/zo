@@ -64,7 +64,7 @@ pub const TextLabelComponent = struct {
                     try line_string.set("{c}", .{ c });
                     width = new_width;
                 } else {
-                    try line_string.set("{s}{c}", .{ line_string.get(), c });
+                    try line_string.appendChar(c);
                     width += new_width;
                 }
             }
