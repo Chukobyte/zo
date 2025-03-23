@@ -9,9 +9,11 @@ const Transform2D = math.Transform2D;
 const Vec2 = math.Vec2;
 const Rect2 = math.Rect2;
 const Mat4 = math.Mat4;
+const Dim2u = math.Dim2u;
 const Font = renderer.Font;
 const Texture = renderer.Texture;
 const String = zo.string.HeapString;
+const MultiLineString = zo.string.HeapMultiLineString;
 const World = global.World;
 const Node = World.Node;
 const Transform2DComponent = component_systems.Transform2DComponent;
@@ -34,12 +36,15 @@ fn GameObjectParams(object_class: GameObjectClass) type {
             z_index: i32 = 0,
         },
         .text_label => return struct {
-            text: []const u8,
             font: *Font,
+            text: ?[]const u8 = null,
             transform: Transform2D = Transform2D.Identity,
             z_index: i32 = 0,
         },
         .text_box => return struct {
+            font: *Font,
+            size: Dim2u,
+            text: ?[]const u8 = null,
             transform: Transform2D = Transform2D.Identity,
             z_index: i32 = 0,
         },
@@ -105,11 +110,16 @@ pub const GameObject = struct {
             },
             .text_label => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
-                try global.world.setComponent(node.entity, TextLabelComponent, &.{ .class = .{ .label = .{ .text = try String.initAndSetRaw(global.allocator, params.text) } }, .font = params.font });
+                const text_string = if (params.text == null) String.init(global.allocator) else try String.initAndSetRaw(global.allocator, params.text.?);
+                try global.world.setComponent(node.entity, TextLabelComponent, &.{ .class = .{ .label = .{ .text = text_string } }, .font = params.font });
             },
             .text_box => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
-                try global.world.setComponent(node.entity, TextLabelComponent, &.{ .class = .{ .text_box = .{  } }, .font = params.font });
+                try global.world.setComponent(node.entity, TextLabelComponent, &.{ .class = .{ .text_box = .{ .text = try MultiLineString.init(global.allocator), .size = params.size } }, .font = params.font });
+                if (params.text) |text| {
+                    const text_label_comp = global.world.getComponent(node.entity, TextLabelComponent).?;
+                    _ = text; _ = text_label_comp;
+                }
             },
         }
         return @This(){

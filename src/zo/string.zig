@@ -134,3 +134,52 @@ pub const String128 = DynamicString(128, false);
 pub const String256 = DynamicString(256, false);
 
 pub const String = String32;
+
+
+
+pub fn DynamicMultiLineString(comptime StringT: type) type {
+    return struct {
+        allocator: std.mem.Allocator,
+        lines: std.ArrayList(StringT),
+
+        pub fn init(allocator: std.mem.Allocator) !@This() {
+            return @This(){
+                .allocator = allocator,
+                .lines = try std.ArrayList(StringT).init(allocator),
+            };
+        }
+
+        pub fn deinit(self: *@This()) void {
+            for (self.lines.items) |*line| {
+                line.deinit();
+            }
+            self.lines.deinit();
+        }
+
+        pub fn addLine(self: *@This(), line_text: []const u8) !void {
+            var new_line = StringT.init(self.allocator);
+            try new_line.setRaw(line_text);
+            try self.lines.append(new_line);
+        }
+
+        /// Returns the line at the specified index.
+        pub fn getLine(self: *const @This(), index: usize) ![]const u8 {
+            if (index >= self.lines.items.len) {
+                return error.IndexOutOfBounds;
+            }
+            return self.lines.items[index].get();
+        }
+
+        /// Returns the number of lines stored.
+        pub inline fn lineCount(self: *const @This()) usize {
+            return self.lines.items.len;
+        }
+
+        pub inline fn clear(self: *@This()) void {
+            self.lines.clearRetainingCapacity();
+        }
+    };
+}
+
+pub const MultiLineString = DynamicMultiLineString(String);
+pub const HeapMultiLineString = DynamicMultiLineString(HeapString);

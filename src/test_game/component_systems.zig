@@ -9,9 +9,11 @@ const Vec2 = math.Vec2;
 const Rect2 = math.Rect2;
 const LinearColor = math.LinearColor;
 const Mat4 = math.Mat4;
+const Dim2u = math.Dim2u;
 const Font = renderer.Font;
 const Texture = renderer.Texture;
 const String = zo.string.HeapString;
+const MultiLineString = zo.string.HeapMultiLineString;
 const World = global.World;
 const Node = World.Node;
 
@@ -41,7 +43,8 @@ pub const TextLabelComponent = struct {
         text: String,
     };
     const TextBoxClass = struct {
-
+        text: MultiLineString,
+        size: Dim2u,
     };
     const Class = union(enum) {
         label: LabelClass,

@@ -573,6 +573,7 @@ pub fn Dimensions2(comptime T: type) type {
 
 pub const Dim2 = Dimensions2(f32);
 pub const Dim2i = Dimensions2(i32);
+pub const Dim2u = Dimensions2(u32);
 
 /// Map a value from one range to another
 pub inline fn mapToRange(comptime T: type, input: T, input_min: T, input_max: T, output_min: T, output_max: T) T {
