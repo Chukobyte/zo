@@ -80,11 +80,60 @@ pub const MainMenuEntity = struct {
 
     pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
         if (input.isKeyJustPressed(.{ .key = .keyboard_space })) {
+            global.scene_system.changeScene(NewGameSceneDefinition);
+        }
+    }
+};
+
+// NEW GAME
+pub const NewGameSceneDefinition = struct {
+    pub fn getNodeInterface() type {
+        return NewGameEntity;
+    }
+};
+
+pub const NewGameEntity = struct {
+    const CharacterMode = enum {
+        existing,
+        new,
+    };
+
+    character_mode_text: GameObject = undefined,
+    character_mode: CharacterMode = .existing,
+
+    pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
+        _ = try GameObject.initInScene(
+            .text_label,
+            .{ .font = &global.assets.fonts.verdana_16, .text = "Select Character to Play", .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
+            null,
+            null
+        );
+
+        self.character_mode_text = try GameObject.initInScene(
+            .text_label,
+            .{ .font = &global.assets.fonts.verdana_16, .text = "Existing", .transform = .{ .position = .{ .x = 270.0, .y = 260.0 } }, },
+            null,
+            null
+        );
+    }
+
+    pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
+        if (input.isKeyJustPressed(.{ .key = .keyboard_space })) {
             global.scene_system.changeScene(MapSceneDefinition);
         }
 
-        if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
-            zo.quit();
+        if (input.isKeyJustPressed(.{ .key = .keyboard_down }) or input.isKeyJustPressed(.{ .key = .keyboard_s })) {
+            self.character_mode = if (self.character_mode == .existing) .new else .existing;
+            if (world.getComponent(self.character_mode_text.node.entity, TextLabelComponent)) |text_label_comp| {
+                const modeText: []const u8 = if (self.character_mode == .existing) "Existing" else "New";
+                try text_label_comp.class.label.text.setRaw(modeText);
+            }
+        } else if (input.isKeyJustPressed(.{ .key = .keyboard_up }) or input.isKeyJustPressed(.{ .key = .keyboard_w })) {
+            self.character_mode = if (self.character_mode == .existing) .new else .existing;
+            if (world.getComponent(self.character_mode_text.node.entity, TextLabelComponent)) |text_label_comp| {
+                const modeText: []const u8 = if (self.character_mode == .existing) "Existing" else "New";
+                try text_label_comp.class.label.text.setRaw(modeText);
+            }
         }
     }
 };
@@ -137,12 +186,6 @@ pub const MapEntity = struct {
 
     pub fn onExitScene(self: *@This(), world: *World, entity: ecs.Entity) void {
         _ = self; _ = world; _ = entity;
-    }
-
-    pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
-        if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
-            zo.quit();
-        }
     }
 
     pub fn fixedUpdate(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {

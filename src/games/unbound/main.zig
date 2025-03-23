@@ -21,6 +21,10 @@ pub const GameMain = struct {
     pub fn update(delta_seconds: f32) !void {
         try global.scene_system.newFrame();
         try global.world.update(delta_seconds);
+
+        if (zo.input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
+            zo.quit();
+        }
     }
 
     pub fn fixedUpdate(delta_seconds: f32) !void {
