@@ -47,16 +47,23 @@ pub const MainMenuEntity = struct {
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
         const title_text = try GameObject.initInScene(
             .text_label,
-            .{ .text = "Test Game", .font = &global.assets.fonts.verdana_32, .transform = .{ .position = .{ .x = 200.0, .y = 100.0 } }, },
+            .{ .font = &global.assets.fonts.verdana_32, .text = "Test Game", .transform = .{ .position = .{ .x = 200.0, .y = 100.0 } }, },
             null,
             null
         );
         const instructions_text = try GameObject.initInScene(
             .text_label,
-            .{ .text = "Press Space to Play", .font = &global.assets.fonts.verdana_16, .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
+            .{ .font = &global.assets.fonts.verdana_16, .text = "Press Space to Play", .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
             null,
             null
         );
+        // TODO: Test text boxes
+        // _ = try GameObject.initInScene(
+        //     .text_box,
+        //     .{ .font = &global.assets.fonts.verdana_16, .size = .{ .w = 10, .h = 50 }, .text = "Testing this long string of text to try it out!", .transform = .{ .position = .{ .x = 200.0, .y = 300.0 } }, },
+        //     null,
+        //     null
+        // );
         _ = title_text; _ = instructions_text;
         // TODO: Testing subscribing to event delegates, will remove later
         // const Local = struct {

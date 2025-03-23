@@ -47,7 +47,7 @@ pub const TextLabelComponent = struct {
         size: Dim2u,
 
         pub fn setText(self: *@This(), font: *const Font, text: []const u8, scale: f32) !void {
-            const max_line_width = self.size.w;
+            const max_line_width = @as(f32, @floatFromInt(self.size.w));
             var width: f32 = 0.0;
             self.text.clear();
             var line_string = String.init(self.text.allocator);
@@ -58,18 +58,18 @@ pub const TextLabelComponent = struct {
                 const ch = font.characters[index];
                 // ch.advance is in 26.6 fixed point, so we shift right by 6 to get pixels.
                 const advance_pixels: f32 = @floatFromInt(ch.advance >> 6);
-                const new_width: 32 = advance_pixels * scale;
+                const new_width: f32 = advance_pixels * scale;
                 if (width + new_width >= max_line_width) {
-                    self.text.addLine(line_string.get());
-                    line_string.set("{s}", .{ c });
+                    try self.text.addLine(line_string.get());
+                    try line_string.set("{c}", .{ c });
                     width = new_width;
                 } else {
-                    line_string.set("{s}{s}", .{ line_string.get(), c });
+                    try line_string.set("{s}{c}", .{ line_string.get(), c });
                     width += new_width;
                 }
             }
             if (!line_string.isEmpty()) {
-                self.text.addLine(line_string.get());
+                try self.text.addLine(line_string.get());
             }
         }
     };

@@ -142,10 +142,10 @@ pub fn DynamicMultiLineString(comptime StringT: type) type {
         allocator: std.mem.Allocator,
         lines: std.ArrayList(StringT),
 
-        pub fn init(allocator: std.mem.Allocator) !@This() {
+        pub fn init(allocator: std.mem.Allocator) @This() {
             return @This(){
                 .allocator = allocator,
-                .lines = try std.ArrayList(StringT).init(allocator),
+                .lines = std.ArrayList(StringT).init(allocator),
             };
         }
 
