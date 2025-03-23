@@ -119,7 +119,11 @@ pub const NewGameEntity = struct {
 
     pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
         if (input.isKeyJustPressed(.{ .key = .keyboard_space })) {
-            global.scene_system.changeScene(MapSceneDefinition);
+            if (self.character_mode == .existing) {
+                global.scene_system.changeScene(ExistingCharacterSceneDefinition);
+            } else {
+                global.scene_system.changeScene(NewCharacterSceneDefinition);
+            }
         }
 
         if (input.isKeyJustPressed(.{ .key = .keyboard_down }) or input.isKeyJustPressed(.{ .key = .keyboard_s })) {
@@ -134,6 +138,54 @@ pub const NewGameEntity = struct {
                 const modeText: []const u8 = if (self.character_mode == .existing) "Existing" else "New";
                 try text_label_comp.class.label.text.setRaw(modeText);
             }
+        }
+    }
+};
+
+// EXISTING CHARACTER
+pub const ExistingCharacterSceneDefinition = struct {
+    pub fn getNodeInterface() type {
+        return ExistingCharacterEntity;
+    }
+};
+
+pub const ExistingCharacterEntity = struct {
+    pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
+        _ = try GameObject.initInScene(
+            .text_label,
+            .{ .font = &global.assets.fonts.verdana_16, .text = "Existing", .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
+            null,
+            null
+        );
+    }
+
+    pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
+        if (input.isKeyJustPressed(.{ .key = .keyboard_space })) {
+            global.scene_system.changeScene(MapSceneDefinition);
+        }
+    }
+};
+
+// NEW CHARACTER
+pub const NewCharacterSceneDefinition = struct {
+    pub fn getNodeInterface() type {
+        return NewCharacterEntity;
+    }
+};
+
+pub const NewCharacterEntity = struct {
+    pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
+        _ = try GameObject.initInScene(
+            .text_label,
+            .{ .font = &global.assets.fonts.verdana_16, .text = "New", .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
+            null,
+            null
+        );
+    }
+
+    pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
+        if (input.isKeyJustPressed(.{ .key = .keyboard_space })) {
+            global.scene_system.changeScene(MapSceneDefinition);
         }
     }
 };
