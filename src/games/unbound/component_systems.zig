@@ -78,16 +78,8 @@ pub const TextLabelComponent = struct {
                     }
                 }
             }
-            if (line_width > 0 and words.items.len > 0) {
-                const last_word = &words.items[words.items.len - 1];
-                if (line_width + last_word.width + space_width >= max_line_width) {
-                    try self.text.addLine(line_text.get());
-                    try self.text.addLine(last_word.text.get());
-                } else {
-                    try line_text.appendChar(' ');
-                    try line_text.appendRaw(last_word.text.get());
-                    try self.text.addLine(line_text.get());
-                }
+            if (!line_text.isEmpty()) {
+                try self.text.addLine(line_text.get());
             }
             // Clean up
             for (words.items) |*word| {
