@@ -515,10 +515,19 @@ pub fn Rectangle2(comptime T: type) type {
 
         pub fn doesOverlap(self: *const @This(), other: *const @This()) bool {
             return !(
-            self.x > other.x + other.w or
+                self.x > other.x + other.w or
                 self.x + self.w < other.x or
                 self.y > other.y + other.h or
                 self.y + self.h < other.y
+            );
+        }
+
+        pub fn doesPointOverlap(self: *const @This(), point: *const Vector2(T)) bool {
+            return !(
+                self.x > point.x or
+                self.x + self.w < point.x or
+                self.y > point.y or
+                self.y + self.h < point.y
             );
         }
     };

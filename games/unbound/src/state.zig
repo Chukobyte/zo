@@ -1,8 +1,10 @@
 //! Game state related data.  Also using this to flesh out game details.
 
+const zo = @import("zo");
 const math = @import("zo").math;
 
 const Vec2 = math.Vec2;
+const String = zo.string.HeapString;
 
 pub const Abilities = enum(u32) {
     none = 0,
@@ -34,7 +36,7 @@ pub const EthnicityProfile = struct {
 };
 
 pub const Character = struct {
-    name: []const u8,
+    name: String,
     role: Role,
     ethnicity: EthnicityProfile,
     lead: u32 = 0,
@@ -67,5 +69,5 @@ pub const map_locations: [13]Location = .{
 };
 
 pub const character_pool: []Character = &.{
-  .{ .name = "Guy", .ethnicity = EthnicityProfile.Black, .role = .free_man, .lead = 50, .military = 50, .charisma = 50, .intelligence = 50, .politics = 50, .abilities = .none },
+  // .{ .name = "Guy", .ethnicity = EthnicityProfile.Black, .role = .free_man, .lead = 50, .military = 50, .charisma = 50, .intelligence = 50, .politics = 50, .abilities = .none },
 };

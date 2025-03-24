@@ -390,6 +390,10 @@ pub fn getKeyStrength(params: InputQueryParams) f32 {
     return state.key_state[params.device_index][@intFromEnum(params.key)].strength;
 }
 
+pub inline fn getMousePosition() Vec2i {
+    return state.mouse.position;
+}
+
 // Input Action
 
 pub fn addAction(params: InputActionCreateParams) !InputAction.Handle {

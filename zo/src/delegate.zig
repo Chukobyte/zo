@@ -1,9 +1,9 @@
 const std = @import("std");
 
+pub const SubscriberHandle = u32;
+
 pub fn Delegate(comptime FunctionT: type) type {
     return struct {
-        const SubscriberHandle = u32;
-
         const Subscriber = struct {
             callback: *const FunctionT,
             handle: SubscriberHandle = 0,
@@ -42,7 +42,7 @@ pub fn Delegate(comptime FunctionT: type) type {
         }
 
         /// Unsubscribes from an event using the SubscriberHandle
-        pub fn unsubscribe(self: *@This(), sub_handle: SubscriberHandle) !void {
+        pub fn unsubscribe(self: *@This(), sub_handle: SubscriberHandle) void {
             var index: usize = 0;
             for (self.subscribers.items) |*sub| {
                 if (sub.handle == sub_handle) {
