@@ -8,7 +8,7 @@ pub fn build(b: *std.Build) !void {
 
     const zo_module = try buildZoModule(b, target, optimize);
     const static_assets_module = b.addModule("static_assets", .{
-        .root_source_file = b.path("src/games/unbound/static_assets.zig"),
+        .root_source_file = b.path("games/unbound/static_assets.zig"),
     });
     static_assets_module.addImport("zo", zo_module);
 
@@ -19,9 +19,9 @@ pub fn build(b: *std.Build) !void {
 fn buildUnboundaGame(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, zo_module: *std.Build.Module, static_assets_module: *std.Build.Module) void {
     var root_source_file: []const u8 = undefined;
     if (target.result.os.tag == .windows) {
-        root_source_file = "src/games/unbound/win32_main.zig";
+        root_source_file = "games/unbound/src/win32_main.zig";
     } else {
-        root_source_file = "src/games/unbound/main.zig";
+        root_source_file = "games/unbound/src/main.zig";
     }
 
     const exe = b.addExecutable(.{
