@@ -56,7 +56,7 @@ fn buildZoModule(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.
     const zo_audio_lib: *std.Build.Step.Compile = try add_zo_audio(b, target, optimize);
 
     const zo_module = b.addModule("zo", .{
-        .root_source_file = b.path("src/zo/zo.zig"),
+        .root_source_file = b.path("zo/src/zo.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -330,7 +330,7 @@ fn add_libpng(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.bui
 }
 
 fn add_zo_audio(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !*std.Build.Step.Compile {
-    const c_src = "src/zo/c";
+    const c_src = "zo/src/c";
     const miniaudio_path = thirdparty_path ++ "/miniaudio";
 
     const audio_lib: *std.Build.Step.Compile = b.addStaticLibrary(.{
@@ -342,7 +342,7 @@ fn add_zo_audio(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.b
     // Add miniaudio directory to be included
     audio_lib.addIncludePath(b.path(c_src));
     audio_lib.addIncludePath(b.path(miniaudio_path));
-    audio_lib.addCSourceFile(.{.file = b.path("src/zo/c/zo_audio.c")});
+    audio_lib.addCSourceFile(.{.file = b.path("zo/src/c/zo_audio.c")});
     
     audio_lib.installHeadersDirectory(b.path(c_src), ".", .{});
 
