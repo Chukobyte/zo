@@ -8,7 +8,7 @@ pub fn build(b: *std.Build) !void {
 
     const zo_module = try buildZoModule(b, target, optimize);
     const static_assets_module = b.addModule("static_assets", .{
-        .root_source_file = b.path("static_assets.zig"),
+        .root_source_file = b.path("src/games/unbound/static_assets.zig"),
     });
     static_assets_module.addImport("zo", zo_module);
 
