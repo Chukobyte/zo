@@ -250,12 +250,45 @@ const CleanupKeysState = struct {
     released_cleanup_keys_count: u32 = 0,
 };
 
-const key_state_x = 1;
-const key_state_y = @typeInfo(InputKey).@"enum".fields.len;
+const InputActionError = error {
+    BeyondMaxValue,
+};
+
+pub const InputAction = struct {
+    pub const Handle = u32;
+    const max_values = 8;
+
+    const Values = struct {
+        keys: [max_values]InputKey,
+        len: usize = 0,
+
+        fn add(self: *@This(), key: InputKey) !void {
+            if (self.len + 1 >= max_values) {
+                return InputActionError.BeyondMaxValue;
+            }
+            self.keys[self.len] = key;
+            self.len += 1;
+        }
+    };
+
+    handle: Handle = 0,
+    values: Values = .{ .keys = .{ .invalid } ** max_values },
+    device_index: u32 = 0,
+};
+
+pub const InputActionCreateParams = struct {
+    keys: []const InputKey,
+    device_index: u32 = 0,
+};
+
+const max_input_devices = 1;
+const num_of_keys = @typeInfo(InputKey).@"enum".fields.len;
+const max_input_actions = 16;
 
 const InputState = struct {
     // Initialize key state to default values
-    key_state: [key_state_x][key_state_y]InputKeyState = [key_state_x][key_state_y]InputKeyState{[_]InputKeyState{.{}} ** key_state_y} ** key_state_x,
+    key_state: [max_input_devices][num_of_keys]InputKeyState = [max_input_devices][num_of_keys]InputKeyState{[_]InputKeyState{.{}} ** num_of_keys} ** max_input_devices,
+    input_action_state: [max_input_devices][max_input_actions]InputAction = [max_input_devices][max_input_actions]InputAction{[_]InputAction{.{}} ** max_input_actions} ** max_input_devices,
     mouse: Mouse = .{},
     cleanup_keys_state: CleanupKeysState = .{},
 
@@ -355,4 +388,55 @@ pub fn isKeyJustReleased(params: InputQueryParams) bool {
 
 pub fn getKeyStrength(params: InputQueryParams) f32 {
     return state.key_state[params.device_index][@intFromEnum(params.key)].strength;
+}
+
+// Input Action
+
+pub fn addAction(params: InputActionCreateParams) !InputAction.Handle {
+    // TODO: This is temp as I currently don't plan to remove input actions
+    const State = struct {
+        var handle_index: InputAction.Handle = 0;
+    };
+    const new_handle = State.handle_index;
+    State.handle_index += 1;
+
+    var new_action = &state.input_action_state[params.device_index][new_handle];
+    new_action.handle = new_handle;
+    for (params.keys) |key| {
+        try new_action.values.add(key);
+    }
+    new_action.device_index = params.device_index;
+    return new_handle;
+}
+
+const default_device_index = 0; // TODO: Get another way
+
+pub fn isActionPressed(handle: InputAction.Handle) bool {
+    const action = &state.input_action_state[default_device_index][handle];
+    for (0..action.values.len) |i| {
+        if (isKeyPressed(.{ .key = action.values.keys[i], .device_index = default_device_index })) {
+            return true;
+        }
+    }
+    return false;
+}
+
+pub fn isActionJustPressed(handle: InputAction.Handle) bool {
+    const action = &state.input_action_state[default_device_index][handle];
+    for (0..action.values.len) |i| {
+        if (isKeyJustPressed(.{ .key = action.values.keys[i], .device_index = default_device_index })) {
+            return true;
+        }
+    }
+    return false;
+}
+
+pub fn isActionJustReleased(handle: InputAction.Handle) bool {
+    const action = &state.input_action_state[default_device_index][handle];
+    for (0..action.values.len) |i| {
+        if (isKeyJustReleased(.{ .key = action.values.keys[i], .device_index = default_device_index })) {
+            return true;
+        }
+    }
+    return false;
 }

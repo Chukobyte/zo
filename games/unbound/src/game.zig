@@ -18,8 +18,12 @@ const Node = World.Node;
 const GameObject = object.GameObject;
 const Location = state.Location;
 const TextLabelComponent = component_systems.TextLabelComponent;
+const InputAction = input.InputAction;
+const InputKey = input.InputKey;
 
 const log = zo.log;
+
+var move_left_input_handle: InputAction.Handle = 0;
 
 // Scenes
 
@@ -32,6 +36,7 @@ pub const InitSceneDefinition = struct {
 
 pub const InitEntity = struct {
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
+        move_left_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_g  } } );
         global.scene_system.changeScene(MainMenuSceneDefinition);
     }
 };
@@ -81,6 +86,9 @@ pub const MainMenuEntity = struct {
     pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
         if (input.isKeyJustPressed(.{ .key = .keyboard_space })) {
             global.scene_system.changeScene(NewGameSceneDefinition);
+        }
+        if (input.isActionJustPressed(move_left_input_handle)) {
+            log(.debug, "move left", .{});
         }
     }
 };
