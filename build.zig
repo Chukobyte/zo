@@ -354,7 +354,7 @@ fn add_zo_audio(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.b
 
 fn buildTest(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, zo_module: *std.Build.Module, static_assets_module: *std.Build.Module) void {
     const test_exe = b.addTest(.{
-        .root_source_file = b.path("src/test/unit_test.zig"),
+        .root_source_file = b.path("test/unit_test.zig"),
         .target = target,
         .optimize = optimize,
         .link_libc = true,
