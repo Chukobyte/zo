@@ -24,6 +24,9 @@ const InputKey = input.InputKey;
 const log = zo.log;
 
 var move_left_input_handle: InputAction.Handle = 0;
+var move_right_input_handle: InputAction.Handle = 0;
+var move_up_input_handle: InputAction.Handle = 0;
+var move_down_input_handle: InputAction.Handle = 0;
 
 // Scenes
 
@@ -36,7 +39,10 @@ pub const InitSceneDefinition = struct {
 
 pub const InitEntity = struct {
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
-        move_left_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_g  } } );
+        move_left_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_left, .keyboard_a  } } );
+        move_right_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_right, .keyboard_d  } } );
+        move_up_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_up, .keyboard_w  } } );
+        move_down_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_down, .keyboard_d  } } );
         global.scene_system.changeScene(MainMenuSceneDefinition);
     }
 };
@@ -87,9 +93,6 @@ pub const MainMenuEntity = struct {
         if (input.isKeyJustPressed(.{ .key = .keyboard_space })) {
             global.scene_system.changeScene(NewGameSceneDefinition);
         }
-        if (input.isActionJustPressed(move_left_input_handle)) {
-            log(.debug, "move left", .{});
-        }
     }
 };
 
@@ -134,13 +137,7 @@ pub const NewGameEntity = struct {
             }
         }
 
-        if (input.isKeyJustPressed(.{ .key = .keyboard_down }) or input.isKeyJustPressed(.{ .key = .keyboard_s })) {
-            self.character_mode = if (self.character_mode == .existing) .new else .existing;
-            if (world.getComponent(self.character_mode_text.node.entity, TextLabelComponent)) |text_label_comp| {
-                const modeText: []const u8 = if (self.character_mode == .existing) "Existing" else "New";
-                try text_label_comp.class.label.text.setRaw(modeText);
-            }
-        } else if (input.isKeyJustPressed(.{ .key = .keyboard_up }) or input.isKeyJustPressed(.{ .key = .keyboard_w })) {
+        if (input.isActionJustPressed(move_up_input_handle) or input.isActionJustPressed(move_down_input_handle)) {
             self.character_mode = if (self.character_mode == .existing) .new else .existing;
             if (world.getComponent(self.character_mode_text.node.entity, TextLabelComponent)) |text_label_comp| {
                 const modeText: []const u8 = if (self.character_mode == .existing) "Existing" else "New";
@@ -257,14 +254,14 @@ pub const MapEntity = struct {
     }
 
     fn checkForLocationChange(self: *@This()) ?*const Location {
-        if (input.isKeyJustPressed(.{ .key = .keyboard_down }) or input.isKeyJustPressed(.{ .key = .keyboard_s })) {
+        if (input.isActionJustPressed(move_down_input_handle)) {
             if (self.location_index + 1 >= state.map_locations.len) {
                 self.location_index = 0;
             } else {
                 self.location_index += 1;
             }
             return &state.map_locations[self.location_index];
-        } else if (input.isKeyJustPressed(.{ .key = .keyboard_up }) or input.isKeyJustPressed(.{ .key = .keyboard_w })) {
+        } else if (input.isActionJustPressed(move_up_input_handle)) {
             if (self.location_index == 0) {
                 self.location_index = state.map_locations.len - 1;
             } else {
