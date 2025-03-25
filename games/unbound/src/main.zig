@@ -39,7 +39,7 @@ pub const GameMain = struct {
 pub fn main() !void {
     try zo.run(.{
         .window = .{
-            .title = "Test Game",
+            .title = "Unbound",
             .pos = .{ .x = 100.0, .y = 100.0 },
             .size = .{ .w = 640, .h = 360 },
         },
