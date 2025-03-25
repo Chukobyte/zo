@@ -23,6 +23,7 @@ const Location = state.Location;
 const TextLabelComponent = component_systems.TextLabelComponent;
 const InputAction = input.InputAction;
 const InputKey = input.InputKey;
+const InputEvent = input.InputEvent;
 const Character = state.Character;
 const EthnicityProfile = state.EthnicityProfile;
 const SubscriberHandle = delegate.SubscriberHandle;
@@ -195,7 +196,24 @@ pub const NewCharacterEntity = struct {
     }
 
     pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
+        const LocalInput = struct {
+            var handle: ?delegate.SubscriberHandle = null;
+            pub fn subscribeToInput() void {
+                handle = input.registered_input_delegate.subscribe(onRegisteredInput);
+            }
+            pub fn unsubscribeFromInput() void {
+                if (handle) |h| {
+                    input.registered_input_delegate.unsubscribe(h);
+                    handle = null;
+                }
+            }
+            pub fn onRegisteredInput(event: *const InputEvent) void {
+                log(.debug, "key = {any}, status = {any}", .{ event.key, event.status });
+            }
+        };
+
         if (input.isKeyJustPressed(.{ .key = .keyboard_space })) {
+            LocalInput.unsubscribeFromInput();
             global.scene_system.changeScene(MapSceneDefinition);
         }
 
@@ -203,19 +221,12 @@ pub const NewCharacterEntity = struct {
             const mouse_pos = input.getMousePosition();
             if (self.name_collision_rect.doesPointOverlap(&.{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) })) {
                 if (world.getComponent(self.name_object.node.entity, TextLabelComponent)) |text_label_comp| {
-                    const Local = struct {
-                        var handle: delegate.SubscriberHandle = undefined;
-
-                        pub fn onRegisteredInput(event: *const input.InputEvent) void {
-                            // log(.debug, "key = {any}, status = {any}", .{ event.key, event.status });
-                        }
-                    };
                     if (!self.is_typing_name) {
                         text_label_comp.color = math.LinearColor.Red;
-                        Local.handle = input.registered_input_delegate.subscribe(Local.onRegisteredInput);
+                        LocalInput.subscribeToInput();
                     } else {
                         text_label_comp.color = math.LinearColor.White;
-                        input.registered_input_delegate.unsubscribe(Local.handle);
+                        LocalInput.unsubscribeFromInput();
                     }
                     self.is_typing_name = !self.is_typing_name;
                 }
