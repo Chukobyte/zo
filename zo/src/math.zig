@@ -584,8 +584,16 @@ pub const Dim2 = Dimensions2(f32);
 pub const Dim2i = Dimensions2(i32);
 pub const Dim2u = Dimensions2(u32);
 
-/// Map a value from one range to another
+/// Map a value from one range to another.
 pub inline fn mapToRange(comptime T: type, input: T, input_min: T, input_max: T, output_min: T, output_max: T) T {
+    // if (T == Vec2f or T == Vec2i or T == Vec2u) {
+    //     return .{
+    //         .x = (((input.x - input_min.x) / (input_max.x - input_min.x)) * (output_max.x - output_min.x) + output_min.x),
+    //         .y = (((input.y - input_min.y) / (input_max.y - input_min.y)) * (output_max.y - output_min.y) + output_min.y)
+    //     };
+    // } else {
+    //     return (((input - input_min) / (input_max - input_min)) * (output_max - output_min) + output_min);
+    // }
     return (((input - input_min) / (input_max - input_min)) * (output_max - output_min) + output_min);
 }
 

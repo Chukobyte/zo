@@ -8,11 +8,15 @@ const global = @import("global.zig");
 const state = @import("state.zig");
 
 const ecs = zo.ecs;
+const window = zo.window;
+const renderer = zo.renderer;
 const audio = zo.audio;
 const input = zo.input;
 const math = zo.math;
 const delegate = zo.delegate;
 
+const Vec2 = math.Vec2;
+const Vec2i = math.Vec2i;
 const Rect2 = math.Rect2;
 const Dim2 = math.Dim2;
 const String = zo.string.HeapString;
@@ -34,6 +38,31 @@ var move_left_input_handle: InputAction.Handle = 0;
 var move_right_input_handle: InputAction.Handle = 0;
 var move_up_input_handle: InputAction.Handle = 0;
 var move_down_input_handle: InputAction.Handle = 0;
+
+/// Maps screen mouse position from window size to render resolution for world mouse position
+fn getWorldMousePosition() Vec2i {
+    // const global_mouse_pos = math.mapToRange(
+    //     Vec2i,
+    //     input.getMousePosition(),
+    //     Vec2i.Zero,
+    //     window.getWindowSize().toVec2(),
+    //     Vec2i.Zero,
+    //     renderer.getResolution().toVec2()
+    // );
+    const mouse_pos: Vec2 = .{ .x = @floatFromInt(input.getMousePosition().x), .y = @floatFromInt(input.getMousePosition().y) };
+    const window_size: Vec2 = .{ .x = @floatFromInt(window.getWindowSize().w), .y = @floatFromInt(window.getWindowSize().h) };
+    const render_resolution: Vec2 = .{ .x = @floatFromInt(renderer.getResolution().w), .y = @floatFromInt(renderer.getResolution().h) };
+    const global_mouse_position: Vec2 = .{
+        .x = math.mapToRange(f32, mouse_pos.x, 0.0, window_size.x, 0.0, render_resolution.x),
+        .y = math.mapToRange(f32, mouse_pos.y, 0.0, window_size.y, 0.0, render_resolution.y)
+    };
+    const global_mouse_pos: Vec2i = .{ .x = @intFromFloat(global_mouse_position.x), .y = @intFromFloat(global_mouse_position.y) };
+    log(.debug, "global_mouse_pos = {any}", .{ global_mouse_pos });
+    log(.debug, "input.getMousePosition() = {any}", .{ input.getMousePosition() });
+    log(.debug, "window.getWindowSize().toVec2() = {any}", .{ window.getWindowSize().toVec2() });
+    log(.debug, "renderer.getResolution().toVec2() = {any}\n", .{ renderer.getResolution().toVec2() });
+    return global_mouse_pos;
+}
 
 // Scenes
 
@@ -183,7 +212,8 @@ pub const NewCharacterSceneDefinition = struct {
 pub const NewCharacterEntity = struct {
     const initial_name_text = "Name: ";
 
-    const LocalInput = struct {
+    /// Takes in keyboard input and updates a TextLabelComponent
+    const InputText = struct {
         var handle: ?delegate.SubscriberHandle = null;
         var name_object: ?*GameObject = null;
         pub fn subscribeToInput(name_obj: *GameObject) void {
@@ -263,14 +293,14 @@ pub const NewCharacterEntity = struct {
             const change_scene: bool = !self.is_typing_name;
             const text_label_comp = world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
             self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
-            LocalInput.unsubscribeFromInput();
+            InputText.unsubscribeFromInput();
             if (change_scene) {
                 global.scene_system.changeScene(MapSceneDefinition);
             }
         }
 
         if (input.isKeyJustPressed(.{ .key = .mouse_button_left })) {
-            const mouse_pos = input.getMousePosition();
+            const mouse_pos: Vec2i = getWorldMousePosition();
             if (self.name_collision_rect.doesPointOverlap(&.{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) })) {
                 const text_label_comp = world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
                 self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
@@ -282,10 +312,10 @@ pub const NewCharacterEntity = struct {
         self.is_typing_name = is_typing_name;
         if (is_typing_name) {
             text_label_comp.color = math.LinearColor.Red;
-            LocalInput.subscribeToInput(&self.name_object);
+            InputText.subscribeToInput(&self.name_object);
         } else {
             text_label_comp.color = math.LinearColor.White;
-            LocalInput.unsubscribeFromInput();
+            InputText.unsubscribeFromInput();
         }
     }
 

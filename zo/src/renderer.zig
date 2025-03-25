@@ -744,6 +744,10 @@ pub fn deinit() void {
     draw_command_data.deinit();
 }
 
+pub inline fn getResolution() Dim2i {
+    return render_context.resolution;
+}
+
 // TODO: Pre sort and batch draw calls
 
 pub inline fn queueSpriteDraw(p: *const DrawSpriteParams) !void {

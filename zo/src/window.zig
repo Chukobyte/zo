@@ -25,6 +25,10 @@ pub inline fn updateSize(size: Dim2i) void {
     native_window.updateWindowSize(size);
 }
 
+pub inline fn getWindowSize() Dim2i {
+    return native_window.getWindowSize();
+}
+
 pub inline fn clear(color: LinearColor) void {
     native_window.clearWindow(color);
 }

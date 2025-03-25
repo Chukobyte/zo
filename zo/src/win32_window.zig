@@ -384,6 +384,10 @@ pub fn updateWindowSize(size: Dim2i) void {
     }
 }
 
+pub inline fn getWindowSize() Dim2i {
+    return main_window.size;
+}
+
 pub fn clearWindow(color: LinearColor) void {
     glad.glClearColor(color.r, color.g, color.b, color.a);
     glad.glClear(glad.GL_COLOR_BUFFER_BIT | glad.GL_DEPTH_BUFFER_BIT);
