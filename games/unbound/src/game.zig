@@ -182,6 +182,58 @@ pub const NewCharacterSceneDefinition = struct {
 
 pub const NewCharacterEntity = struct {
     const initial_name_text = "Name: ";
+
+    const LocalInput = struct {
+        var handle: ?delegate.SubscriberHandle = null;
+        var name_object: ?*GameObject = null;
+        pub fn subscribeToInput(name_obj: *GameObject) void {
+            name_object = name_obj;
+            handle = input.registered_input_delegate.subscribe(onRegisteredInput);
+        }
+        pub fn unsubscribeFromInput() void {
+            if (handle) |h| {
+                input.registered_input_delegate.unsubscribe(h);
+                handle = null;
+            }
+            name_object = null;
+        }
+        pub fn onRegisteredInput(event: *const InputEvent) void {
+            // Filter out event first
+                if (event.status != .just_pressed or event.source != .keyboard) { return; }
+
+            // Delete the last char in array
+                if (event.key == .keyboard_backspace) {
+                if (name_object) |name_obj| {
+                    var text_label_comp = global.world.getComponent(name_obj.node.entity, TextLabelComponent).?;
+                    var text_label = text_label_comp.class.label;
+                    // Don't process backspace ic
+                        if (std.mem.eql(u8, text_label.text.get(), initial_name_text)) { return; }
+                    text_label_comp.class.label.text.popChar();
+                }
+            }
+
+            if (getValidTypedChar(event.key)) |ch| {
+                if (name_object) |name_obj| {
+                    var text_label_comp = global.world.getComponent(name_obj.node.entity, TextLabelComponent).?;
+                    text_label_comp.class.label.text.appendChar(ch) catch {unreachable;};
+                }
+            }
+        }
+        fn getValidTypedChar(key: InputKey) ?u8 {
+            if (key.isLetter()) {
+                const isShiftPressed = input.isKeyPressed(.{ .key = .keyboard_left_shift }) or input.isKeyPressed(.{ .key = .keyboard_right_shift });
+                const offset: u8 = @as(u8, @intCast(@intFromEnum(key))) - @as(u8, @intCast(@intFromEnum(InputKey.keyboard_a)));
+                return if(isShiftPressed) @as(u8, 'A' + offset) else @as(u8, 'a' + offset);
+            } else if (key.isNumber()) {
+                const offset: u8 = @as(u8, @intCast(@intFromEnum(key))) - @as(u8, @intCast(@intFromEnum(InputKey.keyboard_num_0)));
+                return '0' + offset;
+            } else if (key == .keyboard_space) {
+                return ' ';
+            }
+            return null;
+        }
+    };
+
     character: Character = .{ .name = undefined, .role = .free_man, .ethnicity = EthnicityProfile.Black },
     skill_points: u32 = 100,
     name_object: GameObject = undefined,
@@ -206,75 +258,34 @@ pub const NewCharacterEntity = struct {
     }
 
     pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
-        const LocalInput = struct {
-            var handle: ?delegate.SubscriberHandle = null;
-            var name_object: ?*GameObject = null;
-            pub fn subscribeToInput(name_obj: *GameObject) void {
-                name_object = name_obj;
-                handle = input.registered_input_delegate.subscribe(onRegisteredInput);
-            }
-            pub fn unsubscribeFromInput() void {
-                if (handle) |h| {
-                    input.registered_input_delegate.unsubscribe(h);
-                    handle = null;
-                }
-                name_object = null;
-            }
-            pub fn onRegisteredInput(event: *const InputEvent) void {
-                // Filter out event first
-                if (event.status != .just_pressed or event.source != .keyboard) { return; }
-
-                // Delete the last char in array
-                if (event.key == .keyboard_backspace) {
-                    if (name_object) |name_obj| {
-                        var text_label_comp = global.world.getComponent(name_obj.node.entity, TextLabelComponent).?;
-                        var text_label = text_label_comp.class.label;
-                        // Don't process backspace ic
-                        if (std.mem.eql(u8, text_label.text.get(), initial_name_text)) { return; }
-                        text_label_comp.class.label.text.popChar();
-                    }
-                }
-
-                if (getValidTypedChar(event.key)) |ch| {
-                    if (name_object) |name_obj| {
-                        var text_label_comp = global.world.getComponent(name_obj.node.entity, TextLabelComponent).?;
-                        text_label_comp.class.label.text.appendChar(ch) catch {unreachable;};
-                    }
-                }
-            }
-            fn getValidTypedChar(key: InputKey) ?u8 {
-                if (key.isLetter()) {
-                    const isShiftPressed = input.isKeyPressed(.{ .key = .keyboard_left_shift }) or input.isKeyPressed(.{ .key = .keyboard_right_shift });
-                    const offset: u8 = @as(u8, @intCast(@intFromEnum(key))) - @as(u8, @intCast(@intFromEnum(InputKey.keyboard_a)));
-                    return if(isShiftPressed) @as(u8, 'A' + offset) else @as(u8, 'a' + offset);
-                } else if (key.isNumber()) {
-                    const offset: u8 = @as(u8, @intCast(@intFromEnum(key))) - @as(u8, @intCast(@intFromEnum(InputKey.keyboard_num_0)));
-                    return '0' + offset;
-                } else if (key == .keyboard_space) {
-                    return ' ';
-                }
-                return null;
-            }
-        };
 
         if (input.isKeyJustPressed(.{ .key = .keyboard_return })) {
+            const change_scene: bool = !self.is_typing_name;
+            const text_label_comp = world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
+            self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
             LocalInput.unsubscribeFromInput();
-            global.scene_system.changeScene(MapSceneDefinition);
+            if (change_scene) {
+                global.scene_system.changeScene(MapSceneDefinition);
+            }
         }
 
         if (input.isKeyJustPressed(.{ .key = .mouse_button_left })) {
             const mouse_pos = input.getMousePosition();
             if (self.name_collision_rect.doesPointOverlap(&.{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) })) {
-                var text_label_comp = world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
-                if (!self.is_typing_name) {
-                    text_label_comp.color = math.LinearColor.Red;
-                    LocalInput.subscribeToInput(&self.name_object);
-                } else {
-                    text_label_comp.color = math.LinearColor.White;
-                    LocalInput.unsubscribeFromInput();
-                }
-                self.is_typing_name = !self.is_typing_name;
+                const text_label_comp = world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
+                self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
             }
+        }
+    }
+
+    fn setIsTypingName(self: *@This(), is_typing_name: bool, text_label_comp: *TextLabelComponent) void {
+        self.is_typing_name = is_typing_name;
+        if (is_typing_name) {
+            text_label_comp.color = math.LinearColor.Red;
+            LocalInput.subscribeToInput(&self.name_object);
+        } else {
+            text_label_comp.color = math.LinearColor.White;
+            LocalInput.unsubscribeFromInput();
         }
     }
 
