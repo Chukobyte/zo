@@ -122,8 +122,10 @@ fn convert_vkcode_to_key(vk_code: u32) InputKey {
         win.VK_MULTIPLY => return InputKey.keyboard_keypad_multiply,
         win.VK_SUBTRACT => return InputKey.keyboard_keypad_minus,
         win.VK_ADD => return InputKey.keyboard_keypad_plus,
+        // TODO: Properly handle left and right shift (only left is registered on tested keyboard)
         win.VK_LSHIFT => return InputKey.keyboard_left_shift,
         win.VK_RSHIFT => return InputKey.keyboard_right_shift,
+        win.VK_SHIFT => return InputKey.keyboard_right_shift,
         win.VK_LCONTROL => return InputKey.keyboard_left_control,
         win.VK_RCONTROL => return InputKey.keyboard_right_control,
         win.VK_LMENU => return InputKey.keyboard_left_alt,

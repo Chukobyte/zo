@@ -152,6 +152,23 @@ pub fn DynamicString(stack_buffer_size: comptime_int, comptime auto_free_heap: b
             }
         }
 
+        pub fn popChar(self: *@This()) void {
+            if (self.len == 0) return; // Nothing to delete.
+            self.len -= 1;
+            // Depending on the mode, update the proper underlying buffer.
+            if (self.mode == .stack) {
+                // Write null terminator into the stack buffer.
+                self.stack_buffer[self.len] = 0;
+                // Update the slice to reflect the new length.
+                self.buffer = self.stack_buffer[0..self.len: 0];
+            } else {
+                if (self.heap_buffer) |heap_buf| {
+                    heap_buf[self.len] = 0;
+                    self.buffer = heap_buf[0..self.len: 0];
+                }
+            }
+        }
+
         /// Will free heap if no longer being used
         pub fn freeHeap(self: *@This()) void {
             if (self.mode == .stack) {

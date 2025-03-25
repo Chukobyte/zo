@@ -105,12 +105,14 @@ pub const NewGameSceneDefinition = struct {
 
 pub const NewGameEntity = struct {
     const CharacterMode = enum {
-        existing,
         new,
+        existing,
     };
+    const new_text = "New";
+    const existing_text = "Existing";
 
     character_mode_text: GameObject = undefined,
-    character_mode: CharacterMode = .existing,
+    character_mode: CharacterMode = .new,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         _ = try GameObject.initInScene(
@@ -122,7 +124,7 @@ pub const NewGameEntity = struct {
 
         self.character_mode_text = try GameObject.initInScene(
             .text_label,
-            .{ .font = &global.assets.fonts.verdana_16, .text = "Existing", .transform = .{ .position = .{ .x = 270.0, .y = 260.0 } }, },
+            .{ .font = &global.assets.fonts.verdana_16, .text = new_text, .transform = .{ .position = .{ .x = 270.0, .y = 260.0 } }, },
             null,
             null
         );
@@ -140,7 +142,7 @@ pub const NewGameEntity = struct {
         if (input.isActionJustPressed(move_up_input_handle) or input.isActionJustPressed(move_down_input_handle)) {
             self.character_mode = if (self.character_mode == .existing) .new else .existing;
             if (world.getComponent(self.character_mode_text.node.entity, TextLabelComponent)) |text_label_comp| {
-                const modeText: []const u8 = if (self.character_mode == .existing) "Existing" else "New";
+                const modeText: []const u8 = if (self.character_mode == .existing) existing_text else new_text;
                 try text_label_comp.class.label.text.setRaw(modeText);
             }
         }
@@ -179,6 +181,7 @@ pub const NewCharacterSceneDefinition = struct {
 };
 
 pub const NewCharacterEntity = struct {
+    const initial_name_text = "Name: ";
     character: Character = .{ .name = undefined, .role = .free_man, .ethnicity = EthnicityProfile.Black },
     skill_points: u32 = 100,
     name_object: GameObject = undefined,
@@ -189,7 +192,7 @@ pub const NewCharacterEntity = struct {
         self.character.name = String.init(global.allocator);
         self.name_object = try GameObject.initInScene(
             .text_label,
-            .{ .font = &global.assets.fonts.verdana_16, .text = "Name:", .transform = .{ .position = .{ .x = 200.0, .y = 100.0 } }, },
+            .{ .font = &global.assets.fonts.verdana_16, .text = initial_name_text, .transform = .{ .position = .{ .x = 200.0, .y = 100.0 } }, },
             null,
             null
         );
@@ -212,7 +215,19 @@ pub const NewCharacterEntity = struct {
             }
             pub fn onRegisteredInput(event: *const InputEvent) void {
                 // Filter out event first
-                if (event.status != .pressed or event.status != .just_pressed or event.source != .keyboard) { return; }
+                if (event.status != .just_pressed or event.source != .keyboard) { return; }
+
+                // Delete the last char in array
+                if (event.key == .keyboard_backspace) {
+                    if (name_object) |name_obj| {
+                        var text_label_comp = global.world.getComponent(name_obj.node.entity, TextLabelComponent).?;
+                        var text_label = text_label_comp.class.label;
+                        // Don't process backspace ic
+                        if (std.mem.eql(u8, text_label.text.get(), initial_name_text)) { return; }
+                        text_label_comp.class.label.text.popChar();
+                    }
+                }
+
                 if (getValidTypedChar(event.key)) |ch| {
                     if (name_object) |name_obj| {
                         var text_label_comp = global.world.getComponent(name_obj.node.entity, TextLabelComponent).?;
