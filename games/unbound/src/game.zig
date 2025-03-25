@@ -236,17 +236,17 @@ pub const NewCharacterEntity = struct {
                 }
             }
             fn getValidTypedChar(key: InputKey) ?u8 {
-                // Early outs if space or non alphanumeric characters
-                if (key == .keyboard_space) { return ' '; }
-                if (!key.isAlphanumeric()) { return null; }
-                // Now that we're here we know it's a letter or number
-                const isShiftPressed = input.isKeyPressed(.{ .key = .keyboard_left_shift }) or input.isKeyPressed(.{ .key = .keyboard_right_shift });
-                // Compute the offset from keyboard_a
-                // const offset: u8 = @as(u8, @bitCast(@intFromEnum(key))) - @as(u8, @bitCast(@intFromEnum(InputKey.keyboard_a)));
-                const offset: u8 = @as(u8, @intCast(@intFromEnum(key))) - @as(u8, @intCast(@intFromEnum(InputKey.keyboard_a)));
-                // Return uppercase if shift is pressed, otherwise lowercase
-                const ch: u8 = if(isShiftPressed) @as(u8, 'A' + offset) else @as(u8, 'a' + offset);
-                return ch;
+                if (key.isLetter()) {
+                    const isShiftPressed = input.isKeyPressed(.{ .key = .keyboard_left_shift }) or input.isKeyPressed(.{ .key = .keyboard_right_shift });
+                    const offset: u8 = @as(u8, @intCast(@intFromEnum(key))) - @as(u8, @intCast(@intFromEnum(InputKey.keyboard_a)));
+                    return if(isShiftPressed) @as(u8, 'A' + offset) else @as(u8, 'a' + offset);
+                } else if (key.isNumber()) {
+                    const offset: u8 = @as(u8, @intCast(@intFromEnum(key))) - @as(u8, @intCast(@intFromEnum(InputKey.keyboard_num_0)));
+                    return '0' + offset;
+                } else if (key == .keyboard_space) {
+                    return ' ';
+                }
+                return null;
             }
         };
 
