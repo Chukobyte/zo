@@ -185,6 +185,7 @@ pub const NewCharacterEntity = struct {
     character: Character = .{ .name = undefined, .role = .free_man, .ethnicity = EthnicityProfile.Black },
     skill_points: u32 = 100,
     name_object: GameObject = undefined,
+    details_object: GameObject = undefined,
     name_collision_rect: Rect2 = .{ .x = 200.0, .y = 80.0, .w = 200, .h = 100 },
     is_typing_name: bool = false,
 
@@ -193,6 +194,12 @@ pub const NewCharacterEntity = struct {
         self.name_object = try GameObject.initInScene(
             .text_label,
             .{ .font = &global.assets.fonts.verdana_16, .text = initial_name_text, .transform = .{ .position = .{ .x = 200.0, .y = 100.0 } }, },
+            null,
+            null
+        );
+        self.details_object = try GameObject.initInScene(
+            .text_box,
+            .{ .font = &global.assets.fonts.verdana_16, .size = .{ .w = 200, .h = 400 }, .text = try self.getCharacterDetailsString(), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 200.0, .y = 140.0 } }, },
             null,
             null
         );
@@ -269,6 +276,18 @@ pub const NewCharacterEntity = struct {
                 self.is_typing_name = !self.is_typing_name;
             }
         }
+    }
+
+    fn getCharacterDetailsString(self: *@This()) ![]const u8 {
+        const Local = struct {
+            var buffer: [256]u8 = undefined;
+        };
+        const character: *Character = &self.character;
+        return try std.fmt.bufPrint(
+            &Local.buffer,
+            "Role: {s}\nEthnicity: {s}\nLead: {d}\nMilitary: {d}\nCharisma: {d}\nIntelligence: {d}\nPolitics: {d}\nAbilities: {s}",
+            .{ character.role.toString(), character.ethnicity.toString(), character.lead, character.military, character.charisma, character.intelligence, character.politics, character.abilities.toString(), }
+        );
     }
 };
 

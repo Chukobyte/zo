@@ -57,11 +57,11 @@ pub const EthnicityProfile = struct {
     pub const White: @This() = .{ .white = 100 };
 
     pub fn toString(self: *@This()) []const u8 {
-        if (self.equal(Black)) {
+        if (self.equal(&Black)) {
             return "Black";
-        } else if (self.equal(Indigenous)) {
+        } else if (self.equal(&Indigenous)) {
             return "Indigenous";
-        } else if (self.equal(White)) {
+        } else if (self.equal(&White)) {
             return "White";
         }
         return "Mixed";

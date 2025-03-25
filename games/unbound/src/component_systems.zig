@@ -114,9 +114,10 @@ pub const TextLabelComponent = struct {
                 } else {
                     if (c == '\n') {
                         try words.append(current_word);
-                        current_word.text = try String.initAndSetRaw(self.text.allocator, "\n", .{});
-                        try words.append(current_word);
+                        current_word.text = try String.initAndSetRaw(self.text.allocator, "\n");
                         current_word.width = 0.0;
+                        try words.append(current_word);
+                        current_word.text = String.init(self.text.allocator);
                     } else {
                         try current_word.text.appendChar(c);
                         current_word.width += new_char_width;
