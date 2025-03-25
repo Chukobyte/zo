@@ -63,7 +63,13 @@ pub const TextLabelComponent = struct {
             var line_text = String.init(self.text.allocator);
             var words = try self.getWords(font, text, scale, &space_width);
             for (words.items) |*word| {
-                if (line_width + word.width + space_width >= max_line_width) {
+                // Handle new line
+                if (!line_text.isEmpty() and word.text.buffer[0] == '\n') {
+                    try self.text.addLine(line_text.get());
+                    line_text.clear();
+                    line_width = 0;
+                }
+                else if (line_width + word.width + space_width >= max_line_width) {
                     try self.text.addLine(line_text.get());
                     try line_text.setRaw(word.text.get());
                     line_width = word.width;
@@ -106,8 +112,15 @@ pub const TextLabelComponent = struct {
                     current_word.text = String.init(self.text.allocator);
                     current_word.width = 0.0;
                 } else {
-                    try current_word.text.appendChar(c);
-                    current_word.width += new_char_width;
+                    if (c == '\n') {
+                        try words.append(current_word);
+                        current_word.text = try String.initAndSetRaw(self.text.allocator, "\n", .{});
+                        try words.append(current_word);
+                        current_word.width = 0.0;
+                    } else {
+                        try current_word.text.appendChar(c);
+                        current_word.width += new_char_width;
+                    }
                 }
             }
             if (current_word.width > 0.0) {

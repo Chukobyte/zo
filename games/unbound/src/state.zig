@@ -11,6 +11,15 @@ pub const Abilities = enum(u32) {
     battle_prowess = 1 << 0,
     orator = 1 << 1,
     enlightened = 1 << 2,
+
+    pub fn toString(self: @This()) []const u8 {
+        switch (self) {
+            .none => return "None",
+            .battle_prowess => return "Battle Prowess",
+            .orator => return "Orator",
+            .enlightened => return "Enlightened",
+        }
+    }
 };
 
 pub const Role = enum {
@@ -22,6 +31,19 @@ pub const Role = enum {
     plantation_owner,
     indigenous_leader,
     explorer,
+
+    pub fn toString(self: @This()) []const u8 {
+        switch (self) {
+            .free_man => return "Freeman",
+            .slave => return "Slave",
+            .governor => return "Govenor",
+            .rebel_leader => return "Rebel Leader",
+            .military_commander => return "Military Commander",
+            .plantation_owner => return "Plantation Owner",
+            .indigenous_leader => return "Indigenous Leader",
+            .explorer => return "Explorer",
+        }
+    }
 };
 
 /// Percentage of ethnicity a character is.  Values will equal up to 100
@@ -33,6 +55,21 @@ pub const EthnicityProfile = struct {
     pub const Black: @This() = .{ .black = 100 };
     pub const Indigenous: @This() = .{ .indigenous = 100 };
     pub const White: @This() = .{ .white = 100 };
+
+    pub fn toString(self: *@This()) []const u8 {
+        if (self.equal(Black)) {
+            return "Black";
+        } else if (self.equal(Indigenous)) {
+            return "Indigenous";
+        } else if (self.equal(White)) {
+            return "White";
+        }
+        return "Mixed";
+    }
+
+    pub fn equal(a: *const @This(), b: *const @This()) bool {
+        return a.black == b.black and a.indigenous == b.indigenous and a.white == b.white;
+    }
 };
 
 pub const Character = struct {
