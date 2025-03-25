@@ -71,7 +71,7 @@ pub const MainMenuEntity = struct {
         );
         const instructions_text = try GameObject.initInScene(
             .text_label,
-            .{ .font = &global.assets.fonts.verdana_16, .text = "Space for New Game", .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
+            .{ .font = &global.assets.fonts.verdana_16, .text = "Enter for New Game", .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
             null,
             null
         );
@@ -90,7 +90,7 @@ pub const MainMenuEntity = struct {
     }
 
     pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
-        if (input.isKeyJustPressed(.{ .key = .keyboard_space })) {
+        if (input.isKeyJustPressed(.{ .key = .keyboard_return })) {
             global.scene_system.changeScene(NewGameSceneDefinition);
         }
     }
@@ -129,7 +129,7 @@ pub const NewGameEntity = struct {
     }
 
     pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
-        if (input.isKeyJustPressed(.{ .key = .keyboard_space })) {
+        if (input.isKeyJustPressed(.{ .key = .keyboard_return })) {
             if (self.character_mode == .existing) {
                 global.scene_system.changeScene(ExistingCharacterSceneDefinition);
             } else {
@@ -165,7 +165,7 @@ pub const ExistingCharacterEntity = struct {
     }
 
     pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
-        if (input.isKeyJustPressed(.{ .key = .keyboard_space })) {
+        if (input.isKeyJustPressed(.{ .key = .keyboard_return })) {
             global.scene_system.changeScene(MapSceneDefinition);
         }
     }
@@ -198,7 +198,9 @@ pub const NewCharacterEntity = struct {
     pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
         const LocalInput = struct {
             var handle: ?delegate.SubscriberHandle = null;
-            pub fn subscribeToInput() void {
+            var name_object: ?*GameObject = null;
+            pub fn subscribeToInput(name_obj: *GameObject) void {
+                name_object = name_obj;
                 handle = input.registered_input_delegate.subscribe(onRegisteredInput);
             }
             pub fn unsubscribeFromInput() void {
@@ -206,13 +208,34 @@ pub const NewCharacterEntity = struct {
                     input.registered_input_delegate.unsubscribe(h);
                     handle = null;
                 }
+                name_object = null;
             }
             pub fn onRegisteredInput(event: *const InputEvent) void {
-                log(.debug, "key = {any}, status = {any}", .{ event.key, event.status });
+                // Filter out event first
+                if (event.status != .pressed or event.status != .just_pressed or event.source != .keyboard) { return; }
+                if (getValidTypedChar(event.key)) |ch| {
+                    if (name_object) |name_obj| {
+                        var text_label_comp = global.world.getComponent(name_obj.node.entity, TextLabelComponent).?;
+                        text_label_comp.class.label.text.appendChar(ch) catch {unreachable;};
+                    }
+                }
+            }
+            fn getValidTypedChar(key: InputKey) ?u8 {
+                // Early outs if space or non alphanumeric characters
+                if (key == .keyboard_space) { return ' '; }
+                if (!key.isAlphanumeric()) { return null; }
+                // Now that we're here we know it's a letter or number
+                const isShiftPressed = input.isKeyPressed(.{ .key = .keyboard_left_shift }) or input.isKeyPressed(.{ .key = .keyboard_right_shift });
+                // Compute the offset from keyboard_a
+                // const offset: u8 = @as(u8, @bitCast(@intFromEnum(key))) - @as(u8, @bitCast(@intFromEnum(InputKey.keyboard_a)));
+                const offset: u8 = @as(u8, @intCast(@intFromEnum(key))) - @as(u8, @intCast(@intFromEnum(InputKey.keyboard_a)));
+                // Return uppercase if shift is pressed, otherwise lowercase
+                const ch: u8 = if(isShiftPressed) @as(u8, 'A' + offset) else @as(u8, 'a' + offset);
+                return ch;
             }
         };
 
-        if (input.isKeyJustPressed(.{ .key = .keyboard_space })) {
+        if (input.isKeyJustPressed(.{ .key = .keyboard_return })) {
             LocalInput.unsubscribeFromInput();
             global.scene_system.changeScene(MapSceneDefinition);
         }
@@ -220,16 +243,15 @@ pub const NewCharacterEntity = struct {
         if (input.isKeyJustPressed(.{ .key = .mouse_button_left })) {
             const mouse_pos = input.getMousePosition();
             if (self.name_collision_rect.doesPointOverlap(&.{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) })) {
-                if (world.getComponent(self.name_object.node.entity, TextLabelComponent)) |text_label_comp| {
-                    if (!self.is_typing_name) {
-                        text_label_comp.color = math.LinearColor.Red;
-                        LocalInput.subscribeToInput();
-                    } else {
-                        text_label_comp.color = math.LinearColor.White;
-                        LocalInput.unsubscribeFromInput();
-                    }
-                    self.is_typing_name = !self.is_typing_name;
+                var text_label_comp = world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
+                if (!self.is_typing_name) {
+                    text_label_comp.color = math.LinearColor.Red;
+                    LocalInput.subscribeToInput(&self.name_object);
+                } else {
+                    text_label_comp.color = math.LinearColor.White;
+                    LocalInput.unsubscribeFromInput();
                 }
+                self.is_typing_name = !self.is_typing_name;
             }
         }
     }

@@ -192,16 +192,30 @@ pub const InputKey = enum(c_uint) {
     mouse_button_right,
     mouse_button_middle,
 
-    pub fn isKeyboardKey(self: InputKey) bool {
+    pub inline fn isKeyboardKey(self: InputKey) bool {
         return @intFromEnum(self) >= @intFromEnum(InputKey.keyboard_tab) and @intFromEnum(self) <= @intFromEnum(InputKey.keyboard_app_back);
     }
 
-    pub fn isMouseKey(self: InputKey) bool {
+    pub inline fn isMouseKey(self: InputKey) bool {
         return @intFromEnum(self) >= @intFromEnum(InputKey.mouse_button_left) and @intFromEnum(self) <= @intFromEnum(InputKey.mouse_button_middle);
     }
 
-    pub fn isGamepadKey(self: InputKey) bool {
+    pub inline fn isGamepadKey(self: InputKey) bool {
         return @intFromEnum(self) >= @intFromEnum(InputKey.gamepad_dpad_down) and @intFromEnum(self) <= @intFromEnum(InputKey.gamepad_right_analog_down);
+    }
+
+    pub inline fn isLetter(self: InputKey) bool {
+        return @intFromEnum(self) >= @intFromEnum(InputKey.keyboard_a) and @intFromEnum(self) <= @intFromEnum(InputKey.keyboard_z);
+    }
+
+    pub inline fn isNumber(self: InputKey) bool {
+        return @intFromEnum(self) >= @intFromEnum(InputKey.keyboard_num_0) and @intFromEnum(self) <= @intFromEnum(InputKey.keyboard_num_9);
+    }
+
+    pub inline fn isAlphanumeric(self: InputKey) bool {
+        const int_enum = @intFromEnum(self);
+        return (int_enum >= @intFromEnum(InputKey.keyboard_a) and int_enum <= @intFromEnum(InputKey.keyboard_z)) // isLetter
+            or (int_enum >= @intFromEnum(InputKey.keyboard_num_0) and int_enum <= @intFromEnum(InputKey.keyboard_num_9)); // isNumber
     }
 };
 
