@@ -1,4 +1,5 @@
 const std = @import("std");
+const input = @import("input.zig");
 
 const TickParams = struct {
     interface: type,
@@ -51,6 +52,8 @@ pub fn Tick(interface: type) type {
                     try interface.fixedUpdate(self.fixed_delta_time);
                     self.accumulator -= self.fixed_update_interval;
                     stepped = true;
+                    // TODO: Find a better way to cause new frame state for fixedUpdate outside of 'Tick'
+                    input.newFrame();
                 }
                 // If no fixed update was performed, call it at least once.
                 if (!stepped) {

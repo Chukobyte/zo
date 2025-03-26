@@ -4,6 +4,7 @@ const global = @import("global.zig");
 
 const math = zo.math;
 const renderer = zo.renderer;
+const FixedDelegate = zo.delegate.FixedDelegate;
 
 const Transform2D = math.Transform2D;
 const Vec2 = math.Vec2;
@@ -149,8 +150,11 @@ pub const TextLabelComponent = struct {
 };
 
 pub const ClickableComponent = struct {
+    const OnClickDelegate = FixedDelegate(fn (Entity) void, 4);
+
     size: Dim2,
     mouse_hovering: bool = false,
+    on_click: OnClickDelegate = .{},
 };
 
 pub const NodeMatrixInterface = struct {
@@ -287,5 +291,21 @@ pub const TextRenderingSystem = struct {
 
     pub fn getSignature() []const type {
         return &.{ Transform2DComponent, TextLabelComponent };
+    }
+};
+
+pub const UIClickingSystem = struct {
+    var instance: ?*@This() = null;
+
+    pub fn init(self: *@This(), _: *World) !void {
+        instance = self;
+    }
+
+    pub fn deinit(_: *@This(), _: *World) void {
+        instance = null;
+    }
+
+    pub fn getSignature() []const type {
+        return &.{ Transform2DComponent, ClickableComponent };
     }
 };
