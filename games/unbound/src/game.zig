@@ -75,10 +75,10 @@ pub const InitSceneDefinition = struct {
 
 pub const InitEntity = struct {
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
-        move_left_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_left, .keyboard_a  } } );
-        move_right_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_right, .keyboard_d  } } );
-        move_up_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_up, .keyboard_w  } } );
-        move_down_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_down, .keyboard_d  } } );
+        move_left_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_left, .keyboard_a } } );
+        move_right_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_right, .keyboard_d } } );
+        move_up_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_up, .keyboard_w } } );
+        move_down_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_down, .keyboard_d } } );
         global.scene_system.changeScene(MainMenuSceneDefinition);
     }
 };
