@@ -216,9 +216,9 @@ pub const NewCharacterEntity = struct {
     const InputText = struct {
         var handle: ?delegate.SubscriberHandle = null;
         var name_object: ?*GameObject = null;
-        pub fn subscribeToInput(name_obj: *GameObject) void {
+        pub fn subscribeToInput(name_obj: *GameObject) !void {
             name_object = name_obj;
-            handle = input.registered_input_delegate.subscribe(onRegisteredInput);
+            handle = try input.registered_input_delegate.subscribe(onRegisteredInput);
         }
         pub fn unsubscribeFromInput() void {
             if (handle) |h| {
@@ -292,7 +292,7 @@ pub const NewCharacterEntity = struct {
         if (input.isKeyJustPressed(.{ .key = .keyboard_return })) {
             const change_scene: bool = !self.is_typing_name;
             const text_label_comp = world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
-            self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
+            try self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
             InputText.unsubscribeFromInput();
             if (change_scene) {
                 global.scene_system.changeScene(MapSceneDefinition);
@@ -303,16 +303,16 @@ pub const NewCharacterEntity = struct {
             const mouse_pos: Vec2i = getWorldMousePosition();
             if (self.name_collision_rect.doesPointOverlap(&.{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) })) {
                 const text_label_comp = world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
-                self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
+                try self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
             }
         }
     }
 
-    fn setIsTypingName(self: *@This(), is_typing_name: bool, text_label_comp: *TextLabelComponent) void {
+    fn setIsTypingName(self: *@This(), is_typing_name: bool, text_label_comp: *TextLabelComponent) !void {
         self.is_typing_name = is_typing_name;
         if (is_typing_name) {
             text_label_comp.color = math.LinearColor.Red;
-            InputText.subscribeToInput(&self.name_object);
+            try InputText.subscribeToInput(&self.name_object);
         } else {
             text_label_comp.color = math.LinearColor.White;
             InputText.unsubscribeFromInput();
