@@ -60,7 +60,7 @@ pub fn Delegate(comptime FunctionT: type) type {
 
         /// Clears all subscribers
         pub fn clear(self: *@This()) void {
-            self.subscribers.clearAndFree();
+            self.subscribers.clearRetainingCapacity();
         }
     };
 }

@@ -5,17 +5,16 @@ pub const SpatialHashMapParams = struct {
     DataT: type,
 };
 
-// pub fn SpatialHashMap(comptime KeyT: type, comptime DataT: type, cell_size: u32) type {
 pub fn SpatialHashMap(comptime p: SpatialHashMapParams) type {
     const KeyT = p.KeyT;
     const DataT = p.DataT;
 
-    const Cell = struct {
-        data: DataT,
-    };
-    const HashMapT = std.AutoHashMap(KeyT, Cell);
-
     return struct {
+
+        const Cell = struct {
+            data: DataT,
+        };
+        const HashMapT = std.AutoHashMap(KeyT, Cell);
 
         map: HashMapT,
         cell_size: u32,
@@ -31,7 +30,7 @@ pub fn SpatialHashMap(comptime p: SpatialHashMapParams) type {
             self.map.deinit();
         }
 
-        pub fn getCell(self: *@This(), pos: KeyT) !*Cell {
+        pub fn getOrPutCell(self: *@This(), pos: KeyT) !*Cell {
             const entry = try self.map.getOrPut(pos);
             if (!entry.found_existing) {
                 // Assumes DataT can default initialize
@@ -43,7 +42,7 @@ pub fn SpatialHashMap(comptime p: SpatialHashMapParams) type {
             return entry.value_ptr;
         }
 
-        pub fn getExistingCell(self: *@This(), pos: KeyT) !?*Cell {
+        pub fn getCell(self: *@This(), pos: KeyT) !?*Cell {
             const entry = try self.map.getOrPut(pos);
             if (entry.found_existing) {
                 return entry.value_ptr;
@@ -52,7 +51,7 @@ pub fn SpatialHashMap(comptime p: SpatialHashMapParams) type {
         }
 
         pub inline fn hasCell(self: *@This(), pos: KeyT) bool {
-            return self.getExistingCell(pos) catch { return null; } != null;
+            return self.getCell(pos) catch { return null; } != null;
         }
     };
 }

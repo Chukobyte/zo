@@ -16,10 +16,10 @@ test "SpatialHashMap basic insert and retrieve" {
     defer map.deinit();
 
     const pos = Vec2i{ .x = 5, .y = 10 };
-    const cell = try map.getCell(pos);
+    const cell = try map.getOrPutCell(pos);
     cell.data = 99;
 
-    const retrieved = try map.getCell(pos);
+    const retrieved = try map.getOrPutCell(pos);
     try std.testing.expectEqual(@as(u32, 99), retrieved.data);
 }
 
@@ -41,13 +41,13 @@ test "Delegate basic subscribe and broadcast" {
         }
     };
 
-    const handle = delegate.subscribe(Local.callback);
+    const handle = try delegate.subscribe(Local.callback);
     delegate.broadcast(.{ 42 });
 
     try testing.expectEqual(@as(usize, 1), Local.call_count);
     try testing.expectEqual(@as(i32, 42), Local.last_value);
 
-    try delegate.unsubscribe(handle);
+    delegate.unsubscribe(handle);
     delegate.broadcast(.{ 99 });
 
     // Should not call the callback again
