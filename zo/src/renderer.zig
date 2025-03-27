@@ -675,7 +675,7 @@ const FontRenderer = struct {
         for (p.text) |c| {
             const ch = p.font.characters[@intCast(c)];
             const x_pos: f32 = x + @as(f32, @floatFromInt(ch.bearing.x)) * p.scale;
-            const y_pos: f32 = -y - (@as(f32, @floatFromInt(ch.size.y - @as(u32, @intCast(ch.bearing.y)))) * p.scale);
+            const y_pos: f32 = -y - (@as(f32, @floatFromInt(@as(i32, @intCast(ch.size.y)) - ch.bearing.y)) * p.scale);
             const w: f32 = @as(f32, @floatFromInt(ch.size.x)) * p.scale;
             const h: f32 = @as(f32, @floatFromInt(ch.size.y)) * p.scale;
             // Update VBO for each characters

@@ -29,6 +29,7 @@ const GameObjectClass = enum {
     sprite,
     text_label,
     text_box,
+    text_button,
 };
 
 fn GameObjectParams(object_class: GameObjectClass) type {
@@ -50,6 +51,13 @@ fn GameObjectParams(object_class: GameObjectClass) type {
             size: Dim2u,
             text: ?[]const u8 = null,
             line_spacing: f32 = 0.0,
+            transform: Transform2D = Transform2D.Identity,
+            z_index: i32 = 0,
+        },
+        .text_button => return struct {
+            collision: Rect2,
+            font: *Font,
+            text: ?[]const u8 = null,
             transform: Transform2D = Transform2D.Identity,
             z_index: i32 = 0,
         },
@@ -135,6 +143,12 @@ pub const GameObject = struct {
                     const text_label_comp = global.world.getComponent(node.entity, TextLabelComponent).?;
                     try text_label_comp.class.text_box.setText(params.font, text, transform_comp.global.scale.x);
                 }
+            },
+            .text_button => {
+                try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
+                const text_string = if (params.text == null) String.init(global.allocator) else try String.initAndSetRaw(global.allocator, params.text.?);
+                try global.world.setComponent(node.entity, TextLabelComponent, &.{ .class = .{ .label = .{ .text = text_string } }, .font = params.font });
+                try global.world.setComponent(node.entity, ClickableComponent, &.{ .collider = params.collision });
             },
         }
         return @This(){

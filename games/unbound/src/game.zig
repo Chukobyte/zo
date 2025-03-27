@@ -41,14 +41,6 @@ var move_down_input_handle: InputAction.Handle = 0;
 
 /// Maps screen mouse position from window size to render resolution for world mouse position
 fn getWorldMousePosition() Vec2i {
-    // const global_mouse_pos = math.mapToRange(
-    //     Vec2i,
-    //     input.getMousePosition(),
-    //     Vec2i.Zero,
-    //     window.getWindowSize().toVec2(),
-    //     Vec2i.Zero,
-    //     renderer.getResolution().toVec2()
-    // );
     const mouse_pos: Vec2 = .{ .x = @floatFromInt(input.getMousePosition().x), .y = @floatFromInt(input.getMousePosition().y) };
     const window_size: Vec2 = .{ .x = @floatFromInt(window.getWindowSize().w), .y = @floatFromInt(window.getWindowSize().h) };
     const render_resolution: Vec2 = .{ .x = @floatFromInt(renderer.getResolution().w), .y = @floatFromInt(renderer.getResolution().h) };
@@ -57,10 +49,6 @@ fn getWorldMousePosition() Vec2i {
         .y = math.mapToRange(f32, mouse_pos.y, 0.0, window_size.y, 0.0, render_resolution.y)
     };
     const global_mouse_pos: Vec2i = .{ .x = @intFromFloat(global_mouse_position.x), .y = @intFromFloat(global_mouse_position.y) };
-    log(.debug, "global_mouse_pos = {any}", .{ global_mouse_pos });
-    log(.debug, "input.getMousePosition() = {any}", .{ input.getMousePosition() });
-    log(.debug, "window.getWindowSize().toVec2() = {any}", .{ window.getWindowSize().toVec2() });
-    log(.debug, "renderer.getResolution().toVec2() = {any}\n", .{ renderer.getResolution().toVec2() });
     return global_mouse_pos;
 }
 
@@ -282,6 +270,19 @@ pub const NewCharacterEntity = struct {
         self.details_object = try GameObject.initInScene(
             .text_box,
             .{ .font = &global.assets.fonts.verdana_16, .size = .{ .w = 200, .h = 400 }, .text = try self.getCharacterDetailsString(), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 200.0, .y = 140.0 } }, },
+            null,
+            null
+        );
+        // Test button
+        _ = try GameObject.initInScene(
+            .text_button,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 50.0, .h = 50.0 }, .font = &global.assets.fonts.verdana_16, .text = "{-}", .transform = .{ .position = .{ .x = 160.0, .y = 180.0 } } },
+            null,
+            null
+        );
+        _ = try GameObject.initInScene(
+            .text_button,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 50.0, .h = 50.0 }, .font = &global.assets.fonts.verdana_16, .text = "{+}", .transform = .{ .position = .{ .x = 320.0, .y = 180.0 } } },
             null,
             null
         );
