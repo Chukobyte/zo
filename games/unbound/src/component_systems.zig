@@ -21,7 +21,7 @@ const MultiLineString = zo.string.HeapMultiLineString;
 const World = global.World;
 const Node = World.Node;
 const Entity = zo.ecs.Entity;
-const SpatialHashMapT = zo.spatial_hash_map.SpatialHashMap;
+const SpatialHashMap = zo.spatial_hash_map.SpatialHashMap;
 
 const log = zo.log;
 
@@ -154,7 +154,7 @@ pub const TextLabelComponent = struct {
 pub const ClickableComponent = struct {
     const OnClickDelegate = FixedDelegate(fn (Entity) void, 4);
 
-    size: Dim2,
+    collider: Rect2,
     mouse_hovering: bool = false,
     on_click: OnClickDelegate = .{},
 };
@@ -297,13 +297,19 @@ pub const TextRenderingSystem = struct {
 };
 
 pub const UIClickingSystem = struct {
+    const EntitySpatialHashMap = SpatialHashMap(Entity);
+
     var instance: ?*@This() = null;
+
+    spatial_hash_map: EntitySpatialHashMap,
 
     pub fn init(self: *@This(), _: *World) !void {
         instance = self;
+        self.spatial_hash_map = EntitySpatialHashMap.init(global.allocator, 32);
     }
 
-    pub fn deinit(_: *@This(), _: *World) void {
+    pub fn deinit(self: *@This(), _: *World) void {
+        self.spatial_hash_map.deinit();
         instance = null;
     }
 
@@ -311,6 +317,17 @@ pub const UIClickingSystem = struct {
         return &.{ Transform2DComponent, ClickableComponent };
     }
 
-    // pub fn updatePosition(self: *@This(), entity: Entity, position: Vec2) !void {
-    // }
+    pub fn updatePosition(self: *@This(), entity: Entity, pos: Vec2) !void {
+        if (global.world.getComponent(entity, ClickableComponent)) |clickable_comp| {
+            const spatial_collider: Rect2 = .{
+                .x = pos.x + clickable_comp.collider.x, .y = pos.y + clickable_comp.collider.y,
+                .w = clickable_comp.collider.w, .h = clickable_comp.collider.h,
+            };
+            self.spatial_hash_map.updateObjectPosition(entity, spatial_collider);
+        }
+    }
+
+    pub inline fn getClickableEntities(self: *@This(), pos: Vec2) []Entity {
+        return self.spatial_hash_map.getObjects(pos);
+    }
 };
