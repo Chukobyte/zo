@@ -97,12 +97,12 @@ pub fn SpatialHashMap(comptime ObjectT: type) type {
             return &[_]ObjectT{};
         }
 
-        pub fn getCollidedObjects(self: *@This(), pos: Vec2) []ObjectT {
+        pub fn getCollidedObjects(self: *@This(), pos: Vec2) ![]ObjectT {
             const grid_pos = self.toGridPos(pos.x, pos.y);
             if (self.map.get(grid_pos)) |*found_cell| {
                 self.collided_objects_result.clearRetainingCapacity();
-                for (found_cell.objects.items) |*object| {
-                    self.collided_objects_result.append(object);
+                for (found_cell.objects.items) |object| {
+                    try self.collided_objects_result.append(object);
                 }
                 return self.collided_objects_result.items[0..self.collided_objects_result.items.len];
             }
