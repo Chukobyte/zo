@@ -30,6 +30,7 @@ const Vec4 = math.Vec4;
 const Rect2 = math.Rect2;
 const Transform2D = math.Transform2D;
 const Mat4 = math.Mat4;
+const Dim2 = math.Dim2;
 const Dim2i = math.Dim2i;
 const LinearColor = math.LinearColor;
 
@@ -462,6 +463,7 @@ pub const DrawSpriteParams = struct {
     texture: *const Texture,
     source_rect: Rect2,
     global_matrix: *Mat4,
+    dest_size: ?Dim2 = null,
     modulate: LinearColor = .{ .r = 1.0, .g = 1.0, .b = 1.0 },
     flip_h: bool = false,
     flip_v: bool = false,
@@ -579,7 +581,8 @@ const SpriteRenderer = struct {
         glad.glBindVertexArray(render_data.vao);
         glad.glBindBuffer(glad.GL_ARRAY_BUFFER, render_data.vbo);
 
-        const dest_size: Vec3 = .{ .x = @floatFromInt(p.texture.width), .y = @floatFromInt(p.texture.height), .z = 1.0 };
+        const dest_size_2d: Dim2 = p.dest_size orelse .{ .w = @floatFromInt(p.texture.width), .h = @floatFromInt(p.texture.height) };
+        const dest_size: Vec3 = .{ .x = dest_size_2d.w, .y = dest_size_2d.h, .z = 1.0 };
         var models: [max_sprite_count]Mat4 = undefined;
         const number_of_sprites: usize = 1;
         for (0..number_of_sprites) |i| {

@@ -20,6 +20,7 @@ const Transform2DComponent = component_systems.Transform2DComponent;
 const SpriteComponent = component_systems.SpriteComponent;
 const TextLabelComponent = component_systems.TextLabelComponent;
 const ClickableComponent = component_systems.ClickableComponent;
+const ColorRectComponent = component_systems.ColorRectComponent;
 const NodeMatrixInterface = component_systems.NodeMatrixInterface;
 const UIClickingSystem = component_systems.UIClickingSystem;
 
@@ -149,6 +150,7 @@ pub const GameObject = struct {
                 const text_string = if (params.text == null) String.init(global.allocator) else try String.initAndSetRaw(global.allocator, params.text.?);
                 try global.world.setComponent(node.entity, TextLabelComponent, &.{ .class = .{ .label = .{ .text = text_string } }, .font = params.font });
                 try global.world.setComponent(node.entity, ClickableComponent, &.{ .collider = params.collision });
+                try global.world.setComponent(node.entity, ColorRectComponent, &.{ .size = .{ .w = params.collision.w, .h = params.collision.h }, .color = .{ .r = 0.4, .g = 0.4, .b = 0.4 } });
             },
         }
         return @This(){

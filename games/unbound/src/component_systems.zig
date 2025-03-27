@@ -346,6 +346,8 @@ pub const UIClickingSystem = struct {
 
 pub const ColorRectSystem = struct {
 
+    const draw_source: Rect2 = .{ .x = 0.0, .y = 0.0, .w = 1.0, .h = 1.0 };
+
     texture: Texture = undefined,
 
     pub fn init(self: *@This(), _: *World) !void {
@@ -354,6 +356,28 @@ pub const ColorRectSystem = struct {
 
     pub fn deinit(self: *@This(), _: *World) void {
         self.texture.deinit();
+    }
+
+    pub fn postWorldTick(self: *@This(), world: *World) !void {
+        const ComponentIterator = World.ArchetypeComponentIterator(getSignature());
+        var comp_iter = ComponentIterator.init(world);
+        while (comp_iter.next()) |iter| {
+            if (global.scene_system.getNode(iter.getEntity())) |node| {
+                global.scene_system.updateNodeGlobalMatrix(NodeMatrixInterface, node);
+                const transform_comp = iter.getComponent(Transform2DComponent);
+                const color_rect = iter.getComponent(ColorRectComponent);
+                try renderer.queueSpriteDraw(&.{
+                    .texture = &self.texture,
+                    .source_rect = draw_source,
+                    .global_matrix = &transform_comp.global_matrix,
+                    .dest_size = color_rect.size,
+                    .modulate = color_rect.color,
+                    .flip_h = false,
+                    .flip_v = false,
+                    .z_index =  transform_comp.z_index - 1,
+                });
+            }
+        }
     }
 
     pub fn getSignature() []const type {
