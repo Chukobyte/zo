@@ -15,18 +15,21 @@ const AudioSource = audio.AudioSource;
 const Transform2DComponent = component_systems.Transform2DComponent;
 const SpriteComponent = component_systems.SpriteComponent;
 const TextLabelComponent = component_systems.TextLabelComponent;
+const ClickableComponent = component_systems.ClickableComponent;
 const SpriteRenderingSystem = component_systems.SpriteRenderingSystem;
 const TextRenderingSystem = component_systems.TextRenderingSystem;
+const UIClickingSystem = component_systems.UIClickingSystem;
 
 pub const World = ecs.ECSWorld(.{
     .entity_interfaces = &.{
         game.InitEntity, game.MainMenuEntity, game.NewGameEntity, game.ExistingCharacterEntity, game.NewCharacterEntity, game.LocationEntity, game.MapEntity
     },
-    .components = &.{ Transform2DComponent, SpriteComponent, TextLabelComponent },
-    .systems = &.{ SpriteRenderingSystem, TextRenderingSystem },
+    .components = &.{ Transform2DComponent, SpriteComponent, TextLabelComponent, ClickableComponent },
+    .systems = &.{ SpriteRenderingSystem, TextRenderingSystem, UIClickingSystem },
     .archetypes = @as([]const []const type, &.{
         &.{ Transform2DComponent, SpriteComponent },
         &.{ Transform2DComponent, TextLabelComponent },
+        &.{ Transform2DComponent, ClickableComponent },
     }),
 });
 

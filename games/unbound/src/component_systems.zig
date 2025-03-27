@@ -299,13 +299,13 @@ pub const TextRenderingSystem = struct {
 pub const UIClickingSystem = struct {
     const EntitySpatialHashMap = SpatialHashMap(Entity);
 
-    var instance: ?*@This() = null;
+    pub var instance: ?*@This() = null;
 
-    spatial_hash_map: EntitySpatialHashMap,
+    spatial_hash_map: EntitySpatialHashMap = undefined,
 
     pub fn init(self: *@This(), _: *World) !void {
         instance = self;
-        self.spatial_hash_map = EntitySpatialHashMap.init(global.allocator, 32);
+        self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 32);
     }
 
     pub fn deinit(self: *@This(), _: *World) void {
@@ -325,7 +325,7 @@ pub const UIClickingSystem = struct {
                 .x = pos.x + clickable_comp.collider.x, .y = pos.y + clickable_comp.collider.y,
                 .w = clickable_comp.collider.w, .h = clickable_comp.collider.h,
             };
-            self.spatial_hash_map.updateObjectPosition(entity, spatial_collider);
+            try self.spatial_hash_map.updateObjectPosition(entity, spatial_collider);
         }
     }
 

@@ -574,7 +574,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                     world.system_data[i].component_signature = .{};
                 }
                 if (@hasDecl(SystemT, "init")) {
-                    new_system.init(world);
+                    try new_system.init(&world);
                 }
             }
             return world;
