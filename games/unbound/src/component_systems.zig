@@ -327,7 +327,7 @@ pub const UIClickingSystem = struct {
         }
     }
 
-    pub inline fn getClickableEntities(self: *@This(), pos: Vec2) []Entity {
+    pub inline fn getClickedEntities(self: *@This(), pos: Vec2) []Entity {
         return self.spatial_hash_map.getObjects(pos);
     }
 };
