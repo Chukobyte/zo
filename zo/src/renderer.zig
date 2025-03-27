@@ -186,6 +186,7 @@ pub const Texture = struct {
     wrap_t: GLint = glad.GL_CLAMP_TO_BORDER,
     using_nearest_neighbor: bool = true,
     file_path: ?[]u8 = null,
+    is_white_square: bool = false,
 
     const EmptyTexture: Texture = .{ .id = undefined, .data = undefined, .width = undefined, .height = undefined, .nr_channels = undefined, .allocator = undefined, .image_format = undefined  };
 
@@ -210,12 +211,33 @@ pub const Texture = struct {
         return try initFromMemory(allocator, asset.ptr, asset.len, nearest_neighbor);
     }
 
+    pub inline fn initWhiteSquare(allocator: std.mem.Allocator, nearest_neighbor: bool, size: Dim2i) !@This() {
+        var texture: Texture = initImpl(allocator, nearest_neighbor);
+        texture.nr_channels = 4;
+        texture.width = size.w;
+        texture.height = size.h;
+        texture.is_white_square = true;
+        const data_size: usize = @intCast(size.w * size.h * texture.nr_channels);
+        const data: []u8 = try allocator.alloc(u8, data_size);
+        texture.data = @ptrCast(data);
+        for (0..data_size) |i| {
+            texture.data[i] = 255;
+        }
+        try texture.generate();
+        return texture;
+    }
+
     pub fn deinit(self: *@This()) void {
         if (self.file_path) |file_path| {
             self.allocator.free(file_path);
         }
         if (self.data != null) {
-            stb_image.stbi_image_free(self.data);
+            if (self.is_white_square) {
+                const data: []u8 = std.mem.span(self.data);
+                self.allocator.free(data);
+            } else {
+                stb_image.stbi_image_free(self.data);
+            }
         }
     }
 

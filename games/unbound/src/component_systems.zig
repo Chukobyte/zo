@@ -159,6 +159,11 @@ pub const ClickableComponent = struct {
     on_click: OnClickDelegate = .{},
 };
 
+pub const ColorRectComponent = struct {
+    size: Dim2,
+    color: LinearColor,
+};
+
 pub const NodeMatrixInterface = struct {
     pub fn setGlobalMatrixDirty(node: *Node, is_dirty: bool) void {
         if (global.world.getComponent(node.entity, Transform2DComponent)) |transform_comp| {
@@ -336,5 +341,22 @@ pub const UIClickingSystem = struct {
 
     pub inline fn getClickedEntities(self: *@This(), pos: Vec2) []Entity {
         return self.spatial_hash_map.getObjects(pos);
+    }
+};
+
+pub const ColorRectSystem = struct {
+
+    texture: Texture = undefined,
+
+    pub fn init(self: *@This(), _: *World) !void {
+        self.texture = try Texture.initWhiteSquare(global.allocator, true, .{ .w = 1, .h = 1 });
+    }
+
+    pub fn deinit(self: *@This(), _: *World) void {
+        self.texture.deinit();
+    }
+
+    pub fn getSignature() []const type {
+        return &.{ Transform2DComponent, ColorRectComponent };
     }
 };
