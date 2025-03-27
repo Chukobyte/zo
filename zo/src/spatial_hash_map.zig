@@ -113,14 +113,13 @@ pub fn SpatialHashMap(comptime ObjectT: type) type {
                 const collider = &object_data.collider;
                 for (0..object_data.cell_list.len) |i| {
                     const cell: *Cell = object_data.cell_list.items[i];
-                    _ = collider; _ = cell;
-                    // for (cell.objects.items) |other_object| {
-                    //     if (object == other_object) { continue; }
-                    //     const other_collider = &self.object_to_data_map.get(other_object).?.collider;
-                    //     if (collider.doesOverlap(other_collider)) {
-                    //         try self.collided_objects_result.append(other_object);
-                    //     }
-                    // }
+                    for (cell.objects.items) |other_object| {
+                        if (object == other_object) { continue; }
+                        const other_collider = &self.object_to_data_map.get(other_object).?.collider;
+                        if (collider.doesOverlap(other_collider)) {
+                            try self.collided_objects_result.append(other_object);
+                        }
+                    }
                 }
             }
             return self.collided_objects_result.items[0..self.collided_objects_result.items.len];
