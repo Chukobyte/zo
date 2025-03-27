@@ -23,12 +23,12 @@ test "SpatialHashMap basic insert and retrieve" {
     try std.testing.expectEqual(1, objects.len);
     try std.testing.expectEqual(47, objects[0]);
 
-    const collided_objects: []u32 = try map.getCollidedObjects(.{ .x = 10.0, .y = 30.0 });
+    const collided_objects: []u32 = try map.getCollidedObjectsFromPoint(.{ .x = 10.0, .y = 30.0 });
     try std.testing.expectEqual(1, collided_objects.len);
     try std.testing.expectEqual(47, collided_objects[0]);
 
-    // const non_collided_objects: []u32 = try map.getCollidedObjects(.{ .x = 20.0, .y = 91.0 });
-    // try std.testing.expectEqual(0, non_collided_objects.len);
+    const non_collided_objects: []u32 = try map.getCollidedObjectsFromPoint(.{ .x = 20.0, .y = 91.0 });
+    try std.testing.expectEqual(0, non_collided_objects.len);
 
     map.removeObject(47);
     const empty_objects: []u32 = map.getObjects(.{ .x = 10.0, .y = 30.0 });
