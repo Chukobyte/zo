@@ -43,41 +43,41 @@ test "SpatialHashMap multiple objects collision" {
     defer map.deinit();
 
     // Insert two objects with overlapping colliders.
-    const colliderA: Rect2 = .{ .x = 10.0, .y = 10.0, .w = 50.0, .h = 50.0 };
-    const colliderB: Rect2 = .{ .x = 40.0, .y = 40.0, .w = 50.0, .h = 50.0 };
-    try map.updateObjectPosition(1, colliderA);
-    try map.updateObjectPosition(2, colliderB);
+    const collider_a: Rect2 = .{ .x = 10.0, .y = 10.0, .w = 50.0, .h = 50.0 };
+    const collider_b: Rect2 = .{ .x = 40.0, .y = 40.0, .w = 50.0, .h = 50.0 };
+    try map.updateObjectPosition(1, collider_a);
+    try map.updateObjectPosition(2, collider_b);
 
     // Insert a third object that does not overlap.
-    const colliderC: Rect2 = .{ .x = 200.0, .y = 200.0, .w = 30.0, .h = 30.0 };
-    try map.updateObjectPosition(3, colliderC);
+    const collider_c: Rect2 = .{ .x = 200.0, .y = 200.0, .w = 30.0, .h = 30.0 };
+    try map.updateObjectPosition(3, collider_c);
 
     // TODO: Fix getCollidedObjects as it causes segmentation fault due to accssing the object list in the cell...
-    // // Test collision: Object 1 should see object 2, and vice versa.
-    // const collided1 = try map.getCollidedObjects(1);
-    // try std.testing.expectEqual(1, collided1.len);
-    // try std.testing.expectEqual(2, collided1[0]);
-    //
-    // const collided2 = try map.getCollidedObjects(2);
-    // try std.testing.expectEqual(1, collided2.len);
-    // try std.testing.expectEqual(1, collided2[0]);
+    // Test collision: Object 1 should see object 2, and vice versa.
+    const collided_1 = try map.getCollidedObjects(1);
+    try std.testing.expectEqual(1, collided_1.len);
+    try std.testing.expectEqual(2, collided_1[0]);
+
+    const collided_2 = try map.getCollidedObjects(2);
+    try std.testing.expectEqual(1, collided_2.len);
+    try std.testing.expectEqual(1, collided_2[0]);
 
     // Object 3 should have no collisions.
-    const collided3 = try map.getCollidedObjects(3);
-    try std.testing.expectEqual(0, collided3.len);
+    const collided_3 = try map.getCollidedObjects(3);
+    try std.testing.expectEqual(0, collided_3.len);
 
     // Query from a point in the overlapping area.
     const point: Vec2 = .{ .x = 45.0, .y = 45.0 };
-    const collidedFromPoint = try map.getCollidedObjectsFromPoint(point);
+    const collided_from_point = try map.getCollidedObjectsFromPoint(point);
     // Expect that both object 1 and 2 are reported.
-    var found1 = false;
-    var found2 = false;
-    for (collidedFromPoint) |obj| {
-        if (obj == 1) found1 = true;
-        if (obj == 2) found2 = true;
+    var found_1 = false;
+    var found_2 = false;
+    for (collided_from_point) |obj| {
+        if (obj == 1) found_1 = true;
+        if (obj == 2) found_2 = true;
     }
-    try std.testing.expect(found1);
-    try std.testing.expect(found2);
+    try std.testing.expect(found_1);
+    try std.testing.expect(found_2);
 }
 
 test "SpatialHashMap update moves object" {

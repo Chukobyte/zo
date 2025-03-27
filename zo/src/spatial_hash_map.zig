@@ -58,12 +58,21 @@ pub fn SpatialHashMap(comptime ObjectT: type) type {
         collided_objects_result: ObjectList,
 
         pub fn init(allocator: std.mem.Allocator, cell_size: usize) !@This() {
-            return @This(){
+            // return @This(){
+            //     .map = HashMapT.init(allocator),
+            //     .object_to_data_map = ObjectToDataMap.init(allocator),
+            //     .cell_size = cell_size,
+            //     .collided_objects_result = ObjectList.init(allocator),
+            // };
+            // TODO: Store cell coords in entity data instead of raw cell pointers, which become invalidated when hashmap resizes...
+            var spatial_hash_map = @This(){
                 .map = HashMapT.init(allocator),
                 .object_to_data_map = ObjectToDataMap.init(allocator),
                 .cell_size = cell_size,
                 .collided_objects_result = ObjectList.init(allocator),
             };
+            try spatial_hash_map.map.ensureTotalCapacity(100);
+            return spatial_hash_map;
         }
 
         pub fn deinit(self: *@This()) void {
