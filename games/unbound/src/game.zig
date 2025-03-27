@@ -25,6 +25,7 @@ const Node = World.Node;
 const GameObject = object.GameObject;
 const Location = state.Location;
 const TextLabelComponent = component_systems.TextLabelComponent;
+const UIClickingSystem = component_systems.UIClickingSystem;
 const InputAction = input.InputAction;
 const InputKey = input.InputKey;
 const InputEvent = input.InputEvent;
@@ -258,6 +259,8 @@ pub const NewCharacterEntity = struct {
     details_object: GameObject = undefined,
     name_collision_rect: Rect2 = .{ .x = 200.0, .y = 80.0, .w = 200, .h = 100 },
     is_typing_name: bool = false,
+    add_lead_object: GameObject = undefined,
+    sub_lead_object: GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         self.character.name = String.init(global.allocator);
@@ -274,13 +277,13 @@ pub const NewCharacterEntity = struct {
             null
         );
         // Test button
-        _ = try GameObject.initInScene(
+        self.add_lead_object = try GameObject.initInScene(
             .text_button,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 50.0, .h = 50.0 }, .font = &global.assets.fonts.verdana_16, .text = "{-}", .transform = .{ .position = .{ .x = 160.0, .y = 180.0 } } },
             null,
             null
         );
-        _ = try GameObject.initInScene(
+        self.sub_lead_object = try GameObject.initInScene(
             .text_button,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 50.0, .h = 50.0 }, .font = &global.assets.fonts.verdana_16, .text = "{+}", .transform = .{ .position = .{ .x = 320.0, .y = 180.0 } } },
             null,
@@ -306,6 +309,10 @@ pub const NewCharacterEntity = struct {
                 const text_label_comp = world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
                 try self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
             }
+
+            // Check clickable system
+            const clicked_entities = UIClickingSystem.instance.?.getClickedEntities(.{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) });
+            log(.debug, "click_entities = {any}", .{ clicked_entities });
         }
     }
 

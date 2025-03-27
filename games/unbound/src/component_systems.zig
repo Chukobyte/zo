@@ -323,7 +323,8 @@ pub const UIClickingSystem = struct {
 
     pub fn updatePosition(self: *@This(), entity: Entity) !void {
         const transform_comp = global.world.getComponent(entity, Transform2DComponent).?;
-        const pos = &transform_comp.global.position;
+        // TODO: Fix so it relies on global position
+        const pos = &transform_comp.local.position;
         if (global.world.getComponent(entity, ClickableComponent)) |clickable_comp| {
             const spatial_collider: Rect2 = .{
                 .x = pos.x + clickable_comp.collider.x, .y = pos.y + clickable_comp.collider.y,
