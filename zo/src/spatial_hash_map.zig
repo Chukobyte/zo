@@ -47,12 +47,14 @@ pub fn SpatialHashMap(comptime ObjectT: type) type {
         map: HashMapT,
         object_to_cells_map: ObjectToCellMap,
         cell_size: usize,
+        collided_objects_result: ObjectList,
 
         pub fn init(allocator: std.mem.Allocator, cell_size: usize) !@This() {
             return @This(){
                 .map = HashMapT.init(allocator),
                 .object_to_cells_map = ObjectToCellMap.init(allocator),
                 .cell_size = cell_size,
+                .collided_objects_result = ObjectList.init(allocator),
             };
         }
 
@@ -63,6 +65,7 @@ pub fn SpatialHashMap(comptime ObjectT: type) type {
             }
             self.map.deinit();
             self.object_to_cells_map.deinit();
+            self.collided_objects_result.deinit();
         }
 
         pub fn updateObjectPosition(self: *@This(), object: ObjectT, collision: Rect2) !void {
@@ -90,6 +93,18 @@ pub fn SpatialHashMap(comptime ObjectT: type) type {
             const grid_pos = self.toGridPos(pos.x, pos.y);
             if (self.map.get(grid_pos)) |*found_cell| {
                 return found_cell.objects.items[0..found_cell.objects.items.len];
+            }
+            return &[_]ObjectT{};
+        }
+
+        pub fn getCollidedObjects(self: *@This(), pos: Vec2) []ObjectT {
+            const grid_pos = self.toGridPos(pos.x, pos.y);
+            if (self.map.get(grid_pos)) |*found_cell| {
+                self.collided_objects_result.clearRetainingCapacity();
+                for (found_cell.objects.items) |*object| {
+                    self.collided_objects_result.append(object);
+                }
+                return self.collided_objects_result.items[0..self.collided_objects_result.items.len];
             }
             return &[_]ObjectT{};
         }
