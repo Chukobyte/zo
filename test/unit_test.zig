@@ -35,49 +35,49 @@ test "SpatialHashMap basic insert and retrieve" {
     try std.testing.expectEqual(0, empty_objects.len);
 }
 
-// test "SpatialHashMap multiple objects collision" {
-//     const SpatialHashMapT = zo.spatial_hash_map.SpatialHashMap;
-//     const SpatialHashMap = SpatialHashMapT(u32);
-//     const allocator = std.testing.allocator;
-//     var map = try SpatialHashMap.init(allocator, 32);
-//     defer map.deinit();
-//
-//     // Insert two objects with overlapping colliders.
-//     const colliderA: Rect2 = .{ .x = 10.0, .y = 10.0, .w = 50.0, .h = 50.0 };
-//     const colliderB: Rect2 = .{ .x = 40.0, .y = 40.0, .w = 50.0, .h = 50.0 };
-//     try map.updateObjectPosition(1, colliderA);
-//     try map.updateObjectPosition(2, colliderB);
-//
-//     // Insert a third object that does not overlap.
-//     const colliderC: Rect2 = .{ .x = 200.0, .y = 200.0, .w = 30.0, .h = 30.0 };
-//     try map.updateObjectPosition(3, colliderC);
-//
-//     // Test collision: Object 1 should see object 2, and vice versa.
-//     const collided1 = try map.getCollidedObjects(1);
-//     try std.testing.expectEqual(1, collided1.len);
-//     try std.testing.expectEqual(2, collided1[0]);
-//
-//     const collided2 = try map.getCollidedObjects(2);
-//     try std.testing.expectEqual(1, collided2.len);
-//     try std.testing.expectEqual(1, collided2[0]);
-//
-//     // Object 3 should have no collisions.
-//     const collided3 = try map.getCollidedObjects(3);
-//     try std.testing.expectEqual(0, collided3.len);
-//
-//     // Query from a point in the overlapping area.
-//     const point: Vec2 = .{ .x = 45.0, .y = 45.0 };
-//     const collidedFromPoint = try map.getCollidedObjectsFromPoint(point);
-//     // Expect that both object 1 and 2 are reported.
-//     var found1 = false;
-//     var found2 = false;
-//     for (collidedFromPoint) |obj| {
-//         if (obj == 1) found1 = true;
-//         if (obj == 2) found2 = true;
-//     }
-//     try std.testing.expect(found1);
-//     try std.testing.expect(found2);
-// }
+test "SpatialHashMap multiple objects collision" {
+    const SpatialHashMapT = zo.spatial_hash_map.SpatialHashMap;
+    const SpatialHashMap = SpatialHashMapT(u32);
+    const allocator = std.testing.allocator;
+    var map = try SpatialHashMap.init(allocator, 32);
+    defer map.deinit();
+
+    // Insert two objects with overlapping colliders.
+    const colliderA: Rect2 = .{ .x = 10.0, .y = 10.0, .w = 50.0, .h = 50.0 };
+    const colliderB: Rect2 = .{ .x = 40.0, .y = 40.0, .w = 50.0, .h = 50.0 };
+    try map.updateObjectPosition(1, colliderA);
+    try map.updateObjectPosition(2, colliderB);
+
+    // Insert a third object that does not overlap.
+    const colliderC: Rect2 = .{ .x = 200.0, .y = 200.0, .w = 30.0, .h = 30.0 };
+    try map.updateObjectPosition(3, colliderC);
+
+    // Test collision: Object 1 should see object 2, and vice versa.
+    const collided1 = try map.getCollidedObjects(1);
+    try std.testing.expectEqual(1, collided1.len);
+    try std.testing.expectEqual(2, collided1[0]);
+
+    const collided2 = try map.getCollidedObjects(2);
+    try std.testing.expectEqual(1, collided2.len);
+    try std.testing.expectEqual(1, collided2[0]);
+
+    // Object 3 should have no collisions.
+    const collided3 = try map.getCollidedObjects(3);
+    try std.testing.expectEqual(0, collided3.len);
+
+    // Query from a point in the overlapping area.
+    const point: Vec2 = .{ .x = 45.0, .y = 45.0 };
+    const collidedFromPoint = try map.getCollidedObjectsFromPoint(point);
+    // Expect that both object 1 and 2 are reported.
+    var found1 = false;
+    var found2 = false;
+    for (collidedFromPoint) |obj| {
+        if (obj == 1) found1 = true;
+        if (obj == 2) found2 = true;
+    }
+    try std.testing.expect(found1);
+    try std.testing.expect(found2);
+}
 
 test "SpatialHashMap update moves object" {
     const SpatialHashMapT = zo.spatial_hash_map.SpatialHashMap;

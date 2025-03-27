@@ -109,16 +109,18 @@ pub fn SpatialHashMap(comptime ObjectT: type) type {
 
         pub fn getCollidedObjects(self: *@This(), object: ObjectT) ![]ObjectT {
             self.collided_objects_result.clearRetainingCapacity();
-            if (self.object_to_data_map.get(object)) |*object_data| {
+            if (self.object_to_data_map.getPtr(object)) |object_data| {
                 const collider = &object_data.collider;
-                for (0..object_data.cell_list.items.len) |i| {
-                    for (object_data.cell_list.items[i].objects.items) |other_object| {
-                        if (object == other_object) { continue; }
-                        const other_collider = &self.object_to_data_map.get(other_object).?.collider;
-                        if (collider.doesOverlap(other_collider)) {
-                            try self.collided_objects_result.append(other_object);
-                        }
-                    }
+                for (0..object_data.cell_list.len) |i| {
+                    const cell: *Cell = object_data.cell_list.items[i];
+                    _ = collider; _ = cell;
+                    // for (cell.objects.items) |other_object| {
+                    //     if (object == other_object) { continue; }
+                    //     const other_collider = &self.object_to_data_map.get(other_object).?.collider;
+                    //     if (collider.doesOverlap(other_collider)) {
+                    //         try self.collided_objects_result.append(other_object);
+                    //     }
+                    // }
                 }
             }
             return self.collided_objects_result.items[0..self.collided_objects_result.items.len];
@@ -140,7 +142,7 @@ pub fn SpatialHashMap(comptime ObjectT: type) type {
         }
 
         pub fn removeObject(self: *@This(), object: ObjectT) void {
-            if (self.object_to_data_map.get(object)) |*object_data| {
+            if (self.object_to_data_map.getPtr(object)) |object_data| {
                 for (0..object_data.cell_list.len) |i| {
                     object_data.cell_list.items[i].removeObject(object);
                 }
