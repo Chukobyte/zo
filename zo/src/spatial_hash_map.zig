@@ -7,6 +7,10 @@ const Vec2i = math.Vec2i;
 const Rect2 = math.Rect2;
 const ArrayListUtils = misc.ArrayListUtils;
 
+const SpatialHashMapError = error {
+    FailedToAddToCell,
+};
+
 pub fn SpatialHashMap(comptime ObjectT: type) type {
     return struct {
 
@@ -87,6 +91,8 @@ pub fn SpatialHashMap(comptime ObjectT: type) type {
             for (grid_positions) |grid_pos| {
                 if (try self.addObjectToCell(grid_pos, object)) |cell| {
                     _ = object_data.cell_list.addUniqueCell(cell);
+                } else {
+                    return SpatialHashMapError.FailedToAddToCell;
                 }
             }
             _ = self.object_to_data_map.remove(object);
@@ -105,12 +111,12 @@ pub fn SpatialHashMap(comptime ObjectT: type) type {
             self.collided_objects_result.clearRetainingCapacity();
             if (self.object_to_data_map.get(object)) |*object_data| {
                 const collider = &object_data.collider;
-                for (0..object_data.cell_list.items) |i| {
+                for (0..object_data.cell_list.items.len) |i| {
                     for (object_data.cell_list.items[i].objects.items) |other_object| {
                         if (object == other_object) { continue; }
                         const other_collider = &self.object_to_data_map.get(other_object).?.collider;
                         if (collider.doesOverlap(other_collider)) {
-                            self.collided_objects_result.append(other_object);
+                            try self.collided_objects_result.append(other_object);
                         }
                     }
                 }
@@ -149,8 +155,8 @@ pub fn SpatialHashMap(comptime ObjectT: type) type {
 
         fn addObjectToCell(self: *@This(), grid_pos: Vec2i, object: ObjectT) !?*Cell {
             var cell: *Cell = undefined;
-            if (self.map.get(grid_pos)) |*found_cell| {
-                cell = @constCast(found_cell);
+            if (self.map.getEntry(grid_pos)) |entry| {
+                cell = entry.value_ptr;
             } else {
                 const get_put_obj = try self.map.getOrPut(grid_pos);
                 cell = get_put_obj.value_ptr;
