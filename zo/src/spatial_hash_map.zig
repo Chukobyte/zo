@@ -77,6 +77,8 @@ pub fn SpatialHashMap(comptime ObjectT: type) type {
         }
 
         pub fn updateObjectPosition(self: *@This(), object: ObjectT, collision: Rect2) !void {
+            // Remove object to clear old data before updating
+            self.removeObject(object);
             const grid_positions: [4]Vec2i = .{
                 // top left
                 self.toGridPos(collision.x, collision.y),
@@ -91,8 +93,6 @@ pub fn SpatialHashMap(comptime ObjectT: type) type {
             for (grid_positions) |grid_pos| {
                 if (try self.addObjectToCell(grid_pos, object)) |cell| {
                     _ = object_data.cell_list.addUniqueCell(cell);
-                } else {
-                    return SpatialHashMapError.FailedToAddToCell;
                 }
             }
             _ = self.object_to_data_map.remove(object);

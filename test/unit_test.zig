@@ -79,31 +79,31 @@ test "SpatialHashMap basic insert and retrieve" {
 //     try std.testing.expect(found2);
 // }
 
-// test "SpatialHashMap update moves object" {
-//     const SpatialHashMapT = zo.spatial_hash_map.SpatialHashMap;
-//     const SpatialHashMap = SpatialHashMapT(u32);
-//     const allocator = std.testing.allocator;
-//     var map = try SpatialHashMap.init(allocator, 32);
-//     defer map.deinit();
-//
-//     // Insert an object at a given position.
-//     const collider1: Rect2 = .{ .x = 10.0, .y = 10.0, .w = 20.0, .h = 20.0 };
-//     try map.updateObjectPosition(10, collider1);
-//     const objects1 = map.getObjects(.{ .x = 10.0, .y = 10.0 });
-//     try std.testing.expectEqual(1, objects1.len);
-//     try std.testing.expectEqual(10, objects1[0]);
-//
-//     // Update its position to a different grid cell.
-//     const collider2: Rect2 = .{ .x = 100.0, .y = 100.0, .w = 20.0, .h = 20.0 };
-//     try map.updateObjectPosition(10, collider2);
-//     // The old cell should now be empty.
-//     const objectsOld = map.getObjects(.{ .x = 10.0, .y = 10.0 });
-//     try std.testing.expectEqual(0, objectsOld.len);
-//     // The new cell should contain the object.
-//     const objectsNew = map.getObjects(.{ .x = 100.0, .y = 100.0 });
-//     try std.testing.expectEqual(1, objectsNew.len);
-//     try std.testing.expectEqual(10, objectsNew[0]);
-// }
+test "SpatialHashMap update moves object" {
+    const SpatialHashMapT = zo.spatial_hash_map.SpatialHashMap;
+    const SpatialHashMap = SpatialHashMapT(u32);
+    const allocator = std.testing.allocator;
+    var map = try SpatialHashMap.init(allocator, 32);
+    defer map.deinit();
+
+    // Insert an object at a given position.
+    const collider_1: Rect2 = .{ .x = 10.0, .y = 10.0, .w = 20.0, .h = 20.0 };
+    try map.updateObjectPosition(10, collider_1);
+    const objects_1 = map.getObjects(.{ .x = 10.0, .y = 10.0 });
+    try std.testing.expectEqual(1, objects_1.len);
+    try std.testing.expectEqual(10, objects_1[0]);
+
+    // Update its position to a different grid cell.
+    const collider_2: Rect2 = .{ .x = 100.0, .y = 100.0, .w = 20.0, .h = 20.0 };
+    try map.updateObjectPosition(10, collider_2);
+    // The old cell should now be empty.
+    const objects_old = map.getObjects(.{ .x = 10.0, .y = 10.0 });
+    try std.testing.expectEqual(0, objects_old.len);
+    // The new cell should contain the object.
+    const objects_new = map.getObjects(.{ .x = 100.0, .y = 100.0 });
+    try std.testing.expectEqual(1, objects_new.len);
+    try std.testing.expectEqual(10, objects_new[0]);
+}
 
 test "SpatialHashMap removal cleans up cells" {
     const SpatialHashMapT = zo.spatial_hash_map.SpatialHashMap;
