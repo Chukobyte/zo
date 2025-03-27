@@ -313,6 +313,10 @@ pub const UIClickingSystem = struct {
         instance = null;
     }
 
+    pub fn onEntityRegistered(self: *@This(), _: *World, entity: Entity) void {
+        self.updatePosition(entity) catch { log(.critical, "Failed to update position on registered for entity = {d}", .{ entity }); };
+    }
+
     pub fn getSignature() []const type {
         return &.{ Transform2DComponent, ClickableComponent };
     }
