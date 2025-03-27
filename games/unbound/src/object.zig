@@ -19,6 +19,7 @@ const Node = World.Node;
 const Transform2DComponent = component_systems.Transform2DComponent;
 const SpriteComponent = component_systems.SpriteComponent;
 const TextLabelComponent = component_systems.TextLabelComponent;
+const ClickableComponent = component_systems.ClickableComponent;
 const NodeMatrixInterface = component_systems.NodeMatrixInterface;
 const UIClickingSystem = component_systems.UIClickingSystem;
 
@@ -81,32 +82,34 @@ pub const GameObject = struct {
         transform_comp.local.position = pos;
         transform_comp.is_global_dirty = true;
         global.scene_system.updateNodeGlobalMatrix(NodeMatrixInterface, self.node);
-        UIClickingSystem.instance.?.updatePosition(self.node.entity) catch { log(.critical, "Failed to set node local position!  Node = {any}", .{ self.node }); };
+        self.onMovementUpdate("set local position");
     }
+
     /// Updates local position (add to it)
     pub fn updateLocalPosition(self: *@This(), pos: Vec2) void {
         const transform_comp = global.world.getComponent(self.node.entity, Transform2DComponent).?;
         transform_comp.local.position = transform_comp.local.position.add(&pos);
         transform_comp.is_global_dirty = true;
         global.scene_system.updateNodeGlobalMatrix(NodeMatrixInterface, self.node);
-        UIClickingSystem.instance.?.updatePosition(self.node.entity) catch { log(.critical, "Failed to update node local position!  Node = {any}", .{ self.node }); };
+        self.onMovementUpdate("update local position");
     }
+
     /// Overrides global position
     pub fn setGlobalPosition(self: *@This(), pos: Vec2) void {
         const transform_comp = global.world.getComponent(self.node.entity, Transform2DComponent).?;
         transform_comp.global.position = pos;
         transform_comp.global_matrix = transform_comp.global.toMat4();
         global.scene_system.updateNodeLocalMatrix(NodeMatrixInterface, global.scene_system.getNode(self.node.entity).?);
-        UIClickingSystem.instance.?.updatePosition(self.node.entity) catch { log(.critical, "Failed to set node global position!  Node = {any}", .{ self.node }); };
+        self.onMovementUpdate("set global position");
     }
+
     /// Updates global position (add to it)
     pub fn updateGlobalPosition(self: *@This(), pos: Vec2) void {
         const transform_comp = global.world.getComponent(self.node.entity, Transform2DComponent).?;
         transform_comp.global.position = transform_comp.global.position.add(&pos);
         transform_comp.global_matrix = transform_comp.global.toMat4();
         global.scene_system.updateNodeLocalMatrix(NodeMatrixInterface, global.scene_system.getNode(self.node.entity).?);
-        UIClickingSystem.instance.?.updatePosition(self.node.entity) catch { log(.critical, "Failed to update node global position!  Node = {any}", .{ self.node }); };
-
+        self.onMovementUpdate("update global position");
     }
 
     pub inline fn isValid(self: *const @This()) bool {
@@ -138,5 +141,11 @@ pub const GameObject = struct {
             .node = node,
             .class = object_class,
         };
+    }
+
+    fn onMovementUpdate(self: *@This(), context: []const u8) void {
+        if (global.world.hasComponent(self.node.entity,ClickableComponent)) {
+            UIClickingSystem.instance.?.updatePosition(self.node.entity) catch { log(.critical, "Failed to {s}!  Node = {any}", .{ context, self.node }); };
+        }
     }
 };
