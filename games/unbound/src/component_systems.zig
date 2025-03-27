@@ -297,25 +297,13 @@ pub const TextRenderingSystem = struct {
 };
 
 pub const UIClickingSystem = struct {
-    const SpatialHashMap = SpatialHashMapT(.{ .KeyT = Vec2i, .DataT = std.ArrayList(Entity) });
-    const Cell = SpatialHashMap.Cell;
-    const EntityToCellsHashMap = std.AutoHashMap(Entity, std.ArrayList(*Cell));
-    const cell_size = 32;
-
     var instance: ?*@This() = null;
-
-    spatial_hash_map: SpatialHashMap = undefined,
-    entity_to_cells_map: EntityToCellsHashMap,
 
     pub fn init(self: *@This(), _: *World) !void {
         instance = self;
-        self.spatial_hash_map = SpatialHashMap.init(global.allocator, 32);
-        self.entity_to_cells_map = EntityToCellsHashMap.init(global.allocator);
     }
 
-    pub fn deinit(self: *@This(), _: *World) void {
-        self.spatial_hash_map.deinit();
-        self.entity_to_cells_map.deinit();
+    pub fn deinit(_: *@This(), _: *World) void {
         instance = null;
     }
 
@@ -323,34 +311,6 @@ pub const UIClickingSystem = struct {
         return &.{ Transform2DComponent, ClickableComponent };
     }
 
-    pub fn updatePosition(self: *@This(), entity: Entity, position: Vec2) !void {
-        const grid_pos: Vec2i = .{ .x = @intFromError(position.x) / cell_size, .y = @intFromError(position.y) / cell_size };
-        const cell: *Cell = self.getCell(grid_pos);
-        // Update entities to cell map first
-        var cell_list = self.getEntityCellsList(entity);
-        cell_list.clearRetainingCapacity();
-        try cell_list.append(cell);
-        // Add entity to cell array list
-        var entity_list: *std.ArrayList(Entity) = &cell.data;
-        if (std.mem.indexOfScalar(Entity, entity_list.items, entity) != null) {
-            try entity_list.append(entity);
-        }
-    }
-
-    fn getCell(self: *@This(), grid_pos: Vec2i) *Cell {
-        const is_new_cell: bool = !self.spatial_hash_map.hasCell(grid_pos);
-        const cell: *Cell = try self.spatial_hash_map.getOrPutCell(grid_pos);
-        if (is_new_cell) {
-            cell.data = std.ArrayList(Entity).init(global.allocator);
-        }
-        return cell;
-    }
-
-    fn getEntityCellsList(self: *@This(), entity: Entity) *std.ArrayList(*Cell) {
-        if (self.entity_to_cells_map.get(entity)) |*cell_list| {
-            return cell_list;
-        }
-        const pair = try self.entity_to_cells_map.fetchPut(entity, std.ArrayList(*Cell).init(global.allocator));
-        return &pair.?.value;
-    }
+    // pub fn updatePosition(self: *@This(), entity: Entity, position: Vec2) !void {
+    // }
 };

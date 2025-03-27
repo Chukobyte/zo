@@ -4,23 +4,27 @@ const zo = @import("zo");
 const ecs = zo.ecs;
 const string = zo.string;
 
-const Vec2i = zo.math.Vec2i;
+const Vec2 = zo.math.Vec2;
+const Rect2 = zo.math.Rect2;
 const Delegate = zo.delegate.Delegate;
 
 test "SpatialHashMap basic insert and retrieve" {
     const SpatialHashMapT = zo.spatial_hash_map.SpatialHashMap;
-    const SpatialHashMap = SpatialHashMapT(.{ .KeyT = Vec2i, .DataT = u32 });
+    const SpatialHashMap = SpatialHashMapT(u32);
 
     const allocator = std.testing.allocator;
     var map = try SpatialHashMap.init(allocator, 32);
     defer map.deinit();
 
-    const pos = Vec2i{ .x = 5, .y = 10 };
-    const cell = try map.getOrPutCell(pos);
-    cell.data = 99;
+    const collider: Rect2 = .{ .x = 5.0, .y = 10.0, .w = 40.0, .h = 80.0 };
+    try map.updateObjectPosition(47,  collider);
+    const objects: []u32 = map.getObjects(.{ .x = 10.0, .y = 30.0 });
+    try std.testing.expectEqual(1, objects.len);
+    try std.testing.expectEqual(47, objects[0]);
 
-    const retrieved = try map.getOrPutCell(pos);
-    try std.testing.expectEqual(@as(u32, 99), retrieved.data);
+    map.removeObject(47);
+    const empty_objects: []u32 = map.getObjects(.{ .x = 10.0, .y = 30.0 });
+    try std.testing.expectEqual(0, empty_objects.len);
 }
 
 test "Delegate basic subscribe and broadcast" {
