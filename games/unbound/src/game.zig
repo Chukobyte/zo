@@ -303,7 +303,8 @@ pub const NewCharacterEntity = struct {
             }
 
             // Check clickable system
-            const clicked_entities = UIClickingSystem.instance.?.getClickedEntities(.{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) });
+            const clicking_system: *UIClickingSystem = world.getSystemInstance(UIClickingSystem).?;
+            const clicked_entities = clicking_system.getClickedEntities(.{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) });
             log(.debug, "click_entities = {any}", .{ clicked_entities });
             for (clicked_entities) |clicked_entity| {
                 if (self.add_lead_object.node.entity == clicked_entity) {

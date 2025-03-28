@@ -187,7 +187,8 @@ pub const GameObject = struct {
 
     fn onMovementUpdate(self: *@This(), context: []const u8) void {
         if (global.world.hasComponent(self.node.entity,ClickableComponent)) {
-            UIClickingSystem.instance.?.updatePosition(self.node.entity) catch { log(.critical, "Failed to {s}!  Node = {any}", .{ context, self.node }); };
+            const clicking_system: *UIClickingSystem = global.world.getSystemInstance(UIClickingSystem).?;
+            clicking_system.updatePosition(self.node.entity) catch { log(.critical, "Failed to {s}!  Node = {any}", .{ context, self.node }); };
         }
     }
 };

@@ -306,18 +306,14 @@ pub const TextRenderingSystem = struct {
 pub const UIClickingSystem = struct {
     const EntitySpatialHashMap = SpatialHashMap(Entity);
 
-    pub var instance: ?*@This() = null;
-
     spatial_hash_map: EntitySpatialHashMap = undefined,
 
     pub fn init(self: *@This(), _: *World) !void {
-        instance = self;
         self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 64);
     }
 
     pub fn deinit(self: *@This(), _: *World) void {
         self.spatial_hash_map.deinit();
-        instance = null;
     }
 
     pub fn onEntityRegistered(self: *@This(), _: *World, entity: Entity) void {
