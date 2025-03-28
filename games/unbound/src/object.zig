@@ -26,14 +26,14 @@ const UIClickingSystem = component_systems.UIClickingSystem;
 
 const log = zo.log;
 
-const SpriteClass = struct {};
+pub const SpriteClass = struct {};
 
-const TextLabelClass = struct {};
+pub const TextLabelClass = struct {};
 
-const TextBoxClass = struct {};
+pub const TextBoxClass = struct {};
 
-const TextButtonClass = struct {
-    // text_box: GameObject,
+pub const TextButtonClass = struct {
+    text_box: *GameObject = undefined,
 };
 
 const GameObjectClass = union(enum) {
@@ -43,21 +43,21 @@ const GameObjectClass = union(enum) {
     text_button: TextButtonClass,
 };
 
-fn GameObjectParams(object_class: GameObjectClass) type {
-    switch (object_class) {
-        .sprite => return struct {
+fn GameObjectParams(ClassT: type) type {
+    switch (ClassT) {
+        SpriteClass => return struct {
             texture: *Texture,
             draw_source: Rect2,
             transform: Transform2D = Transform2D.Identity,
             z_index: i32 = 0,
         },
-        .text_label => return struct {
+        TextLabelClass => return struct {
             font: *Font,
             text: ?[]const u8 = null,
             transform: Transform2D = Transform2D.Identity,
             z_index: i32 = 0,
         },
-        .text_box => return struct {
+        TextBoxClass => return struct {
             font: *Font,
             size: Dim2u,
             text: ?[]const u8 = null,
@@ -65,13 +65,14 @@ fn GameObjectParams(object_class: GameObjectClass) type {
             transform: Transform2D = Transform2D.Identity,
             z_index: i32 = 0,
         },
-        .text_button => return struct {
+        TextButtonClass => return struct {
             collision: Rect2,
             font: *Font,
             text: ?[]const u8 = null,
             transform: Transform2D = Transform2D.Identity,
             z_index: i32 = 0,
         },
+        else => @compileError("Must use Game Object Class type!"),
     }
 }
 
@@ -80,15 +81,15 @@ pub const GameObject = struct {
     class: GameObjectClass,
 
     /// Initializes game object and add to scene
-    pub fn initInScene(comptime object_class: GameObjectClass, params: GameObjectParams(object_class), parent: ?*Node, entity_interface: ?type) !@This() {
+    pub fn initInScene(comptime ClassT: type, params: GameObjectParams(ClassT), parent: ?*Node, entity_interface: ?type) !@This() {
         const new_node: *Node = try global.scene_system.createNodeAndEntity(.{ .interface = entity_interface orelse null });
         try global.scene_system.addNodeToScene(new_node, parent);
-        return try init(new_node, object_class, params);
+        return try init(new_node, ClassT, params);
     }
 
     /// Initializes game object, assumes it's already in the scene
-    pub fn initFromNode(comptime object_class: GameObjectClass, params: GameObjectParams(object_class), node: *Node) !@This() {
-        return try init(node, object_class, params);
+    pub fn initFromNode(comptime ClassT: GameObjectClass, params: GameObjectParams(ClassT), node: *Node) !@This() {
+        return try init(node, ClassT, params);
     }
 
     pub fn deinit(self: *@This()) void {
@@ -135,21 +136,21 @@ pub const GameObject = struct {
         return global.scene_system.isNodeValid(self.node);
     }
 
-    fn init(node: *Node, comptime object_class: GameObjectClass, params: GameObjectParams(object_class)) !@This() {
+    fn init(node: *Node, comptime ClassT: type, params: GameObjectParams(ClassT)) !@This() {
         var class: GameObjectClass = undefined;
-        switch (object_class) {
-            .sprite => {
+        switch (ClassT) {
+            SpriteClass => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
                 try global.world.setComponent(node.entity, SpriteComponent, &.{ .texture = params.texture, .draw_source = params.draw_source });
                 class = .{ .sprite = .{ } };
             },
-            .text_label => {
+            TextLabelClass => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
                 const text_string = if (params.text == null) String.init(global.allocator) else try String.initAndSetRaw(global.allocator, params.text.?);
                 try global.world.setComponent(node.entity, TextLabelComponent, &.{ .class = .{ .label = .{ .text = text_string } }, .font = params.font });
                 class = .{ .text_label = .{ } };
             },
-            .text_box => {
+            TextBoxClass => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
                 try global.world.setComponent(node.entity, TextLabelComponent, &.{ .class = .{ .text_box = .{ .text = MultiLineString.init(global.allocator), .size = params.size, .line_spacing = params.line_spacing } }, .font = params.font });
                 if (params.text) |text| {
@@ -159,21 +160,22 @@ pub const GameObject = struct {
                     class = .{ .text_box = .{ } };
                 }
             },
-            .text_button => {
+            TextButtonClass => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
                 // const text_string = if (params.text == null) String.init(global.allocator) else try String.initAndSetRaw(global.allocator, params.text.?);
                 // try global.world.setComponent(node.entity, TextLabelComponent, &.{ .class = .{ .label = .{ .text = text_string } }, .font = params.font });
                 try global.world.setComponent(node.entity, ClickableComponent, &.{ .collider = params.collision });
                 try global.world.setComponent(node.entity, ColorRectComponent, &.{ .size = .{ .w = params.collision.w, .h = params.collision.h }, .color = .{ .r = 0.4, .g = 0.4, .b = 0.4 } });
                 // const text_box = try initInScene(
-                //     .text_box,
-                //     .{ .font = params.font, .size = params.collider, .text = params.text, .line_spacing = 5.0, .transform = .{ .position = .{ .x = 200.0, .y = 140.0 } }, },
+                //     TextBoxClass,
+                //     .{ .font = params.font, .size = .{ .w = @intFromFloat(params.collision.w), .h = @intFromFloat(params.collision.h) }, .text = params.text, .transform = .{ .position = .{ .x = 0.0, .y = 0.0 } }, },
                 //     node,
                 //     null
                 // );
                 // class = .{ .text_button = .{ .text_box = text_box } };
-                class = .{ .text_button = .{ } };
+                class = .{ .text_button = .{ .text_box = undefined } };
             },
+            else => @compileError("Must use Game Object Class type!"),
         }
         return @This(){
             .node = node,

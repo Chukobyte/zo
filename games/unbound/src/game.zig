@@ -32,6 +32,10 @@ const InputEvent = input.InputEvent;
 const Character = state.Character;
 const EthnicityProfile = state.EthnicityProfile;
 const SubscriberHandle = delegate.SubscriberHandle;
+const SpriteClass = object.SpriteClass;
+const TextLabelClass = object.TextLabelClass;
+const TextBoxClass = object.TextBoxClass;
+const TextButtonClass = object.TextButtonClass;
 
 const log = zo.log;
 
@@ -82,13 +86,13 @@ pub const MainMenuSceneDefinition = struct {
 pub const MainMenuEntity = struct {
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
         const title_text = try GameObject.initInScene(
-            .text_label,
+            TextLabelClass,
             .{ .font = &global.assets.fonts.verdana_32, .text = "Unbound", .transform = .{ .position = .{ .x = 225.0, .y = 100.0 } }, },
             null,
             null
         );
         const instructions_text = try GameObject.initInScene(
-            .text_label,
+            TextLabelClass,
             .{ .font = &global.assets.fonts.verdana_16, .text = "Enter for New Game", .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
             null,
             null
@@ -134,14 +138,14 @@ pub const NewGameEntity = struct {
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         _ = try GameObject.initInScene(
-            .text_label,
+            TextLabelClass,
             .{ .font = &global.assets.fonts.verdana_16, .text = "Select Character to Play", .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
             null,
             null
         );
 
         self.character_mode_text = try GameObject.initInScene(
-            .text_label,
+            TextLabelClass,
             .{ .font = &global.assets.fonts.verdana_16, .text = new_text, .transform = .{ .position = .{ .x = 270.0, .y = 260.0 } }, },
             null,
             null
@@ -177,7 +181,7 @@ pub const ExistingCharacterSceneDefinition = struct {
 pub const ExistingCharacterEntity = struct {
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
         _ = try GameObject.initInScene(
-            .text_label,
+            TextLabelClass,
             .{ .font = &global.assets.fonts.verdana_16, .text = "Existing", .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
             null,
             null
@@ -265,26 +269,26 @@ pub const NewCharacterEntity = struct {
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         self.character.name = String.init(global.allocator);
         self.name_object = try GameObject.initInScene(
-            .text_label,
+            TextLabelClass,
             .{ .font = &global.assets.fonts.verdana_16, .text = initial_name_text, .transform = .{ .position = .{ .x = 200.0, .y = 100.0 } }, },
             null,
             null
         );
         self.details_object = try GameObject.initInScene(
-            .text_box,
+            TextBoxClass,
             .{ .font = &global.assets.fonts.verdana_16, .size = .{ .w = 200, .h = 400 }, .text = try self.getCharacterDetailsString(), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 200.0, .y = 140.0 } }, },
             null,
             null
         );
         // Test button
         self.add_lead_object = try GameObject.initInScene(
-            .text_button,
+            TextButtonClass,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 50.0, .h = 50.0 }, .font = &global.assets.fonts.verdana_16, .text = "{-}", .transform = .{ .position = .{ .x = 160.0, .y = 180.0 } } },
             null,
             null
         );
         self.sub_lead_object = try GameObject.initInScene(
-            .text_button,
+            TextButtonClass,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 50.0, .h = 50.0 }, .font = &global.assets.fonts.verdana_16, .text = "{+}", .transform = .{ .position = .{ .x = 320.0, .y = 180.0 } } },
             null,
             null
@@ -365,7 +369,7 @@ pub const MapEntity = struct {
         _ = world; _ = entity;
         const map_texuture_size: Dim2 = .{ .w = @floatFromInt(global.assets.textures.map.width), .h = @floatFromInt(global.assets.textures.map.height) };
         _ = try GameObject.initInScene(
-            .sprite,
+            SpriteClass,
             .{ .texture = &global.assets.textures.map, .draw_source = .{ .x = 0.0, .y = 0.0, .w = map_texuture_size.w, .h = map_texuture_size.h } },
             null,
             null
@@ -373,13 +377,13 @@ pub const MapEntity = struct {
 
         const intitial_location = &state.map_locations[self.location_index];
         self.selected_location_cursor = try GameObject.initInScene(
-            .text_label,
+            TextLabelClass,
             .{ .text = "{}", .font = &global.assets.fonts.verdana_16, .transform = .{ .position = intitial_location.map_position }, },
             null,
             null
         );
         self.selected_location_name = try GameObject.initInScene(
-            .text_label,
+            TextLabelClass,
             .{ .text = intitial_location.name, .font = &global.assets.fonts.verdana_16, .transform = .{ .position = .{ .x = 100.0, .y = 340.0 } }, },
             null,
             null
