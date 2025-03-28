@@ -190,6 +190,7 @@ pub const GameObject = struct {
     }
 };
 
+/// Used to keep track of GameObject pointers mapped to entities and to handle callbacks
 pub const GameObjectSystem = struct {
     var instance: ?@This() = null;
     var on_entity_deinit_handle: ?delegate.SubscriberHandle = null;
