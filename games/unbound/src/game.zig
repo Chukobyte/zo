@@ -204,15 +204,15 @@ pub const NewCharacterEntity = struct {
         }
         pub fn onRegisteredInput(event: *const InputEvent) void {
             // Filter out event first
-                if (event.status != .just_pressed or event.source != .keyboard) { return; }
+            if (event.status != .just_pressed or event.source != .keyboard) { return; }
 
             // Delete the last char in array
-                if (event.key == .keyboard_backspace) {
+            if (event.key == .keyboard_backspace) {
                 if (name_object) |name_obj| {
                     var text_label_comp = global.world.getComponent(name_obj.node.entity, TextLabelComponent).?;
                     var text_label = text_label_comp.class.label;
-                    // Don't process backspace ic
-                        if (std.mem.eql(u8, text_label.text.get(), initial_name_text)) { return; }
+                    // Don't process backspace if at beginning
+                    if (std.mem.eql(u8, text_label.text.get(), initial_name_text)) { return; }
                     text_label_comp.class.label.text.popChar();
                 }
             }
@@ -284,13 +284,11 @@ pub const NewCharacterEntity = struct {
     }
 
     pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
-
         if (input.isKeyJustPressed(.{ .key = .keyboard_return }) and self.is_typing_name) {
             const text_label_comp = world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
             try self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
             InputText.unsubscribeFromInput();
         }
-
         if (input.isKeyJustPressed(.{ .key = .mouse_button_left })) {
             const mouse_pos: Vec2i = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
             if (self.name_collision_rect.doesPointOverlap(&.{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) })) {
