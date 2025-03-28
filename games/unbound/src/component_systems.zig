@@ -4,6 +4,8 @@ const global = @import("global.zig");
 
 const math = zo.math;
 const renderer = zo.renderer;
+const input = zo.input;
+const window = zo.window;
 const FixedDelegate = zo.delegate.FixedDelegate;
 
 const Transform2D = math.Transform2D;
@@ -385,6 +387,13 @@ pub const ColorRectSystem = struct {
     }
 };
 
+const UIEventComponent = struct {
+    on_hover: ?fn(Entity) void = null,
+    on_unhover: ?fn(Entity) void = null,
+    on_click: ?fn(Entity) void = null,
+    is_mouse_hovering: bool = false,
+};
+
 pub const UIEventSystem = struct {
 
     const State = struct {
@@ -399,9 +408,30 @@ pub const UIEventSystem = struct {
         state = .{};
     }
 
-    pub fn onUpdatePosition(_: Entity, _: *const Transform2DComponent) void {}
+    pub fn onUpdatePosition(entity: Entity, _: *const Transform2DComponent) void {
+        const mouse_pos: Vec2i = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
+        const global_mouse_pos: Vec2 = .{ .x = @floatFromInt(mouse_pos.x), .xy = @floatFromInt(mouse_pos.y) };
+        if (global.world.getComponent(entity, ClickableComponent)) |clickable_comp| {
+        if (global.world.getComponent(entity, UIEventComponent)) |event_comp| {
+            if (clickable_comp.collider.doesPointOverlap(&global_mouse_pos)) {
+                if (!event_comp.is_mouse_hovering) {
+                    event_comp.is_mouse_hovering = true;
+                    if (event_comp.on_hover) |on_hover| {
+                        on_hover(entity);
+                    }
+                }
+            } else {
+                if (event_comp.is_mouse_hovering) {
+                    event_comp.is_mouse_hovering = false;
+                    if (event_comp.on_unhover) |on_unhover| {
+                        on_unhover(entity);
+                    }
+                }
+            }
+        }}
+    }
 
     pub fn getSignature() []const type {
-        return &.{ Transform2DComponent };
+        return &.{ Transform2DComponent, ClickableComponent, UIEventComponent };
     }
 };

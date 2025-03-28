@@ -45,19 +45,6 @@ var move_right_input_handle: InputAction.Handle = 0;
 var move_up_input_handle: InputAction.Handle = 0;
 var move_down_input_handle: InputAction.Handle = 0;
 
-/// Maps screen mouse position from window size to render resolution for world mouse position
-fn getWorldMousePosition() Vec2i {
-    const mouse_pos: Vec2 = .{ .x = @floatFromInt(input.getMousePosition().x), .y = @floatFromInt(input.getMousePosition().y) };
-    const window_size: Vec2 = .{ .x = @floatFromInt(window.getWindowSize().w), .y = @floatFromInt(window.getWindowSize().h) };
-    const render_resolution: Vec2 = .{ .x = @floatFromInt(renderer.getResolution().w), .y = @floatFromInt(renderer.getResolution().h) };
-    const global_mouse_position: Vec2 = .{
-        .x = math.mapToRange(f32, mouse_pos.x, 0.0, window_size.x, 0.0, render_resolution.x),
-        .y = math.mapToRange(f32, mouse_pos.y, 0.0, window_size.y, 0.0, render_resolution.y)
-    };
-    const global_mouse_pos: Vec2i = .{ .x = @intFromFloat(global_mouse_position.x), .y = @intFromFloat(global_mouse_position.y) };
-    return global_mouse_pos;
-}
-
 // Scenes
 
 // INIT
@@ -309,7 +296,7 @@ pub const NewCharacterEntity = struct {
         }
 
         if (input.isKeyJustPressed(.{ .key = .mouse_button_left })) {
-            const mouse_pos: Vec2i = getWorldMousePosition();
+            const mouse_pos: Vec2i = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
             if (self.name_collision_rect.doesPointOverlap(&.{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) })) {
                 const text_label_comp = world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
                 try self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
