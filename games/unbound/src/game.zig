@@ -273,13 +273,13 @@ pub const NewCharacterEntity = struct {
         );
         self.add_lead_object = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "+", .text_offset = .{ .x = 6.0, .y = 16.0 }, .on_click = onClick, .on_hover = onHover, .on_unhover = onUnhover, .transform = .{ .position = .{ .x = 320.0, .y = 170.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "+", .text_offset = .{ .x = 6.0, .y = 16.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 320.0, .y = 170.0 } } },
             null,
             null
         );
         self.sub_lead_object = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "-", .text_offset = .{ .x = 8.0, .y = 16.0 }, .on_click = onClick, .on_hover = onHover, .on_unhover = onUnhover, .transform = .{ .position = .{ .x = 160.0, .y = 170.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "-", .text_offset = .{ .x = 8.0, .y = 16.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 160.0, .y = 170.0 } } },
             null,
             null
         );
@@ -304,35 +304,7 @@ pub const NewCharacterEntity = struct {
                 try self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
             }
 
-            // Check clickable system
-            // const ui_system: *UIEventSystem = world.getSystemInstance(UIEventSystem).?;
-            // const clicked_entities = ui_system.getClickedEntities(.{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) });
-            // log(.debug, "clicked_entities = {any}", .{ clicked_entities });
-            // for (clicked_entities) |clicked_entity| {
-            //     if (self.add_lead_object.node.entity == clicked_entity) {
-            //         self.character.lead += 1;
-            //         const text_label_comp = world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
-            //         try text_label_comp.class.text_box.setText(text_label_comp.font, try self.getCharacterDetailsString(), 1.0);
-            //     } else if (self.sub_lead_object.node.entity == clicked_entity) {
-            //         if (self.character.lead == 0) { continue; }
-            //         self.character.lead -= 1;
-            //         const text_label_comp = world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
-            //         try text_label_comp.class.text_box.setText(text_label_comp.font, try self.getCharacterDetailsString(), 1.0);
-            //     }
-            // }
-        }
-    }
-
-    pub fn onHover(entity: Entity) void {
-        if (global.world.getComponent(entity, ColorRectComponent)) |color_rect_comp| {
-            color_rect_comp.color = .{ .r = 0.6, .g = 0.6, .b = 0.6 };
-        }
-    }
-
-    pub fn onUnhover(entity: Entity) void {
-        if (global.world.getComponent(entity, ColorRectComponent)) |color_rect_comp| {
-            color_rect_comp.color = .{ .r = 0.4, .g = 0.4, .b = 0.4 };
-        }
+     }
     }
 
     pub fn onClick(clicked_entity: Entity) void {

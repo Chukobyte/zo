@@ -337,15 +337,33 @@ pub const ColorRectSystem = struct {
 };
 
 pub const UIEventComponent = struct {
+    pub const Style = struct {
+        hover: ?LinearColor = null,
+        unhover: ?LinearColor = null,
+        click: ?LinearColor = null,
+    };
+
+    const default_style: Style = .{
+        .hover = .{ .r = 0.6, .g = 0.6, .b = 0.6 },
+        .unhover = .{ .r = 0.4, .g = 0.4, .b = 0.4 },
+        .click = .{ .r = 0.8, .g = 0.8, .b = 0.8 },
+    };
+
     collider: Rect2,
     on_hover: ?*const fn(Entity) void = null,
     on_unhover: ?*const fn(Entity) void = null,
     on_click: ?*const fn(Entity) void = null,
+    style: Style = default_style,
     is_mouse_hovering: bool = false,
 };
 
 pub const UIEventSystem = struct {
     const EntitySpatialHashMap = SpatialHashMap(Entity);
+    const StyleType = enum {
+        hover,
+        unhover,
+        click
+    };
 
     spatial_hash_map: EntitySpatialHashMap = undefined,
     prev_mouse_pos: Vec2i = Vec2i.Zero,
@@ -374,17 +392,26 @@ pub const UIEventSystem = struct {
         }
 
         const global_mouse_pos: Vec2 = .{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) };
+        const clicked_pressed: bool = input.isKeyPressed(.{ .key = .mouse_button_left });
         const just_clicked_pressed: bool = input.isKeyJustPressed(.{ .key = .mouse_button_left });
         var comp_iter = ComponentIterator.init(world);
         while (comp_iter.next()) |iter| {
+            const entity = iter.getEntity();
             const transform_comp = iter.getComponent(Transform2DComponent);
             const event_comp = iter.getComponent(UIEventComponent);
             if (has_moved) {
-                try self.updateState(iter.getEntity(), &global_mouse_pos, transform_comp, event_comp);
+                try self.updateState(entity, &global_mouse_pos, transform_comp, event_comp);
             }
-            if (just_clicked_pressed and event_comp.is_mouse_hovering) {
-                if (event_comp.on_click) |on_click| {
-                    on_click(iter.getEntity());
+            if (event_comp.is_mouse_hovering) {
+                if (clicked_pressed) {
+                    setStyleColor(.click, entity, event_comp);
+                } else {
+                    setStyleColor(.hover, entity, event_comp);
+                }
+                if (just_clicked_pressed) {
+                    if (event_comp.on_click) |on_click| {
+                        on_click(iter.getEntity());
+                    }
                 }
             }
         }
@@ -420,6 +447,7 @@ pub const UIEventSystem = struct {
         if (spatial_collider.doesPointOverlap(global_mouse_pos)) {
             if (!event_comp.is_mouse_hovering) {
                 event_comp.is_mouse_hovering = true;
+                setStyleColor(.hover, entity, event_comp);
                 if (event_comp.on_hover) |on_hover| {
                     on_hover(entity);
                 }
@@ -427,9 +455,32 @@ pub const UIEventSystem = struct {
         } else {
             if (event_comp.is_mouse_hovering) {
                 event_comp.is_mouse_hovering = false;
+                setStyleColor(.unhover, entity, event_comp);
                 if (event_comp.on_unhover) |on_unhover| {
                     on_unhover(entity);
                 }
+            }
+        }
+    }
+
+    fn setStyleColor(comptime style_type: StyleType, entity: Entity, event_comp: *UIEventComponent) void {
+        if (global.world.getComponent(entity, ColorRectComponent)) |color_rect_comp| {
+            switch (style_type) {
+                .hover => {
+                    if (event_comp.style.hover) |hover_color| {
+                        color_rect_comp.color = hover_color;
+                    }
+                },
+                .unhover => {
+                    if (event_comp.style.unhover) |unhover_color| {
+                        color_rect_comp.color = unhover_color;
+                    }
+                },
+                .click => {
+                    if (event_comp.style.click) |click_color| {
+                        color_rect_comp.color = click_color;
+                    }
+                },
             }
         }
     }
