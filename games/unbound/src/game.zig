@@ -76,36 +76,22 @@ pub const MainMenuSceneDefinition = struct {
 
 pub const MainMenuEntity = struct {
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
-        const title_text = try GameObject.initInScene(
+        _ = try GameObject.initInScene(
             TextLabelClass,
             .{ .font = &global.assets.fonts.verdana_32, .text = "Unbound", .transform = .{ .position = .{ .x = 225.0, .y = 100.0 } }, },
             null,
             null
         );
-        const instructions_text = try GameObject.initInScene(
-            TextLabelClass,
-            .{ .font = &global.assets.fonts.verdana_16, .text = "Enter for New Game", .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
+        _ = try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "New Game", .text_offset = .{ .x = 6.0, .y = 17.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 220.0 } } },
             null,
             null
         );
-        _ = title_text; _ = instructions_text;
-        // TODO: Test text boxes
-        // _ = try GameObject.initInScene(
-        //     .text_box,
-        // .{ .font = &global.assets.fonts.verdana_16, .size = .{ .w = 75, .h = 50 }, .text = "Testing this long string of text to try it out!", .transform = .{ .position = .{ .x = 200.0, .y = 280.0 } }, },
-        //     null,
-        //     null
-        // );
     }
 
-    pub fn onExitScene(_: *@This(), _: *World, _: ecs.Entity) void {
-        // input.registered_input_delegate.clearAndFree();
-    }
-
-    pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
-        if (input.isKeyJustPressed(.{ .key = .keyboard_return })) {
-            global.scene_system.changeScene(NewGameSceneDefinition);
-        }
+    pub fn onClick(_: Entity) void {
+        global.scene_system.changeScene(NewGameSceneDefinition);
     }
 };
 
