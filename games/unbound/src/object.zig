@@ -144,7 +144,7 @@ pub const GameObject = struct {
     fn init(node: *Node, comptime ClassT: type, params: GameObjectParams(ClassT)) !*@This() {
         var game_object: *@This() = try GameObjectSystem.instance.?.initObject(node.entity);
         game_object.node = node;
-        // var class: GameObjectClass = undefined;
+        // Setup class specific object components and class properties
         switch (ClassT) {
             SpriteClass => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
@@ -181,6 +181,7 @@ pub const GameObject = struct {
             },
             else => @compileError("Must use Game Object Class type!"),
         }
+        game_object.onMovementUpdate("init");
         return game_object;
     }
 
