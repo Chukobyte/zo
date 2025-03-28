@@ -155,19 +155,25 @@ pub const ExistingCharacterSceneDefinition = struct {
 };
 
 pub const ExistingCharacterEntity = struct {
-    pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
+    confirm_button: *GameObject = undefined,
+
+    pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         _ = try GameObject.initInScene(
             TextLabelClass,
-            .{ .font = &global.assets.fonts.verdana_16, .text = "Existing", .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
+            .{ .font = &global.assets.fonts.verdana_16, .text = "Existing Character", .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
+            null,
+            null
+        );
+        self.confirm_button = try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Confirm", .text_offset = .{ .x = 6.0, .y = 17.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 230.0 } } },
             null,
             null
         );
     }
 
-    pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
-        if (input.isKeyJustPressed(.{ .key = .keyboard_return })) {
-            global.scene_system.changeScene(MapSceneDefinition);
-        }
+    pub fn onClick(_: Entity) void {
+        global.scene_system.changeScene(MapSceneDefinition);
     }
 };
 
