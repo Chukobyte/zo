@@ -40,8 +40,6 @@ const TextButtonClass = object.TextButtonClass;
 
 const log = zo.log;
 
-var game_object_system: *GameObjectSystem = undefined;
-
 var move_left_input_handle: InputAction.Handle = 0;
 var move_right_input_handle: InputAction.Handle = 0;
 var move_up_input_handle: InputAction.Handle = 0;
@@ -71,7 +69,7 @@ pub const InitSceneDefinition = struct {
 
 pub const InitEntity = struct {
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
-        game_object_system = try GameObjectSystem.init(global.allocator);
+        _ = try GameObjectSystem.init(global.allocator);
         move_left_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_left, .keyboard_a } } );
         move_right_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_right, .keyboard_d } } );
         move_up_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_up, .keyboard_w } } );
