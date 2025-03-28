@@ -766,6 +766,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             );
         }
 
+        /// Returns an instance of the script interface of an entity
         pub fn getEntityScriptInstance(self: *@This(), InterT: type, entity: Entity) ?*InterT {
             if (entity < self.entity_data.items.len) {
                 const entity_data: *EntityData = &self.entity_data.items[entity];
@@ -777,6 +778,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             return null;
         }
 
+        /// Find first instance of an entity with a script interface
         pub fn findEntityScriptInstance(self: *@This(), InterT: type) ?*InterT {
             for (self.entity_data.items) |*entity_data| {
                 if (entity_data.interface) |interface| {
