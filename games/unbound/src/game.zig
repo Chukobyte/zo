@@ -245,8 +245,9 @@ pub const NewCharacterEntity = struct {
     details_object: *GameObject = undefined,
     name_collision_rect: Rect2 = .{ .x = 200.0, .y = 80.0, .w = 200, .h = 100 },
     is_typing_name: bool = false,
-    add_lead_object: *GameObject = undefined,
-    sub_lead_object: *GameObject = undefined,
+    add_lead_button: *GameObject = undefined,
+    sub_lead_button: *GameObject = undefined,
+    confirm_button: *GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         self.character.name = String.init(global.allocator);
@@ -262,15 +263,21 @@ pub const NewCharacterEntity = struct {
             null,
             null
         );
-        self.add_lead_object = try GameObject.initInScene(
+        self.add_lead_button = try GameObject.initInScene(
             TextButtonClass,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "+", .text_offset = .{ .x = 6.0, .y = 16.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 320.0, .y = 170.0 } } },
             null,
             null
         );
-        self.sub_lead_object = try GameObject.initInScene(
+        self.sub_lead_button = try GameObject.initInScene(
             TextButtonClass,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "-", .text_offset = .{ .x = 8.0, .y = 16.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 160.0, .y = 170.0 } } },
+            null,
+            null
+        );
+        self.confirm_button = try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Confirm", .text_offset = .{ .x = 8.0, .y = 16.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 400.0, .y = 300.0 } } },
             null,
             null
         );
@@ -278,14 +285,10 @@ pub const NewCharacterEntity = struct {
 
     pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
 
-        if (input.isKeyJustPressed(.{ .key = .keyboard_return })) {
-            const change_scene: bool = !self.is_typing_name;
+        if (input.isKeyJustPressed(.{ .key = .keyboard_return }) and self.is_typing_name) {
             const text_label_comp = world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
             try self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
             InputText.unsubscribeFromInput();
-            if (change_scene) {
-                global.scene_system.changeScene(MapSceneDefinition);
-            }
         }
 
         if (input.isKeyJustPressed(.{ .key = .mouse_button_left })) {
@@ -294,23 +297,24 @@ pub const NewCharacterEntity = struct {
                 const text_label_comp = world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
                 try self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
             }
-
-     }
+        }
     }
 
     pub fn onClick(clicked_entity: Entity) void {
         if (global.world.findEntityScriptInstance(@This())) |self| {
-            if (self.add_lead_object.node.entity == clicked_entity) {
+            if (self.add_lead_button.node.entity == clicked_entity) {
                 self.character.lead += 1;
                 const text_label_comp = global.world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
                 const character_details: []const u8 = self.getCharacterDetailsString() catch { unreachable; };
                 text_label_comp.class.text_box.setText(text_label_comp.font, character_details, 1.0) catch { unreachable; };
-            } else if (self.sub_lead_object.node.entity == clicked_entity) {
+            } else if (self.sub_lead_button.node.entity == clicked_entity) {
                 if (self.character.lead == 0) { return; }
                 self.character.lead -= 1;
                 const text_label_comp = global.world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
                 const character_details: []const u8 = self.getCharacterDetailsString() catch { unreachable; };
                 text_label_comp.class.text_box.setText(text_label_comp.font, character_details, 1.0) catch { unreachable; };
+            } else if (self.confirm_button.node.entity == clicked_entity) {
+                global.scene_system.changeScene(MapSceneDefinition);
             }
         }
     }
