@@ -107,42 +107,41 @@ pub const NewGameEntity = struct {
         new,
         existing,
     };
-    const new_text = "New";
-    const existing_text = "Existing";
 
     character_mode_text: *GameObject = undefined,
     character_mode: CharacterMode = .new,
+    new_button: *GameObject = undefined,
+    existing_button: *GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         _ = try GameObject.initInScene(
             TextLabelClass,
-            .{ .font = &global.assets.fonts.verdana_16, .text = "Select Character to Play", .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
+            .{ .font = &global.assets.fonts.verdana_16, .text = "Select Character to Play", .transform = .{ .position = .{ .x = 210.0, .y = 180.0 } }, },
             null,
             null
         );
 
-        self.character_mode_text = try GameObject.initInScene(
-            TextLabelClass,
-            .{ .font = &global.assets.fonts.verdana_16, .text = new_text, .transform = .{ .position = .{ .x = 270.0, .y = 260.0 } }, },
+        self.new_button = try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "New", .text_offset = .{ .x = 6.0, .y = 17.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 200.0 } } },
+            null,
+            null
+        );
+
+        self.existing_button = try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Existing", .text_offset = .{ .x = 6.0, .y = 17.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 230.0 } } },
             null,
             null
         );
     }
 
-    pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
-        if (input.isKeyJustPressed(.{ .key = .keyboard_return })) {
-            if (self.character_mode == .existing) {
-                global.scene_system.changeScene(ExistingCharacterSceneDefinition);
-            } else {
+    pub fn onClick(clicked_entity: Entity) void {
+        if (global.world.findEntityScriptInstance(@This())) |self| {
+            if (self.new_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(NewCharacterSceneDefinition);
-            }
-        }
-
-        if (input.isActionJustPressed(move_up_input_handle) or input.isActionJustPressed(move_down_input_handle)) {
-            self.character_mode = if (self.character_mode == .existing) .new else .existing;
-            if (world.getComponent(self.character_mode_text.node.entity, TextLabelComponent)) |text_label_comp| {
-                const modeText: []const u8 = if (self.character_mode == .existing) existing_text else new_text;
-                try text_label_comp.class.label.text.setRaw(modeText);
+            } else if (self.existing_button.node.entity == clicked_entity) {
+                global.scene_system.changeScene(ExistingCharacterSceneDefinition);
             }
         }
     }
