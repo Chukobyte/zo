@@ -777,6 +777,20 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             return null;
         }
 
+        pub fn findEntityScriptInstance(self: *@This(), InterT: type) ?*InterT {
+            for (self.entity_data.items) |*entity_data| {
+                if (entity_data.interface) |interface| {
+                    inline for(0..entity_interface_types.len) |i| {
+                        if (interface.id == i) {
+                            const scriptInstance: *InterT = @alignCast(@ptrCast(interface.instance));
+                            return scriptInstance;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
         pub fn getSystemInstance(self: *@This(), SystemT: type) ?*SystemT {
             const system_index = SystemsTypeList.getIndex(SystemT);
             const system_data = &self.system_data[system_index];
