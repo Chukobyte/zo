@@ -387,10 +387,10 @@ pub const ColorRectSystem = struct {
     }
 };
 
-const UIEventComponent = struct {
-    on_hover: ?fn(Entity) void = null,
-    on_unhover: ?fn(Entity) void = null,
-    on_click: ?fn(Entity) void = null,
+pub const UIEventComponent = struct {
+    on_hover: ?*fn(Entity) void = null,
+    on_unhover: ?*fn(Entity) void = null,
+    on_click: ?*fn(Entity) void = null,
     is_mouse_hovering: bool = false,
 };
 
@@ -398,7 +398,7 @@ pub const UIEventSystem = struct {
     pub fn preWorldTick(_: *@This(), world: *World) !void {
         const ComponentIterator = World.ArchetypeComponentIterator(getSignature());
         // Early out if click not registered
-        if (!input.isJustPressed(.{ .key = .mouse_left_button })) { return; }
+        if (!input.isKeyJustPressed(.{ .key = .mouse_button_left })) { return; }
 
         var comp_iter = ComponentIterator.init(world);
         while (comp_iter.next()) |iter| {

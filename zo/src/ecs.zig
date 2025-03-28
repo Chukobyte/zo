@@ -608,7 +608,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             inline for (0..system_types.len) |i| {
                 const T: type = SystemsTypeList.getType(i);
                 if (@hasDecl(T, "preWorldTick")) {
-                    var system: *T = @alignCast(@ptrCast(self.system_data.items[i].interface_instance));
+                    var system: *T = @alignCast(@ptrCast(self.system_data[i].interface_instance));
                     try system.preWorldTick(self);
                 }
             }
