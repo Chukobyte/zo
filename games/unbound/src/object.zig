@@ -73,6 +73,7 @@ fn GameObjectParams(ClassT: type) type {
             collision: Rect2,
             font: *Font,
             text: ?[]const u8 = null,
+            text_offset: Vec2 = Vec2.Zero,
             transform: Transform2D = Transform2D.Identity,
             z_index: i32 = 0,
         },
@@ -172,7 +173,7 @@ pub const GameObject = struct {
                 try global.world.setComponent(node.entity, ColorRectComponent, &.{ .size = .{ .w = params.collision.w, .h = params.collision.h }, .color = .{ .r = 0.4, .g = 0.4, .b = 0.4 } });
                 const text_box = try initInScene(
                     TextBoxClass,
-                    .{ .font = params.font, .size = .{ .w = @intFromFloat(params.collision.w), .h = @intFromFloat(params.collision.h) }, .text = params.text, .transform = .{ .position = .{ .x = 0.0, .y = 0.0 } }, },
+                    .{ .font = params.font, .size = .{ .w = @intFromFloat(params.collision.w), .h = @intFromFloat(params.collision.h) }, .text = params.text, .transform = .{ .position = params.text_offset }, },
                     node,
                     null
                 );

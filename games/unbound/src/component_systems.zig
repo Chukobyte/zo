@@ -310,7 +310,7 @@ pub const UIClickingSystem = struct {
 
     pub fn init(self: *@This(), _: *World) !void {
         instance = self;
-        self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 32);
+        self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 64);
     }
 
     pub fn deinit(self: *@This(), _: *World) void {

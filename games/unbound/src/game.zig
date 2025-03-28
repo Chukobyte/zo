@@ -285,13 +285,13 @@ pub const NewCharacterEntity = struct {
         // Test button
         self.add_lead_object = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 50.0, .h = 50.0 }, .font = &global.assets.fonts.verdana_16, .text = "{-}", .transform = .{ .position = .{ .x = 160.0, .y = 180.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "-", .text_offset = .{ .x = 8.0, .y = 16.0 }, .transform = .{ .position = .{ .x = 160.0, .y = 170.0 } } },
             null,
             null
         );
         self.sub_lead_object = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 50.0, .h = 50.0 }, .font = &global.assets.fonts.verdana_16, .text = "{+}", .transform = .{ .position = .{ .x = 320.0, .y = 180.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "+", .text_offset = .{ .x = 6.0, .y = 16.0 }, .transform = .{ .position = .{ .x = 320.0, .y = 170.0 } } },
             null,
             null
         );
