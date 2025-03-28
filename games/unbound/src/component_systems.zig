@@ -153,14 +153,6 @@ pub const TextLabelComponent = struct {
     color: LinearColor = LinearColor.White,
 };
 
-pub const ClickableComponent = struct {
-    const OnClickDelegate = FixedDelegate(fn (Entity) void, 4);
-
-    collider: Rect2,
-    mouse_hovering: bool = false,
-    on_click: OnClickDelegate = .{},
-};
-
 pub const ColorRectComponent = struct {
     size: Dim2,
     color: LinearColor,
@@ -303,45 +295,6 @@ pub const TextRenderingSystem = struct {
     }
 };
 
-pub const UIClickingSystem = struct {
-    const EntitySpatialHashMap = SpatialHashMap(Entity);
-
-    spatial_hash_map: EntitySpatialHashMap = undefined,
-
-    pub fn init(self: *@This(), _: *World) !void {
-        self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 64);
-    }
-
-    pub fn deinit(self: *@This(), _: *World) void {
-        self.spatial_hash_map.deinit();
-    }
-
-    pub fn onEntityRegistered(self: *@This(), _: *World, entity: Entity) void {
-        self.updatePosition(entity) catch { log(.critical, "Failed to update position on registered for entity = {d}", .{ entity }); };
-    }
-
-    pub fn getSignature() []const type {
-        return &.{ Transform2DComponent, ClickableComponent };
-    }
-
-    pub fn updatePosition(self: *@This(), entity: Entity) !void {
-        const transform_comp = global.world.getComponent(entity, Transform2DComponent).?;
-        // TODO: Fix so it relies on global position
-        const pos = &transform_comp.local.position;
-        if (global.world.getComponent(entity, ClickableComponent)) |clickable_comp| {
-            const spatial_collider: Rect2 = .{
-                .x = pos.x + clickable_comp.collider.x, .y = pos.y + clickable_comp.collider.y,
-                .w = clickable_comp.collider.w, .h = clickable_comp.collider.h,
-            };
-            try self.spatial_hash_map.updateObjectPosition(entity, spatial_collider);
-        }
-    }
-
-    pub inline fn getClickedEntities(self: *@This(), pos: Vec2) []Entity {
-        return self.spatial_hash_map.getObjects(pos);
-    }
-};
-
 pub const ColorRectSystem = struct {
 
     const draw_source: Rect2 = .{ .x = 0.0, .y = 0.0, .w = 1.0, .h = 1.0 };
@@ -383,11 +336,58 @@ pub const ColorRectSystem = struct {
     }
 };
 
+pub const ClickableComponent = struct {
+    const OnClickDelegate = FixedDelegate(fn (Entity) void, 4);
+
+    collider: Rect2,
+    mouse_hovering: bool = false,
+    on_click: OnClickDelegate = .{},
+};
+
 pub const UIEventComponent = struct {
     on_hover: ?*fn(Entity) void = null,
     on_unhover: ?*fn(Entity) void = null,
     on_click: ?*fn(Entity) void = null,
     is_mouse_hovering: bool = false,
+};
+
+pub const UIClickingSystem = struct {
+    const EntitySpatialHashMap = SpatialHashMap(Entity);
+
+    spatial_hash_map: EntitySpatialHashMap = undefined,
+
+    pub fn init(self: *@This(), _: *World) !void {
+        self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 64);
+    }
+
+    pub fn deinit(self: *@This(), _: *World) void {
+        self.spatial_hash_map.deinit();
+    }
+
+    pub fn onEntityRegistered(self: *@This(), _: *World, entity: Entity) void {
+        self.updatePosition(entity) catch { log(.critical, "Failed to update position on registered for entity = {d}", .{ entity }); };
+    }
+
+    pub fn getSignature() []const type {
+        return &.{ Transform2DComponent, ClickableComponent };
+    }
+
+    pub fn updatePosition(self: *@This(), entity: Entity) !void {
+        const transform_comp = global.world.getComponent(entity, Transform2DComponent).?;
+        // TODO: Fix so it relies on global position
+        const pos = &transform_comp.local.position;
+        if (global.world.getComponent(entity, ClickableComponent)) |clickable_comp| {
+            const spatial_collider: Rect2 = .{
+                .x = pos.x + clickable_comp.collider.x, .y = pos.y + clickable_comp.collider.y,
+                .w = clickable_comp.collider.w, .h = clickable_comp.collider.h,
+            };
+            try self.spatial_hash_map.updateObjectPosition(entity, spatial_collider);
+        }
+    }
+
+    pub inline fn getClickedEntities(self: *@This(), pos: Vec2) []Entity {
+        return self.spatial_hash_map.getObjects(pos);
+    }
 };
 
 pub const UIEventSystem = struct {
