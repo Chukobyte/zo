@@ -769,14 +769,19 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         pub fn getEntityScriptInstance(self: *@This(), InterT: type, entity: Entity) ?*InterT {
             if (entity < self.entity_data.items.len) {
                 const entity_data: *EntityData = &self.entity_data.items[entity];
-                log(.debug, "oja = {any}", .{entity_data.interface});
                 if (entity_data.interface) |interface| {
-                    log(.debug, "in", .{});
                     const scriptInstance: *InterT = @alignCast(@ptrCast(interface.instance));
                     return scriptInstance;
                 }
             }
             return null;
+        }
+
+        pub fn getSystemInstance(self: *@This(), SystemT: type) ?*SystemT {
+            const system_index = SystemsTypeList.getIndex(SystemT);
+            const system_data = &self.system_data[system_index];
+            const system_instance: *SystemT = @alignCast(@ptrCast(system_data.interface_instance));
+            return system_instance;
         }
 
         pub fn setComponent(self: *@This(), entity: Entity, comptime T: type, component: *const T) !void {
