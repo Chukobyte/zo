@@ -26,11 +26,21 @@ const UIClickingSystem = component_systems.UIClickingSystem;
 
 const log = zo.log;
 
-const GameObjectClass = enum {
-    sprite,
-    text_label,
-    text_box,
-    text_button,
+const SpriteClass = struct {};
+
+const TextLabelClass = struct {};
+
+const TextBoxClass = struct {};
+
+const TextButtonClass = struct {
+    // text_box: GameObject,
+};
+
+const GameObjectClass = union(enum) {
+    sprite: SpriteClass,
+    text_label: TextLabelClass,
+    text_box: TextBoxClass,
+    text_button: TextButtonClass,
 };
 
 fn GameObjectParams(object_class: GameObjectClass) type {
@@ -126,15 +136,18 @@ pub const GameObject = struct {
     }
 
     fn init(node: *Node, comptime object_class: GameObjectClass, params: GameObjectParams(object_class)) !@This() {
+        var class: GameObjectClass = undefined;
         switch (object_class) {
             .sprite => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
                 try global.world.setComponent(node.entity, SpriteComponent, &.{ .texture = params.texture, .draw_source = params.draw_source });
+                class = .{ .sprite = .{ } };
             },
             .text_label => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
                 const text_string = if (params.text == null) String.init(global.allocator) else try String.initAndSetRaw(global.allocator, params.text.?);
                 try global.world.setComponent(node.entity, TextLabelComponent, &.{ .class = .{ .label = .{ .text = text_string } }, .font = params.font });
+                class = .{ .text_label = .{ } };
             },
             .text_box => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
@@ -143,19 +156,28 @@ pub const GameObject = struct {
                     const transform_comp = global.world.getComponent(node.entity, Transform2DComponent).?;
                     const text_label_comp = global.world.getComponent(node.entity, TextLabelComponent).?;
                     try text_label_comp.class.text_box.setText(params.font, text, transform_comp.global.scale.x);
+                    class = .{ .text_box = .{ } };
                 }
             },
             .text_button => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
-                const text_string = if (params.text == null) String.init(global.allocator) else try String.initAndSetRaw(global.allocator, params.text.?);
-                try global.world.setComponent(node.entity, TextLabelComponent, &.{ .class = .{ .label = .{ .text = text_string } }, .font = params.font });
+                // const text_string = if (params.text == null) String.init(global.allocator) else try String.initAndSetRaw(global.allocator, params.text.?);
+                // try global.world.setComponent(node.entity, TextLabelComponent, &.{ .class = .{ .label = .{ .text = text_string } }, .font = params.font });
                 try global.world.setComponent(node.entity, ClickableComponent, &.{ .collider = params.collision });
                 try global.world.setComponent(node.entity, ColorRectComponent, &.{ .size = .{ .w = params.collision.w, .h = params.collision.h }, .color = .{ .r = 0.4, .g = 0.4, .b = 0.4 } });
+                // const text_box = try initInScene(
+                //     .text_box,
+                //     .{ .font = params.font, .size = params.collider, .text = params.text, .line_spacing = 5.0, .transform = .{ .position = .{ .x = 200.0, .y = 140.0 } }, },
+                //     node,
+                //     null
+                // );
+                // class = .{ .text_button = .{ .text_box = text_box } };
+                class = .{ .text_button = .{ } };
             },
         }
         return @This(){
             .node = node,
-            .class = object_class,
+            .class = class,
         };
     }
 
