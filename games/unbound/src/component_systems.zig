@@ -395,17 +395,20 @@ const UIEventComponent = struct {
 };
 
 pub const UIEventSystem = struct {
+    pub fn preWorldTick(_: *@This(), world: *World) !void {
+        const ComponentIterator = World.ArchetypeComponentIterator(getSignature());
+        // Early out if click not registered
+        if (!input.isJustPressed(.{ .key = .mouse_left_button })) { return; }
 
-    const State = struct {
-
-    };
-
-    var state: State = .{};
-
-    pub fn init(_: *@This(), _: *World) !void {}
-
-    pub fn deinit(_: *@This(), _: *World) void {
-        state = .{};
+        var comp_iter = ComponentIterator.init(world);
+        while (comp_iter.next()) |iter| {
+            const event_comp = iter.getComponent(UIEventComponent);
+            if (event_comp.is_mouse_hovering) {
+                if (event_comp.on_click) |on_click| {
+                    on_click(iter.getEntity());
+                }
+            }
+        }
     }
 
     pub fn onUpdatePosition(entity: Entity, _: *const Transform2DComponent) void {
