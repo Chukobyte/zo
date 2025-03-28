@@ -282,16 +282,15 @@ pub const NewCharacterEntity = struct {
             null,
             null
         );
-        // Test button
         self.add_lead_object = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "-", .text_offset = .{ .x = 8.0, .y = 16.0 }, .transform = .{ .position = .{ .x = 160.0, .y = 170.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "+", .text_offset = .{ .x = 6.0, .y = 16.0 }, .transform = .{ .position = .{ .x = 320.0, .y = 170.0 } } },
             null,
             null
         );
         self.sub_lead_object = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "+", .text_offset = .{ .x = 6.0, .y = 16.0 }, .transform = .{ .position = .{ .x = 320.0, .y = 170.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "-", .text_offset = .{ .x = 8.0, .y = 16.0 }, .transform = .{ .position = .{ .x = 160.0, .y = 170.0 } } },
             null,
             null
         );
@@ -319,6 +318,18 @@ pub const NewCharacterEntity = struct {
             // Check clickable system
             const clicked_entities = UIClickingSystem.instance.?.getClickedEntities(.{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) });
             log(.debug, "click_entities = {any}", .{ clicked_entities });
+            for (clicked_entities) |clicked_entity| {
+                if (self.add_lead_object.node.entity == clicked_entity) {
+                    self.character.lead += 1;
+                    const text_label_comp = world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
+                    try text_label_comp.class.text_box.setText(text_label_comp.font, try self.getCharacterDetailsString(), 1.0);
+                } else if (self.sub_lead_object.node.entity == clicked_entity) {
+                    if (self.character.lead == 0) { continue; }
+                    self.character.lead -= 1;
+                    const text_label_comp = world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
+                    try text_label_comp.class.text_box.setText(text_label_comp.font, try self.getCharacterDetailsString(), 1.0);
+                }
+            }
         }
     }
 
