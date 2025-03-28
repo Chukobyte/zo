@@ -384,3 +384,24 @@ pub const ColorRectSystem = struct {
         return &.{ Transform2DComponent, ColorRectComponent };
     }
 };
+
+pub const UIEventSystem = struct {
+
+    const State = struct {
+
+    };
+
+    var state: State = .{};
+
+    pub fn init(_: *@This(), _: *World) !void {}
+
+    pub fn deinit(_: *@This(), _: *World) void {
+        state = .{};
+    }
+
+    pub fn onUpdatePosition(_: Entity, _: *const Transform2DComponent) void {}
+
+    pub fn getSignature() []const type {
+        return &.{ Transform2DComponent };
+    }
+};

@@ -766,6 +766,19 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             );
         }
 
+        pub fn getEntityScriptInstance(self: *@This(), InterT: type, entity: Entity) ?*InterT {
+            if (entity < self.entity_data.items.len) {
+                const entity_data: *EntityData = &self.entity_data.items[entity];
+                log(.debug, "oja = {any}", .{entity_data.interface});
+                if (entity_data.interface) |interface| {
+                    log(.debug, "in", .{});
+                    const scriptInstance: *InterT = @alignCast(@ptrCast(interface.instance));
+                    return scriptInstance;
+                }
+            }
+            return null;
+        }
+
         pub fn setComponent(self: *@This(), entity: Entity, comptime T: type, component: *const T) !void {
             const entity_data: *EntityData = &self.entity_data.items[entity];
             const comp_index = ComponentTypeList.getIndex(T);
