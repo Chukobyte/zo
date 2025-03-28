@@ -27,6 +27,7 @@ const GameObject = object.GameObject;
 const GameObjectSystem = object.GameObjectSystem;
 const Location = state.Location;
 const TextLabelComponent = component_systems.TextLabelComponent;
+const ColorRectComponent = component_systems.ColorRectComponent;
 const UIEventSystem = component_systems.UIEventSystem;
 const InputKey = input.InputKey;
 const InputEvent = input.InputEvent;
@@ -272,13 +273,13 @@ pub const NewCharacterEntity = struct {
         );
         self.add_lead_object = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "+", .text_offset = .{ .x = 6.0, .y = 16.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 320.0, .y = 170.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "+", .text_offset = .{ .x = 6.0, .y = 16.0 }, .on_click = onClick, .on_hover = onHover, .on_unhover = onUnhover, .transform = .{ .position = .{ .x = 320.0, .y = 170.0 } } },
             null,
             null
         );
         self.sub_lead_object = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "-", .text_offset = .{ .x = 8.0, .y = 16.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 160.0, .y = 170.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "-", .text_offset = .{ .x = 8.0, .y = 16.0 }, .on_click = onClick, .on_hover = onHover, .on_unhover = onUnhover, .transform = .{ .position = .{ .x = 160.0, .y = 170.0 } } },
             null,
             null
         );
@@ -319,6 +320,18 @@ pub const NewCharacterEntity = struct {
             //         try text_label_comp.class.text_box.setText(text_label_comp.font, try self.getCharacterDetailsString(), 1.0);
             //     }
             // }
+        }
+    }
+
+    pub fn onHover(entity: Entity) void {
+        if (global.world.getComponent(entity, ColorRectComponent)) |color_rect_comp| {
+            color_rect_comp.color = .{ .r = 0.6, .g = 0.6, .b = 0.6 };
+        }
+    }
+
+    pub fn onUnhover(entity: Entity) void {
+        if (global.world.getComponent(entity, ColorRectComponent)) |color_rect_comp| {
+            color_rect_comp.color = .{ .r = 0.4, .g = 0.4, .b = 0.4 };
         }
     }
 
