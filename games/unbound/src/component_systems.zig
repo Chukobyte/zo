@@ -338,9 +338,9 @@ pub const ColorRectSystem = struct {
 
 pub const UIEventComponent = struct {
     collider: Rect2,
-    on_hover: ?*fn(Entity) void = null,
-    on_unhover: ?*fn(Entity) void = null,
-    on_click: ?*fn(Entity) void = null,
+    on_hover: ?*const fn(Entity) void = null,
+    on_unhover: ?*const fn(Entity) void = null,
+    on_click: ?*const fn(Entity) void = null,
     is_mouse_hovering: bool = false,
 };
 
@@ -348,6 +348,7 @@ pub const UIEventSystem = struct {
     const EntitySpatialHashMap = SpatialHashMap(Entity);
 
     spatial_hash_map: EntitySpatialHashMap = undefined,
+    prev_mouse_pos: Vec2i = Vec2i.Zero,
 
     pub fn init(self: *@This(), _: *World) !void {
         self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 64);
@@ -361,15 +362,27 @@ pub const UIEventSystem = struct {
         self.onUpdatePosition(entity) catch { log(.critical, "Failed to update position on registered for entity = {d}", .{ entity }); };
     }
 
-    pub fn preWorldTick(_: *@This(), world: *World) !void {
+    pub fn preWorldTick(self: *@This(), world: *World) !void {
         const ComponentIterator = World.ArchetypeComponentIterator(getSignature());
-        // Early out if click not registered
-        if (!input.isKeyJustPressed(.{ .key = .mouse_button_left })) { return; }
 
+        const mouse_pos: Vec2i = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
+
+        var has_moved = false;
+        if (!self.prev_mouse_pos.equals(&mouse_pos)) {
+            self.prev_mouse_pos = mouse_pos;
+            has_moved = true;
+        }
+
+        const global_mouse_pos: Vec2 = .{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) };
+        const just_clicked_pressed: bool = input.isKeyJustPressed(.{ .key = .mouse_button_left });
         var comp_iter = ComponentIterator.init(world);
         while (comp_iter.next()) |iter| {
+            const transform_comp = iter.getComponent(Transform2DComponent);
             const event_comp = iter.getComponent(UIEventComponent);
-            if (event_comp.is_mouse_hovering) {
+            if (has_moved) {
+                try self.updateState(iter.getEntity(), &global_mouse_pos, transform_comp, event_comp);
+            }
+            if (just_clicked_pressed and event_comp.is_mouse_hovering) {
                 if (event_comp.on_click) |on_click| {
                     on_click(iter.getEntity());
                 }
@@ -379,35 +392,11 @@ pub const UIEventSystem = struct {
 
     pub fn onUpdatePosition(self: *@This(), entity: Entity) !void {
         if (global.world.getComponent(entity, Transform2DComponent)) |transform_comp| {
+        if (global.world.getComponent(entity, UIEventComponent)) |event_comp| {
             const mouse_pos: Vec2i = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
             const global_mouse_pos: Vec2 = .{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) };
-            if (global.world.getComponent(entity, UIEventComponent)) |event_comp| {
-                // Update spatial hash first
-                // TODO: Fix so it relies on global position
-                const pos = &transform_comp.local.position;
-                const spatial_collider: Rect2 = .{
-                    .x = pos.x + event_comp.collider.x, .y = pos.y + event_comp.collider.y,
-                    .w = event_comp.collider.w, .h = event_comp.collider.h,
-                };
-                try self.spatial_hash_map.updateObjectPosition(entity, spatial_collider);
-
-                if (event_comp.collider.doesPointOverlap(&global_mouse_pos)) {
-                    if (!event_comp.is_mouse_hovering) {
-                        event_comp.is_mouse_hovering = true;
-                        if (event_comp.on_hover) |on_hover| {
-                            on_hover(entity);
-                        }
-                    }
-                } else {
-                    if (event_comp.is_mouse_hovering) {
-                        event_comp.is_mouse_hovering = false;
-                        if (event_comp.on_unhover) |on_unhover| {
-                            on_unhover(entity);
-                        }
-                    }
-                }
-            }
-        }
+            try self.updateState(entity, &global_mouse_pos, transform_comp, event_comp);
+        }}
     }
 
     pub inline fn getClickedEntities(self: *@This(), pos: Vec2) []Entity {
@@ -416,5 +405,32 @@ pub const UIEventSystem = struct {
 
     pub fn getSignature() []const type {
         return &.{ Transform2DComponent, UIEventComponent };
+    }
+
+    fn updateState(self: *@This(), entity: Entity, global_mouse_pos: *const Vec2, transform_comp: *Transform2DComponent, event_comp: *UIEventComponent) !void {
+        // Update spatial hash
+        // TODO: Fix so it relies on global position
+        const pos = &transform_comp.local.position;
+        const spatial_collider: Rect2 = .{
+            .x = pos.x + event_comp.collider.x, .y = pos.y + event_comp.collider.y,
+            .w = event_comp.collider.w, .h = event_comp.collider.h,
+        };
+        try self.spatial_hash_map.updateObjectPosition(entity, spatial_collider);
+
+        if (spatial_collider.doesPointOverlap(global_mouse_pos)) {
+            if (!event_comp.is_mouse_hovering) {
+                event_comp.is_mouse_hovering = true;
+                if (event_comp.on_hover) |on_hover| {
+                    on_hover(entity);
+                }
+            }
+        } else {
+            if (event_comp.is_mouse_hovering) {
+                event_comp.is_mouse_hovering = false;
+                if (event_comp.on_unhover) |on_unhover| {
+                    on_unhover(entity);
+                }
+            }
+        }
     }
 };

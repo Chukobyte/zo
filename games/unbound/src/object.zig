@@ -74,6 +74,9 @@ fn GameObjectParams(ClassT: type) type {
             font: *Font,
             text: ?[]const u8 = null,
             text_offset: Vec2 = Vec2.Zero,
+            on_hover: ?*const fn(Entity) void = null,
+            on_unhover: ?*const fn(Entity) void = null,
+            on_click: ?*const fn(Entity) void = null,
             transform: Transform2D = Transform2D.Identity,
             z_index: i32 = 0,
         },
@@ -169,7 +172,7 @@ pub const GameObject = struct {
             },
             TextButtonClass => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
-                try global.world.setComponent(node.entity, UIEventComponent, &.{ .collider = params.collision });
+                try global.world.setComponent(node.entity, UIEventComponent, &.{ .collider = params.collision, .on_hover = params.on_hover, .on_unhover = params.on_unhover, .on_click = params.on_click });
                 try global.world.setComponent(node.entity, ColorRectComponent, &.{ .size = .{ .w = params.collision.w, .h = params.collision.h }, .color = .{ .r = 0.4, .g = 0.4, .b = 0.4 } });
                 const text_box = try initInScene(
                     TextBoxClass,
