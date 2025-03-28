@@ -15,27 +15,24 @@ const AudioSource = audio.AudioSource;
 const Transform2DComponent = component_systems.Transform2DComponent;
 const SpriteComponent = component_systems.SpriteComponent;
 const TextLabelComponent = component_systems.TextLabelComponent;
-const ClickableComponent = component_systems.ClickableComponent;
 const ColorRectComponent = component_systems.ColorRectComponent;
 const UIEventComponent = component_systems.UIEventComponent;
 const SpriteRenderingSystem = component_systems.SpriteRenderingSystem;
 const TextRenderingSystem = component_systems.TextRenderingSystem;
-const UIClickingSystem = component_systems.UIClickingSystem;
-const ColorRectSystem = component_systems.ColorRectSystem;
 const UIEventSystem = component_systems.UIEventSystem;
+const ColorRectSystem = component_systems.ColorRectSystem;
 
 pub const World = ecs.ECSWorld(.{
     .entity_interfaces = &.{
         game.InitEntity, game.MainMenuEntity, game.NewGameEntity, game.ExistingCharacterEntity, game.NewCharacterEntity, game.LocationEntity, game.MapEntity
     },
-    .components = &.{ Transform2DComponent, SpriteComponent, TextLabelComponent, ClickableComponent, ColorRectComponent, UIEventComponent },
-    .systems = &.{ SpriteRenderingSystem, TextRenderingSystem, UIClickingSystem, ColorRectSystem, UIEventSystem },
+    .components = &.{ Transform2DComponent, SpriteComponent, TextLabelComponent, ColorRectComponent, UIEventComponent },
+    .systems = &.{ SpriteRenderingSystem, TextRenderingSystem, UIEventSystem, ColorRectSystem },
     .archetypes = @as([]const []const type, &.{
         &.{ Transform2DComponent, SpriteComponent },
         &.{ Transform2DComponent, TextLabelComponent },
-        &.{ Transform2DComponent, ClickableComponent },
+        &.{ Transform2DComponent, UIEventComponent },
         &.{ Transform2DComponent,  ColorRectComponent },
-        &.{ Transform2DComponent, ClickableComponent, UIEventComponent }
     }),
 });
 

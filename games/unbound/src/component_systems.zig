@@ -336,22 +336,15 @@ pub const ColorRectSystem = struct {
     }
 };
 
-pub const ClickableComponent = struct {
-    const OnClickDelegate = FixedDelegate(fn (Entity) void, 4);
-
-    collider: Rect2,
-    mouse_hovering: bool = false,
-    on_click: OnClickDelegate = .{},
-};
-
 pub const UIEventComponent = struct {
+    collider: Rect2,
     on_hover: ?*fn(Entity) void = null,
     on_unhover: ?*fn(Entity) void = null,
     on_click: ?*fn(Entity) void = null,
     is_mouse_hovering: bool = false,
 };
 
-pub const UIClickingSystem = struct {
+pub const UIEventSystem = struct {
     const EntitySpatialHashMap = SpatialHashMap(Entity);
 
     spatial_hash_map: EntitySpatialHashMap = undefined,
@@ -365,32 +358,9 @@ pub const UIClickingSystem = struct {
     }
 
     pub fn onEntityRegistered(self: *@This(), _: *World, entity: Entity) void {
-        self.updatePosition(entity) catch { log(.critical, "Failed to update position on registered for entity = {d}", .{ entity }); };
+        self.onUpdatePosition(entity) catch { log(.critical, "Failed to update position on registered for entity = {d}", .{ entity }); };
     }
 
-    pub fn getSignature() []const type {
-        return &.{ Transform2DComponent, ClickableComponent };
-    }
-
-    pub fn updatePosition(self: *@This(), entity: Entity) !void {
-        const transform_comp = global.world.getComponent(entity, Transform2DComponent).?;
-        // TODO: Fix so it relies on global position
-        const pos = &transform_comp.local.position;
-        if (global.world.getComponent(entity, ClickableComponent)) |clickable_comp| {
-            const spatial_collider: Rect2 = .{
-                .x = pos.x + clickable_comp.collider.x, .y = pos.y + clickable_comp.collider.y,
-                .w = clickable_comp.collider.w, .h = clickable_comp.collider.h,
-            };
-            try self.spatial_hash_map.updateObjectPosition(entity, spatial_collider);
-        }
-    }
-
-    pub inline fn getClickedEntities(self: *@This(), pos: Vec2) []Entity {
-        return self.spatial_hash_map.getObjects(pos);
-    }
-};
-
-pub const UIEventSystem = struct {
     pub fn preWorldTick(_: *@This(), world: *World) !void {
         const ComponentIterator = World.ArchetypeComponentIterator(getSignature());
         // Early out if click not registered
@@ -407,30 +377,44 @@ pub const UIEventSystem = struct {
         }
     }
 
-    pub fn onUpdatePosition(entity: Entity, _: *const Transform2DComponent) void {
-        const mouse_pos: Vec2i = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
-        const global_mouse_pos: Vec2 = .{ .x = @floatFromInt(mouse_pos.x), .xy = @floatFromInt(mouse_pos.y) };
-        if (global.world.getComponent(entity, ClickableComponent)) |clickable_comp| {
-        if (global.world.getComponent(entity, UIEventComponent)) |event_comp| {
-            if (clickable_comp.collider.doesPointOverlap(&global_mouse_pos)) {
-                if (!event_comp.is_mouse_hovering) {
-                    event_comp.is_mouse_hovering = true;
-                    if (event_comp.on_hover) |on_hover| {
-                        on_hover(entity);
+    pub fn onUpdatePosition(self: *@This(), entity: Entity) !void {
+        if (global.world.getComponent(entity, Transform2DComponent)) |transform_comp| {
+            const mouse_pos: Vec2i = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
+            const global_mouse_pos: Vec2 = .{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) };
+            if (global.world.getComponent(entity, UIEventComponent)) |event_comp| {
+                // Update spatial hash first
+                // TODO: Fix so it relies on global position
+                const pos = &transform_comp.local.position;
+                const spatial_collider: Rect2 = .{
+                    .x = pos.x + event_comp.collider.x, .y = pos.y + event_comp.collider.y,
+                    .w = event_comp.collider.w, .h = event_comp.collider.h,
+                };
+                try self.spatial_hash_map.updateObjectPosition(entity, spatial_collider);
+
+                if (event_comp.collider.doesPointOverlap(&global_mouse_pos)) {
+                    if (!event_comp.is_mouse_hovering) {
+                        event_comp.is_mouse_hovering = true;
+                        if (event_comp.on_hover) |on_hover| {
+                            on_hover(entity);
+                        }
                     }
-                }
-            } else {
-                if (event_comp.is_mouse_hovering) {
-                    event_comp.is_mouse_hovering = false;
-                    if (event_comp.on_unhover) |on_unhover| {
-                        on_unhover(entity);
+                } else {
+                    if (event_comp.is_mouse_hovering) {
+                        event_comp.is_mouse_hovering = false;
+                        if (event_comp.on_unhover) |on_unhover| {
+                            on_unhover(entity);
+                        }
                     }
                 }
             }
-        }}
+        }
+    }
+
+    pub inline fn getClickedEntities(self: *@This(), pos: Vec2) []Entity {
+        return self.spatial_hash_map.getObjects(pos);
     }
 
     pub fn getSignature() []const type {
-        return &.{ Transform2DComponent, ClickableComponent, UIEventComponent };
+        return &.{ Transform2DComponent, UIEventComponent };
     }
 };

@@ -23,10 +23,10 @@ const Entity = ecs.Entity;
 const Transform2DComponent = component_systems.Transform2DComponent;
 const SpriteComponent = component_systems.SpriteComponent;
 const TextLabelComponent = component_systems.TextLabelComponent;
-const ClickableComponent = component_systems.ClickableComponent;
+const UIEventComponent = component_systems.UIEventComponent;
 const ColorRectComponent = component_systems.ColorRectComponent;
 const NodeMatrixInterface = component_systems.NodeMatrixInterface;
-const UIClickingSystem = component_systems.UIClickingSystem;
+const UIEventSystem = component_systems.UIEventSystem;
 
 const log = zo.log;
 
@@ -169,7 +169,7 @@ pub const GameObject = struct {
             },
             TextButtonClass => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
-                try global.world.setComponent(node.entity, ClickableComponent, &.{ .collider = params.collision });
+                try global.world.setComponent(node.entity, UIEventComponent, &.{ .collider = params.collision });
                 try global.world.setComponent(node.entity, ColorRectComponent, &.{ .size = .{ .w = params.collision.w, .h = params.collision.h }, .color = .{ .r = 0.4, .g = 0.4, .b = 0.4 } });
                 const text_box = try initInScene(
                     TextBoxClass,
@@ -186,9 +186,9 @@ pub const GameObject = struct {
     }
 
     fn onMovementUpdate(self: *@This(), context: []const u8) void {
-        if (global.world.hasComponent(self.node.entity,ClickableComponent)) {
-            const clicking_system: *UIClickingSystem = global.world.getSystemInstance(UIClickingSystem).?;
-            clicking_system.updatePosition(self.node.entity) catch { log(.critical, "Failed to {s}!  Node = {any}", .{ context, self.node }); };
+        if (global.world.hasComponent(self.node.entity,UIEventComponent)) {
+            const ui_system: *UIEventSystem = global.world.getSystemInstance(UIEventSystem).?;
+            ui_system.onUpdatePosition(self.node.entity) catch { log(.critical, "Failed to {s}!  Node = {any}", .{ context, self.node }); };
         }
     }
 };

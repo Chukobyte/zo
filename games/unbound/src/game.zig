@@ -26,10 +26,10 @@ const GameObject = object.GameObject;
 const GameObjectSystem = object.GameObjectSystem;
 const Location = state.Location;
 const TextLabelComponent = component_systems.TextLabelComponent;
-const UIClickingSystem = component_systems.UIClickingSystem;
-const InputAction = input.InputAction;
+const UIEventSystem = component_systems.UIEventSystem;
 const InputKey = input.InputKey;
 const InputEvent = input.InputEvent;
+const InputAction = input.InputAction;
 const Character = state.Character;
 const EthnicityProfile = state.EthnicityProfile;
 const SubscriberHandle = delegate.SubscriberHandle;
@@ -303,9 +303,9 @@ pub const NewCharacterEntity = struct {
             }
 
             // Check clickable system
-            const clicking_system: *UIClickingSystem = world.getSystemInstance(UIClickingSystem).?;
-            const clicked_entities = clicking_system.getClickedEntities(.{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) });
-            log(.debug, "click_entities = {any}", .{ clicked_entities });
+            const ui_system: *UIEventSystem = world.getSystemInstance(UIEventSystem).?;
+            const clicked_entities = ui_system.getClickedEntities(.{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) });
+            log(.debug, "clicked_entities = {any}", .{ clicked_entities });
             for (clicked_entities) |clicked_entity| {
                 if (self.add_lead_object.node.entity == clicked_entity) {
                     self.character.lead += 1;
