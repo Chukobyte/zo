@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const misc = @import("misc.zig");
+const delegate = @import("delegate.zig");
 
 const log = @import("logger.zig").log;
 
@@ -8,6 +9,7 @@ const ArrayListUtils = misc.ArrayListUtils;
 const FlagUtils = misc.FlagUtils;
 const TypeList = misc.TypeList;
 const TypeBitMask = misc.TypeBitMask;
+const FixedDelegate = delegate.FixedDelegate;
 
 pub const Entity = u32;
 
@@ -524,6 +526,8 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         update_entities: std.ArrayList(Entity),
         fixed_update_entities: std.ArrayList(Entity),
 
+        on_entity_deinit: FixedDelegate(fn (Entity) void, 1) = .{},
+
         pub fn init(allocator: std.mem.Allocator) !@This() {
             const entity_data_list = std.ArrayList(EntityData).init(allocator);
             const update_entities_list = std.ArrayList(Entity).init(allocator);
@@ -729,6 +733,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
         pub fn deinitEntity(self: *@This(), entity: Entity) void {
             if (self.isEntityValid(entity)) {
+                self.on_entity_deinit.broadcast(.{ entity });
                 if (self.entity_data.items[entity].interface) |interface| {
                     inline for (0..entity_interface_types.len) |id| {
                         if (interface.id == id) {

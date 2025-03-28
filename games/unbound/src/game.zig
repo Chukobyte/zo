@@ -23,6 +23,7 @@ const String = zo.string.HeapString;
 const World = global.World;
 const Node = World.Node;
 const GameObject = object.GameObject;
+const GameObjectSystem = object.GameObjectSystem;
 const Location = state.Location;
 const TextLabelComponent = component_systems.TextLabelComponent;
 const UIClickingSystem = component_systems.UIClickingSystem;
@@ -38,6 +39,8 @@ const TextBoxClass = object.TextBoxClass;
 const TextButtonClass = object.TextButtonClass;
 
 const log = zo.log;
+
+var game_object_system: *GameObjectSystem = undefined;
 
 var move_left_input_handle: InputAction.Handle = 0;
 var move_right_input_handle: InputAction.Handle = 0;
@@ -68,6 +71,7 @@ pub const InitSceneDefinition = struct {
 
 pub const InitEntity = struct {
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
+        game_object_system = try GameObjectSystem.init(global.allocator);
         move_left_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_left, .keyboard_a } } );
         move_right_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_right, .keyboard_d } } );
         move_up_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_up, .keyboard_w } } );
@@ -133,7 +137,7 @@ pub const NewGameEntity = struct {
     const new_text = "New";
     const existing_text = "Existing";
 
-    character_mode_text: GameObject = undefined,
+    character_mode_text: *GameObject = undefined,
     character_mode: CharacterMode = .new,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
@@ -259,12 +263,12 @@ pub const NewCharacterEntity = struct {
 
     character: Character = .{ .name = undefined, .role = .free_man, .ethnicity = EthnicityProfile.Black },
     skill_points: u32 = 100,
-    name_object: GameObject = undefined,
-    details_object: GameObject = undefined,
+    name_object: *GameObject = undefined,
+    details_object: *GameObject = undefined,
     name_collision_rect: Rect2 = .{ .x = 200.0, .y = 80.0, .w = 200, .h = 100 },
     is_typing_name: bool = false,
-    add_lead_object: GameObject = undefined,
-    sub_lead_object: GameObject = undefined,
+    add_lead_object: *GameObject = undefined,
+    sub_lead_object: *GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         self.character.name = String.init(global.allocator);
@@ -324,7 +328,7 @@ pub const NewCharacterEntity = struct {
         self.is_typing_name = is_typing_name;
         if (is_typing_name) {
             text_label_comp.color = math.LinearColor.Red;
-            try InputText.subscribeToInput(&self.name_object);
+            try InputText.subscribeToInput(self.name_object);
         } else {
             text_label_comp.color = math.LinearColor.White;
             InputText.unsubscribeFromInput();
@@ -361,8 +365,8 @@ pub const MapSceneDefinition = struct {
 };
 
 pub const MapEntity = struct {
-    selected_location_cursor: GameObject = undefined,
-    selected_location_name: GameObject = undefined,
+    selected_location_cursor: *GameObject = undefined,
+    selected_location_name: *GameObject = undefined,
     location_index: usize = 9,
 
     pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
