@@ -278,7 +278,7 @@ pub const NewCharacterEntity = struct {
     skill_points: u32 = 100,
     name_object: *GameObject = undefined,
     details_object: *GameObject = undefined,
-    name_collision_rect: Rect2 = .{ .x = 200.0, .y = 80.0, .w = 200, .h = 100 },
+    name_collision_rect: Rect2 = .{ .x = 250.0, .y = 70.0, .w = 200, .h = 30 },
     is_typing_name: bool = false,
     confirm_button: *GameObject = undefined,
     back_button: *GameObject = undefined,
