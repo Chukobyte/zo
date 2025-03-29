@@ -330,9 +330,10 @@ pub const Font = struct {
     vbo: GLuint,
     size: i32,
     text_height: f32,
+    ascent: f32,
     characters: [128]FontCharacter, // First 128 of ASCII set
 
-    const EmptyFont: @This() = .{ .vao = undefined, .vbo = undefined, .size = undefined, .text_height = undefined, .characters = undefined };
+    const EmptyFont: @This() = .{ .vao = undefined, .vbo = undefined, .size = undefined, .text_height = undefined, .ascent = undefined, .characters = undefined };
 
     pub fn init(file_path: []const u8, font_size: usize, nearest_neighbor: bool) !@This() {
         var face: ft.FT_Face = undefined;
@@ -433,6 +434,7 @@ pub const Font = struct {
         }
 
         self.text_height = max_ascent + max_descent;
+        self.ascent = max_ascent;
 
         glad.glBindTexture(glad.GL_TEXTURE_2D, 0);
 
@@ -700,7 +702,7 @@ const FontRenderer = struct {
         for (p.text) |c| {
             const ch = p.font.characters[@intCast(c)];
             const x_pos: f32 = x + @as(f32, @floatFromInt(ch.bearing.x)) * p.scale;
-            const y_pos: f32 = -y - (@as(f32, @floatFromInt(@as(i32, @intCast(ch.size.y)) - ch.bearing.y)) * p.scale);
+            const y_pos: f32 = -y - p.font.text_height - (@as(f32, @floatFromInt(@as(i32, @intCast(ch.size.y)) - ch.bearing.y)) * p.scale);
             const w: f32 = @as(f32, @floatFromInt(ch.size.x)) * p.scale;
             const h: f32 = @as(f32, @floatFromInt(ch.size.y)) * p.scale;
             // Update VBO for each characters
