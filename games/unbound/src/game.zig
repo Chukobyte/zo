@@ -277,6 +277,7 @@ pub const NewCharacterEntity = struct {
     character: Character = .{ .name = undefined, .role = .free_man, .ethnicity = EthnicityProfile.Black },
     skill_points: u32 = 100,
     name_object: *GameObject = undefined,
+    edit_name_button: *GameObject = undefined,
     details_object: *GameObject = undefined,
     name_collision_rect: Rect2 = .{ .x = 250.0, .y = 70.0, .w = 200, .h = 30 },
     is_typing_name: bool = false,
@@ -299,6 +300,12 @@ pub const NewCharacterEntity = struct {
         self.name_object = try GameObject.initInScene(
             TextLabelClass,
             .{ .font = &global.assets.fonts.pixeloid_16, .text = initial_name_text, .transform = .{ .position = .{ .x = 250.0, .y = 70.0 } }, },
+            null,
+            null
+        );
+        self.edit_name_button = try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 75.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Edit", .on_click = onClick, .transform = .{ .position = .{ .x = 150.0, .y = 62.0 } } },
             null,
             null
         );
@@ -346,18 +353,14 @@ pub const NewCharacterEntity = struct {
             try self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
             InputText.unsubscribeFromInput();
         }
-        if (input.isKeyJustPressed(.{ .key = .mouse_button_left })) {
-            const mouse_pos: Vec2i = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
-            if (self.name_collision_rect.doesPointOverlap(&.{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) })) {
-                const text_label_comp = world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
-                try self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
-            }
-        }
     }
 
     pub fn onClick(clicked_entity: Entity) void {
         if (global.world.findEntityScriptInstance(@This())) |self| {
-            if (self.add_lead_button.node.entity == clicked_entity) {
+            if (self.edit_name_button.node.entity == clicked_entity) {
+                const text_label_comp = global.world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
+                self.setIsTypingName(!self.is_typing_name, text_label_comp) catch { unreachable; }; // Toggle
+            } else if (self.add_lead_button.node.entity == clicked_entity) {
                 self.addToProperty(&self.character.lead);
             } else if (self.sub_lead_button.node.entity == clicked_entity) {
                 self.subFromProperty(&self.character.lead);
@@ -365,7 +368,6 @@ pub const NewCharacterEntity = struct {
                 self.addToProperty(&self.character.military);
             } else if (self.sub_military_button.node.entity == clicked_entity) {
                 self.subFromProperty(&self.character.military);
-
             } else if (self.add_charisma_button.node.entity == clicked_entity) {
                 self.addToProperty(&self.character.charisma);
             } else if (self.sub_charisma_button.node.entity == clicked_entity) {
@@ -416,11 +418,18 @@ pub const NewCharacterEntity = struct {
         self.is_typing_name = is_typing_name;
         if (is_typing_name) {
             text_label_comp.color = math.LinearColor.Red;
+            if (global.world.getComponent(self.edit_name_button.class.text_button.text_box.node.entity, TextLabelComponent)) |button_text_label_comp| {
+                try button_text_label_comp.class.text_box.setText(button_text_label_comp.font, "Done", 1.0);
+            }
             try InputText.subscribeToInput(self.name_object);
         } else {
             text_label_comp.color = math.LinearColor.White;
             InputText.unsubscribeFromInput();
+            if (global.world.getComponent(self.edit_name_button.class.text_button.text_box.node.entity, TextLabelComponent)) |button_text_label_comp| {
+                try button_text_label_comp.class.text_box.setText(button_text_label_comp.font, "Edit", 1.0);
+            }
         }
+        self.edit_name_button.class.text_button.refreshTextAlignment();
     }
 
     fn getCharacterDetailsString(self: *@This()) ![]const u8 {
