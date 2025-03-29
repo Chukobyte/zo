@@ -540,6 +540,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 .update_entities = update_entities_list,
                 .fixed_update_entities = fixed_update_entities_list,
             };
+            try world.entity_data.ensureTotalCapacity(1000);
             // Setup archetype data
             const archetype_list_data = comptime ArchetypeListData.generate();
             inline for (0..archetype_count) |i| {

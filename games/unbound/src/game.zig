@@ -280,10 +280,19 @@ pub const NewCharacterEntity = struct {
     details_object: *GameObject = undefined,
     name_collision_rect: Rect2 = .{ .x = 200.0, .y = 80.0, .w = 200, .h = 100 },
     is_typing_name: bool = false,
-    add_lead_button: *GameObject = undefined,
-    sub_lead_button: *GameObject = undefined,
     confirm_button: *GameObject = undefined,
     back_button: *GameObject = undefined,
+
+    add_lead_button: *GameObject = undefined,
+    sub_lead_button: *GameObject = undefined,
+    add_military_button: *GameObject = undefined,
+    sub_military_button: *GameObject = undefined,
+    add_charisma_button: *GameObject = undefined,
+    sub_charisma_button: *GameObject = undefined,
+    add_intelligence_button: *GameObject = undefined,
+    sub_intelligence_button: *GameObject = undefined,
+    add_politics_button: *GameObject = undefined,
+    sub_politics_button: *GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         self.character.name = String.init(global.allocator);
@@ -299,10 +308,28 @@ pub const NewCharacterEntity = struct {
             null,
             null
         );
-        self.add_lead_button = try ButtonUtils.createValueChangeButton("+", .{ .x = 380.0, .y = 147.0 }, onClick);
-        self.sub_lead_button = try ButtonUtils.createValueChangeButton("-", .{ .x = 200.0, .y = 147.0 }, onClick);
         self.confirm_button = try ButtonUtils.createConfirmButton(onClick);
         self.back_button = try ButtonUtils.createBackButton(onClick);
+
+        const base_left_x: f32 = 200.0;
+        const base_right_x: f32 = 380.0;
+        var base_y: f32 = 147.0;
+        const y_increment: f32 = 20.0;
+
+        self.sub_lead_button = try ButtonUtils.createValueChangeButton("-", .{ .x = base_left_x, .y = base_y }, onClick);
+        self.add_lead_button = try ButtonUtils.createValueChangeButton("+", .{ .x = base_right_x, .y = base_y }, onClick);
+        base_y += y_increment;
+        self.sub_military_button = try ButtonUtils.createValueChangeButton("-", .{ .x = base_left_x, .y = base_y }, onClick);
+        self.add_military_button = try ButtonUtils.createValueChangeButton("+", .{ .x = base_right_x, .y = base_y }, onClick);
+        base_y += y_increment;
+        self.sub_charisma_button = try ButtonUtils.createValueChangeButton("-", .{ .x = base_left_x, .y = base_y }, onClick);
+        self.add_charisma_button = try ButtonUtils.createValueChangeButton("+", .{ .x = base_right_x, .y = base_y }, onClick);
+        base_y += y_increment;
+        self.sub_intelligence_button = try ButtonUtils.createValueChangeButton("-", .{ .x = base_left_x, .y = base_y }, onClick);
+        self.add_intelligence_button = try ButtonUtils.createValueChangeButton("+", .{ .x = base_right_x, .y = base_y }, onClick);
+        base_y += y_increment;
+        self.sub_politics_button = try ButtonUtils.createValueChangeButton("-", .{ .x = base_left_x, .y = base_y }, onClick);
+        self.add_politics_button = try ButtonUtils.createValueChangeButton("+", .{ .x = base_right_x, .y = base_y }, onClick);
     }
 
     pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
