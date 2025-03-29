@@ -100,7 +100,7 @@ pub const map_locations: [13]Location = .{
     .{ .name = "Pennsylvania", .map_position = .{ .x = 445.0, .y = 118.0 } },
     .{ .name = "Maryland", .map_position = .{ .x = 445.0, .y = 142.0 } },
     .{ .name = "Virginia", .map_position = .{ .x = 428.0, .y = 164.0 } },
-    .{ .name = "North Carolina", .map_position = .{ .x = 425.0, .y = 109.0 } },
+    .{ .name = "North Carolina", .map_position = .{ .x = 425.0, .y = 209.0 } },
     .{ .name = "South Carolina", .map_position = .{ .x = 370.0, .y = 222.0 } },
     .{ .name = "Georgia", .map_position = .{ .x = 339.0, .y = 242.0 } },
 };

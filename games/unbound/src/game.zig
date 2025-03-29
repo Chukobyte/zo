@@ -47,23 +47,32 @@ var move_right_input_handle: InputAction.Handle = 0;
 var move_up_input_handle: InputAction.Handle = 0;
 var move_down_input_handle: InputAction.Handle = 0;
 
-const EntityUtils = struct {
+const ButtonUtils = struct {
     on_hover: ?*const fn(Entity) void = null,
     on_unhover: ?*const fn(Entity) void = null,
     on_click: ?*const fn(Entity) void = null,
 
-    pub fn createConfirmButton(on_hover: ?*const fn(Entity) void, on_unhover: ?*const fn(Entity) void, on_click: ?*const fn(Entity) void) !*GameObject {
+    pub fn createConfirmButton(on_click: ?*const fn(Entity) void) !*GameObject {
         return try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Confirm", .on_hover = on_hover, .on_unhover = on_unhover, .on_click = on_click, .transform = .{ .position = .{ .x = 500.0, .y = 300.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Confirm", .on_click = on_click, .transform = .{ .position = .{ .x = 500.0, .y = 300.0 } } },
             null,
             null
         );
     }
-    pub fn createBackButton(on_hover: ?*const fn(Entity) void, on_unhover: ?*const fn(Entity) void, on_click: ?*const fn(Entity) void) !*GameObject {
+    pub fn createBackButton(on_click: ?*const fn(Entity) void) !*GameObject {
         return try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Back", .on_hover = on_hover, .on_unhover = on_unhover, .on_click = on_click, .transform = .{ .position = .{ .x = 40.0, .y = 300.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Back", .on_click = on_click, .transform = .{ .position = .{ .x = 40.0, .y = 300.0 } } },
+            null,
+            null
+        );
+    }
+
+    pub fn createValueChangeButton(symbol: []const u8, position: Vec2, on_click: ?*const fn(Entity) void) !*GameObject {
+        return try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = symbol, .on_click = on_click, .transform = .{ .position = position } },
             null,
             null
         );
@@ -188,8 +197,8 @@ pub const ExistingCharacterEntity = struct {
             null,
             null
         );
-        self.back_button = try EntityUtils.createBackButton(null, null, onClick);
-        self.confirm_button = try EntityUtils.createConfirmButton(null, null, onClick);
+        self.back_button = try ButtonUtils.createBackButton(onClick);
+        self.confirm_button = try ButtonUtils.createConfirmButton(onClick);
     }
 
     pub fn onClick(clicked_entity: Entity) void {
@@ -290,20 +299,10 @@ pub const NewCharacterEntity = struct {
             null,
             null
         );
-        self.add_lead_button = try GameObject.initInScene(
-            TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "+", .on_click = onClick, .transform = .{ .position = .{ .x = 320.0, .y = 170.0 } } },
-            null,
-            null
-        );
-        self.sub_lead_button = try GameObject.initInScene(
-            TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "-", .on_click = onClick, .transform = .{ .position = .{ .x = 160.0, .y = 170.0 } } },
-            null,
-            null
-        );
-        self.confirm_button = try EntityUtils.createConfirmButton(null, null, onClick);
-        self.back_button = try EntityUtils.createBackButton(null, null, onClick);
+        self.add_lead_button = try ButtonUtils.createValueChangeButton("+", .{ .x = 320.0, .y = 170.0 }, onClick);
+        self.sub_lead_button = try ButtonUtils.createValueChangeButton("-", .{ .x = 160.0, .y = 170.0 }, onClick);
+        self.confirm_button = try ButtonUtils.createConfirmButton(onClick);
+        self.back_button = try ButtonUtils.createBackButton(onClick);
     }
 
     pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
