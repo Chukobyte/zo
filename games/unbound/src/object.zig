@@ -78,7 +78,6 @@ pub const TextButtonClass = struct {
                 .center => space_from_top / 2.0,
                 .bottom => space_from_top,
             };
-            log(.debug, "left = {d}, top = {d}, text_height = {d}, space_from_top = {d}, container_height = {d}", .{ left_padding, top_padding, text_height, space_from_top, container_height });
             // Update position
             const local_text_pos: Vec2 = .{ .x = left_padding + self.alignment_padding.x, .y = top_padding + self.alignment_padding.y };
             self.text_box.setLocalPosition(local_text_pos);
