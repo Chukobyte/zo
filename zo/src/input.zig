@@ -419,7 +419,14 @@ pub fn getWorldMousePosition(window_size: Dim2i, render_resolution: Dim2i) Vec2i
         .x = math.mapToRange(f32, mouse_pos.x, 0.0, win_size.x, 0.0, resolution.x),
         .y = math.mapToRange(f32, mouse_pos.y, 0.0, win_size.y, 0.0, resolution.y)
     };
-    const global_mouse_pos: Vec2i = .{ .x = @intFromFloat(global_mouse_position.x), .y = @intFromFloat(global_mouse_position.y) };
+    // TODO: Look into abnormal values in 'global_mouse_position', for now we clamp
+    // const global_mouse_pos: Vec2i = .{ .x = @intFromFloat(global_mouse_position.x), .y = @intFromFloat(global_mouse_position.y) };
+    const min_val: f32 = @floatFromInt(std.math.minInt(i32));
+    const max_val: f32 = @floatFromInt(std.math.maxInt(i32));
+    const clamped_x: f32 = math.clamp(f32, global_mouse_position.x, min_val, max_val);
+    const clamped_y: f32 = math.clamp(f32, global_mouse_position.y, min_val, max_val);
+
+    const global_mouse_pos: Vec2i = .{ .x = @intFromFloat(clamped_x), .y = @intFromFloat(clamped_y) };
     return global_mouse_pos;
 }
 

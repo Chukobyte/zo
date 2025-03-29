@@ -597,6 +597,10 @@ pub inline fn mapToRange(comptime T: type, input: T, input_min: T, input_max: T,
     return (((input - input_min) / (input_max - input_min)) * (output_max - output_min) + output_min);
 }
 
+pub inline fn clamp(comptime T: type, value: T, min: T, max: T) T {
+    return if (value < min) min else if (value > max) max else value;
+}
+
 /// Creates an orthographic projection matrix
 pub fn ortho(left: f32, right: f32, bottom: f32, top: f32, nearZ: f32, farZ: f32) Mat4 {
     return Mat4{

@@ -47,6 +47,29 @@ var move_right_input_handle: InputAction.Handle = 0;
 var move_up_input_handle: InputAction.Handle = 0;
 var move_down_input_handle: InputAction.Handle = 0;
 
+const EntityUtils = struct {
+    on_hover: ?*const fn(Entity) void = null,
+    on_unhover: ?*const fn(Entity) void = null,
+    on_click: ?*const fn(Entity) void = null,
+
+    pub fn createConfirmButton(on_hover: ?*const fn(Entity) void, on_unhover: ?*const fn(Entity) void, on_click: ?*const fn(Entity) void) !*GameObject {
+        return try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Confirm", .text_offset = .{ .x = 6.0, .y = 17.0 }, .on_hover = on_hover, .on_unhover = on_unhover, .on_click = on_click, .transform = .{ .position = .{ .x = 500.0, .y = 300.0 } } },
+            null,
+            null
+        );
+    }
+    pub fn createBackButton(on_hover: ?*const fn(Entity) void, on_unhover: ?*const fn(Entity) void, on_click: ?*const fn(Entity) void) !*GameObject {
+        return try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Back", .text_offset = .{ .x = 6.0, .y = 17.0 }, .on_hover = on_hover, .on_unhover = on_unhover, .on_click = on_click, .transform = .{ .position = .{ .x = 40.0, .y = 300.0 } } },
+            null,
+            null
+        );
+    }
+};
+
 // Scenes
 
 // INIT
@@ -155,6 +178,7 @@ pub const ExistingCharacterSceneDefinition = struct {
 };
 
 pub const ExistingCharacterEntity = struct {
+    back_button: *GameObject = undefined,
     confirm_button: *GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
@@ -164,16 +188,18 @@ pub const ExistingCharacterEntity = struct {
             null,
             null
         );
-        self.confirm_button = try GameObject.initInScene(
-            TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Confirm", .text_offset = .{ .x = 6.0, .y = 17.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 230.0 } } },
-            null,
-            null
-        );
+        self.back_button = try EntityUtils.createBackButton(null, null, onClick);
+        self.confirm_button = try EntityUtils.createConfirmButton(null, null, onClick);
     }
 
-    pub fn onClick(_: Entity) void {
-        global.scene_system.changeScene(MapSceneDefinition);
+    pub fn onClick(clicked_entity: Entity) void {
+        if (global.world.findEntityScriptInstance(@This())) |self| {
+            if (self.back_button.node.entity == clicked_entity) {
+                global.scene_system.changeScene(NewGameSceneDefinition);
+            } else if (self.confirm_button.node.entity == clicked_entity) {
+                global.scene_system.changeScene(MapSceneDefinition);
+            }
+        }
     }
 };
 
@@ -248,6 +274,7 @@ pub const NewCharacterEntity = struct {
     add_lead_button: *GameObject = undefined,
     sub_lead_button: *GameObject = undefined,
     confirm_button: *GameObject = undefined,
+    back_button: *GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         self.character.name = String.init(global.allocator);
@@ -275,12 +302,8 @@ pub const NewCharacterEntity = struct {
             null,
             null
         );
-        self.confirm_button = try GameObject.initInScene(
-            TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Confirm", .text_offset = .{ .x = 8.0, .y = 16.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 400.0, .y = 300.0 } } },
-            null,
-            null
-        );
+        self.confirm_button = try EntityUtils.createConfirmButton(null, null, onClick);
+        self.back_button = try EntityUtils.createBackButton(null, null, onClick);
     }
 
     pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
@@ -311,6 +334,8 @@ pub const NewCharacterEntity = struct {
                 const text_label_comp = global.world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
                 const character_details: []const u8 = self.getCharacterDetailsString() catch { unreachable; };
                 text_label_comp.class.text_box.setText(text_label_comp.font, character_details, 1.0) catch { unreachable; };
+            } else if (self.back_button.node.entity == clicked_entity) {
+                global.scene_system.changeScene(NewGameSceneDefinition);
             } else if (self.confirm_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(MapSceneDefinition);
             }
