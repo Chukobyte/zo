@@ -55,7 +55,7 @@ const EntityUtils = struct {
     pub fn createConfirmButton(on_hover: ?*const fn(Entity) void, on_unhover: ?*const fn(Entity) void, on_click: ?*const fn(Entity) void) !*GameObject {
         return try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Confirm", .on_hover = on_hover, .on_unhover = on_unhover, .on_click = on_click, .transform = .{ .position = .{ .x = 500.0, .y = 300.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Confirm", .on_hover = on_hover, .on_unhover = on_unhover, .on_click = on_click, .transform = .{ .position = .{ .x = 500.0, .y = 300.0 } } },
             null,
             null
         );
@@ -63,7 +63,7 @@ const EntityUtils = struct {
     pub fn createBackButton(on_hover: ?*const fn(Entity) void, on_unhover: ?*const fn(Entity) void, on_click: ?*const fn(Entity) void) !*GameObject {
         return try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Back", .on_hover = on_hover, .on_unhover = on_unhover, .on_click = on_click, .transform = .{ .position = .{ .x = 40.0, .y = 300.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Back", .on_hover = on_hover, .on_unhover = on_unhover, .on_click = on_click, .transform = .{ .position = .{ .x = 40.0, .y = 300.0 } } },
             null,
             null
         );
@@ -101,13 +101,13 @@ pub const MainMenuEntity = struct {
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
         _ = try GameObject.initInScene(
             TextLabelClass,
-            .{ .font = &global.assets.fonts.verdana_32, .text = "Unbound", .transform = .{ .position = .{ .x = 225.0, .y = 100.0 } }, },
+            .{ .font = &global.assets.fonts.pixeloid_32, .text = "Unbound", .transform = .{ .position = .{ .x = 225.0, .y = 100.0 } }, },
             null,
             null
         );
         _ = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "New Game", .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 220.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "New Game", .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 220.0 } } },
             null,
             null
         );
@@ -139,21 +139,21 @@ pub const NewGameEntity = struct {
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         _ = try GameObject.initInScene(
             TextLabelClass,
-            .{ .font = &global.assets.fonts.verdana_16, .text = "Select Character to Play", .transform = .{ .position = .{ .x = 210.0, .y = 180.0 } }, },
+            .{ .font = &global.assets.fonts.pixeloid_16, .text = "Select Character to Play", .transform = .{ .position = .{ .x = 210.0, .y = 180.0 } }, },
             null,
             null
         );
 
         self.new_button = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "New", .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 200.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "New", .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 200.0 } } },
             null,
             null
         );
 
         self.existing_button = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Existing", .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 230.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Existing", .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 230.0 } } },
             null,
             null
         );
@@ -184,7 +184,7 @@ pub const ExistingCharacterEntity = struct {
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         _ = try GameObject.initInScene(
             TextLabelClass,
-            .{ .font = &global.assets.fonts.verdana_16, .text = "Existing Character", .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
+            .{ .font = &global.assets.fonts.pixeloid_16, .text = "Existing Character", .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
             null,
             null
         );
@@ -280,25 +280,25 @@ pub const NewCharacterEntity = struct {
         self.character.name = String.init(global.allocator);
         self.name_object = try GameObject.initInScene(
             TextLabelClass,
-            .{ .font = &global.assets.fonts.verdana_16, .text = initial_name_text, .transform = .{ .position = .{ .x = 200.0, .y = 100.0 } }, },
+            .{ .font = &global.assets.fonts.pixeloid_16, .text = initial_name_text, .transform = .{ .position = .{ .x = 200.0, .y = 100.0 } }, },
             null,
             null
         );
         self.details_object = try GameObject.initInScene(
             TextBoxClass,
-            .{ .font = &global.assets.fonts.verdana_16, .size = .{ .w = 200, .h = 400 }, .text = try self.getCharacterDetailsString(), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 200.0, .y = 140.0 } }, },
+            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 200, .h = 400 }, .text = try self.getCharacterDetailsString(), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 200.0, .y = 140.0 } }, },
             null,
             null
         );
         self.add_lead_button = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "+", .on_click = onClick, .transform = .{ .position = .{ .x = 320.0, .y = 170.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "+", .on_click = onClick, .transform = .{ .position = .{ .x = 320.0, .y = 170.0 } } },
             null,
             null
         );
         self.sub_lead_button = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "-", .on_click = onClick, .transform = .{ .position = .{ .x = 160.0, .y = 170.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "-", .on_click = onClick, .transform = .{ .position = .{ .x = 160.0, .y = 170.0 } } },
             null,
             null
         );
@@ -400,13 +400,13 @@ pub const MapEntity = struct {
         const intitial_location = &state.map_locations[self.location_index];
         self.selected_location_cursor = try GameObject.initInScene(
             TextLabelClass,
-            .{ .text = "{}", .font = &global.assets.fonts.verdana_16, .transform = .{ .position = intitial_location.map_position }, },
+            .{ .text = "{}", .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = intitial_location.map_position }, },
             null,
             null
         );
         self.selected_location_name = try GameObject.initInScene(
             TextLabelClass,
-            .{ .text = intitial_location.name, .font = &global.assets.fonts.verdana_16, .transform = .{ .position = .{ .x = 100.0, .y = 340.0 } }, },
+            .{ .text = intitial_location.name, .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 100.0, .y = 340.0 } }, },
             null,
             null
         );

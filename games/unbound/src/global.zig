@@ -48,8 +48,8 @@ pub const AssetManager = struct {
     },
 
     fonts: struct {
-        verdana_16: Font,
-        verdana_32: Font,
+        pixeloid_16: Font,
+        pixeloid_32: Font,
     },
 
     audio: struct {
@@ -63,16 +63,16 @@ pub const AssetManager = struct {
                 .map = try Texture.initFromMemory2(allocator, static_assets.map_texture, true),
             },
             .fonts = .{
-                .verdana_16 = try Font.initFromMemory2(static_assets.default_font, 16, true),
-                .verdana_32 = try Font.initFromMemory2(static_assets.default_font, 32, true),
+                .pixeloid_16 = try Font.initFromMemory2(static_assets.default_font, 16, true),
+                .pixeloid_32 = try Font.initFromMemory2(static_assets.default_font, 32, true),
             },
             .audio = .{
                 .rainbow_orb = try AudioSource.initWavFromMemory2(static_assets.rainbow_orb_audio),
             },
         };
         // TODO: Temp manual adjustments, fix later...
-        asset_manager.fonts.verdana_16.text_height -= 7.0;
-        asset_manager.fonts.verdana_32.text_height -= 7.0;
+        asset_manager.fonts.pixeloid_16.text_height -= 7.0;
+        asset_manager.fonts.pixeloid_32.text_height -= 7.0;
         return asset_manager;
     }
 
