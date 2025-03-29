@@ -350,22 +350,47 @@ pub const NewCharacterEntity = struct {
     pub fn onClick(clicked_entity: Entity) void {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.add_lead_button.node.entity == clicked_entity) {
-                self.character.lead += 1;
-                const text_label_comp = global.world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
-                const character_details: []const u8 = self.getCharacterDetailsString() catch { unreachable; };
-                text_label_comp.class.text_box.setText(text_label_comp.font, character_details, 1.0) catch { unreachable; };
+                self.addToProperty(&self.character.lead);
             } else if (self.sub_lead_button.node.entity == clicked_entity) {
-                if (self.character.lead == 0) { return; }
-                self.character.lead -= 1;
-                const text_label_comp = global.world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
-                const character_details: []const u8 = self.getCharacterDetailsString() catch { unreachable; };
-                text_label_comp.class.text_box.setText(text_label_comp.font, character_details, 1.0) catch { unreachable; };
+                self.subFromProperty(&self.character.lead);
+            } else if (self.add_military_button.node.entity == clicked_entity) {
+                self.addToProperty(&self.character.military);
+            } else if (self.sub_military_button.node.entity == clicked_entity) {
+                self.subFromProperty(&self.character.military);
+
+            } else if (self.add_charisma_button.node.entity == clicked_entity) {
+                self.addToProperty(&self.character.charisma);
+            } else if (self.sub_charisma_button.node.entity == clicked_entity) {
+                self.subFromProperty(&self.character.charisma);
+            } else if (self.add_intelligence_button.node.entity == clicked_entity) {
+                self.addToProperty(&self.character.intelligence);
+            } else if (self.sub_intelligence_button.node.entity == clicked_entity) {
+                self.subFromProperty(&self.character.intelligence);
+            } else if (self.add_politics_button.node.entity == clicked_entity) {
+                self.addToProperty(&self.character.politics);
+            } else if (self.sub_politics_button.node.entity == clicked_entity) {
+                self.subFromProperty(&self.character.politics);
             } else if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(NewGameSceneDefinition);
             } else if (self.confirm_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(MapSceneDefinition);
             }
         }
+    }
+
+    fn addToProperty(self: *@This(), value: *u32) void {
+        value.* += 1;
+        const text_label_comp = global.world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
+        const character_details: []const u8 = self.getCharacterDetailsString() catch { unreachable; };
+        text_label_comp.class.text_box.setText(text_label_comp.font, character_details, 1.0) catch { unreachable; };
+    }
+
+    fn subFromProperty(self: *@This(), value: *u32) void {
+        if (value.* == 0) { return; }
+        value.* -= 1;
+        const text_label_comp = global.world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
+        const character_details: []const u8 = self.getCharacterDetailsString() catch { unreachable; };
+        text_label_comp.class.text_box.setText(text_label_comp.font, character_details, 1.0) catch { unreachable; };
     }
 
     fn setIsTypingName(self: *@This(), is_typing_name: bool, text_label_comp: *TextLabelComponent) !void {
