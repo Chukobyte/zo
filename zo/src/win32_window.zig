@@ -326,6 +326,9 @@ pub fn init(h_instance: HINSTANCE, h_prev_instance: HINSTANCE, cmd_line: [*c]u8,
     const window_class = win.WNDCLASSW{
         .lpfnWndProc = winProc,
         .hInstance = h_instance,
+        // TODO: Need to apply hCursor and hIcon once windows.h c translation issues are fixed (https://github.com/ziglang/zig/issues/9180)
+        // .hCursor = win.LoadCursorW(null, win.IDC_ARROW),
+        // .hIcon = win.LoadIconW(null, win.IDI_APPLICATION),
         .hCursor = null,
         .hIcon = null,
         .hbrBackground = null,
