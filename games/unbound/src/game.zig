@@ -282,7 +282,6 @@ pub const NewCharacterEntity = struct {
     is_typing_name: bool = false,
     confirm_button: *GameObject = undefined,
     back_button: *GameObject = undefined,
-
     add_lead_button: *GameObject = undefined,
     sub_lead_button: *GameObject = undefined,
     add_military_button: *GameObject = undefined,
@@ -293,6 +292,7 @@ pub const NewCharacterEntity = struct {
     sub_intelligence_button: *GameObject = undefined,
     add_politics_button: *GameObject = undefined,
     sub_politics_button: *GameObject = undefined,
+    skill_points_object: *GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         self.character.name = String.init(global.allocator);
@@ -312,7 +312,7 @@ pub const NewCharacterEntity = struct {
         self.back_button = try ButtonUtils.createBackButton(onClick);
 
         const base_left_x: f32 = 200.0;
-        const base_right_x: f32 = 380.0;
+        const base_right_x: f32 = 390.0;
         var base_y: f32 = 147.0;
         const y_increment: f32 = 20.0;
 
@@ -330,6 +330,14 @@ pub const NewCharacterEntity = struct {
         base_y += y_increment;
         self.sub_politics_button = try ButtonUtils.createValueChangeButton("-", .{ .x = base_left_x, .y = base_y }, onClick);
         self.add_politics_button = try ButtonUtils.createValueChangeButton("+", .{ .x = base_right_x, .y = base_y }, onClick);
+
+        self.skill_points_object = try GameObject.initInScene(
+            TextLabelClass,
+            .{ .text = "", .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 230.0, .y = 320.0 } }, },
+            null,
+            null
+        );
+        self.refreshSkillPoints();
     }
 
     pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
@@ -379,10 +387,13 @@ pub const NewCharacterEntity = struct {
     }
 
     fn addToProperty(self: *@This(), value: *u32) void {
+        if (self.skill_points == 0) { return; }
         value.* += 1;
         const text_label_comp = global.world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
         const character_details: []const u8 = self.getCharacterDetailsString() catch { unreachable; };
         text_label_comp.class.text_box.setText(text_label_comp.font, character_details, 1.0) catch { unreachable; };
+        self.skill_points -= 1;
+        self.refreshSkillPoints();
     }
 
     fn subFromProperty(self: *@This(), value: *u32) void {
@@ -391,6 +402,14 @@ pub const NewCharacterEntity = struct {
         const text_label_comp = global.world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
         const character_details: []const u8 = self.getCharacterDetailsString() catch { unreachable; };
         text_label_comp.class.text_box.setText(text_label_comp.font, character_details, 1.0) catch { unreachable; };
+        self.skill_points += 1;
+        self.refreshSkillPoints();
+    }
+
+    fn refreshSkillPoints(self: *@This()) void {
+        if (global.world.getComponent(self.skill_points_object.node.entity, TextLabelComponent)) |text_label_comp| {
+            text_label_comp.class.label.text.set("Skill Points: {d}", .{ self.skill_points }) catch { unreachable; };
+        }
     }
 
     fn setIsTypingName(self: *@This(), is_typing_name: bool, text_label_comp: *TextLabelComponent) !void {
