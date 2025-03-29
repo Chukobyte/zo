@@ -58,7 +58,7 @@ pub const AssetManager = struct {
 
 
     pub fn init() !@This() {
-        return @This(){
+        var asset_manager = @This(){
             .textures = .{
                 .map = try Texture.initFromMemory2(allocator, static_assets.map_texture, true),
             },
@@ -70,6 +70,10 @@ pub const AssetManager = struct {
                 .rainbow_orb = try AudioSource.initWavFromMemory2(static_assets.rainbow_orb_audio),
             },
         };
+        // TODO: Temp manual adjustments, fix later...
+        asset_manager.fonts.verdana_16.text_height -= 7.0;
+        asset_manager.fonts.verdana_32.text_height -= 7.0;
+        return asset_manager;
     }
 
     pub fn deinit(self: *@This()) void {

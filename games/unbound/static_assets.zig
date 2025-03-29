@@ -3,7 +3,7 @@
 const StaticAsset = @import("zo").StaticAsset;
 
 // Fonts
-pub const default_font = StaticAsset.create(@embedFile("assets/fonts/verdana.ttf"));
+pub const default_font = StaticAsset.create(@embedFile("assets/fonts/pixeloid_sans.ttf"));
 
 // Images
 pub const map_texture = StaticAsset.create(@embedFile("assets/images/map_mockup.png"));
