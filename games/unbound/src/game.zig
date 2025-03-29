@@ -72,7 +72,7 @@ const ButtonUtils = struct {
     pub fn createValueChangeButton(symbol: []const u8, position: Vec2, on_click: ?*const fn(Entity) void) !*GameObject {
         return try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = symbol, .on_click = on_click, .transform = .{ .position = position } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 15.0, .h = 15.0 }, .font = &global.assets.fonts.pixeloid_16, .text = symbol, .on_click = on_click, .transform = .{ .position = position } },
             null,
             null
         );
@@ -289,18 +289,18 @@ pub const NewCharacterEntity = struct {
         self.character.name = String.init(global.allocator);
         self.name_object = try GameObject.initInScene(
             TextLabelClass,
-            .{ .font = &global.assets.fonts.pixeloid_16, .text = initial_name_text, .transform = .{ .position = .{ .x = 200.0, .y = 100.0 } }, },
+            .{ .font = &global.assets.fonts.pixeloid_16, .text = initial_name_text, .transform = .{ .position = .{ .x = 250.0, .y = 70.0 } }, },
             null,
             null
         );
         self.details_object = try GameObject.initInScene(
             TextBoxClass,
-            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 200, .h = 400 }, .text = try self.getCharacterDetailsString(), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 200.0, .y = 140.0 } }, },
+            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 200, .h = 400 }, .text = try self.getCharacterDetailsString(), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 250.0, .y = 110.0 } }, },
             null,
             null
         );
-        self.add_lead_button = try ButtonUtils.createValueChangeButton("+", .{ .x = 320.0, .y = 170.0 }, onClick);
-        self.sub_lead_button = try ButtonUtils.createValueChangeButton("-", .{ .x = 160.0, .y = 170.0 }, onClick);
+        self.add_lead_button = try ButtonUtils.createValueChangeButton("+", .{ .x = 380.0, .y = 147.0 }, onClick);
+        self.sub_lead_button = try ButtonUtils.createValueChangeButton("-", .{ .x = 200.0, .y = 147.0 }, onClick);
         self.confirm_button = try ButtonUtils.createConfirmButton(onClick);
         self.back_button = try ButtonUtils.createBackButton(onClick);
     }
