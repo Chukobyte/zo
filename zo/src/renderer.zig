@@ -367,7 +367,7 @@ pub const Font = struct {
         _ = self;
     }
 
-    pub fn getTextWidth(self: *const Font, text: []const u8, scale: f32) f32 {
+    pub fn getTextWidth(self: *const Font, text: []const u8) f32 {
         var width: f32 = 0.0;
         for (text) |c| {
             const index: usize = @intCast(c);
@@ -376,7 +376,7 @@ pub const Font = struct {
             const ch = self.characters[index];
             // ch.advance is in 26.6 fixed point, so we shift right by 6 to get pixels.
             const advance_pixels: f32 = @floatFromInt(ch.advance >> 6);
-            width += advance_pixels * scale;
+            width += advance_pixels;
         }
         return width;
     }

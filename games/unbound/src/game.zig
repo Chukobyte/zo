@@ -55,7 +55,7 @@ const EntityUtils = struct {
     pub fn createConfirmButton(on_hover: ?*const fn(Entity) void, on_unhover: ?*const fn(Entity) void, on_click: ?*const fn(Entity) void) !*GameObject {
         return try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Confirm", .text_offset = .{ .x = 6.0, .y = 17.0 }, .on_hover = on_hover, .on_unhover = on_unhover, .on_click = on_click, .transform = .{ .position = .{ .x = 500.0, .y = 300.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Confirm", .text_offset = .{ .x = 12.0, .y = 17.0 }, .on_hover = on_hover, .on_unhover = on_unhover, .on_click = on_click, .transform = .{ .position = .{ .x = 500.0, .y = 300.0 } } },
             null,
             null
         );
@@ -63,7 +63,7 @@ const EntityUtils = struct {
     pub fn createBackButton(on_hover: ?*const fn(Entity) void, on_unhover: ?*const fn(Entity) void, on_click: ?*const fn(Entity) void) !*GameObject {
         return try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Back", .text_offset = .{ .x = 6.0, .y = 17.0 }, .on_hover = on_hover, .on_unhover = on_unhover, .on_click = on_click, .transform = .{ .position = .{ .x = 40.0, .y = 300.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Back", .text_offset = .{ .x = 16.0, .y = 17.0 }, .on_hover = on_hover, .on_unhover = on_unhover, .on_click = on_click, .transform = .{ .position = .{ .x = 40.0, .y = 300.0 } } },
             null,
             null
         );
