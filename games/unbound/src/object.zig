@@ -37,7 +37,53 @@ pub const TextLabelClass = struct {};
 pub const TextBoxClass = struct {};
 
 pub const TextButtonClass = struct {
+    const TextAlignmentH = enum {
+        left,
+        center,
+        right
+    };
+    const TextAlignmentV = enum {
+        top,
+        center,
+        bottom
+    };
+
     text_box: *GameObject = undefined,
+    alignment_h: TextAlignmentH = .left,
+    alignment_v: TextAlignmentV = .top,
+    alignment_padding: Vec2 = Vec2.Zero,
+
+    /// Updates the text_box local position based on alignment
+    pub fn refreshTextAlignment(self: *@This()) void {
+        if (global.world.getComponent(self.text_box.node.entity, TextLabelComponent)) |text_label_comp| {
+            const text_scale: f32 = 1.0; // TODO: Calculate from transform
+            const text_box = &text_label_comp.class.text_box;
+            if (text_box.text.lineCount() == 0) { return; }
+            // Horizontal alignment
+            const line_text: []const u8 = text_box.text.getLine(0) catch "";
+            const text_width: f32 = text_label_comp.font.getTextWidth(line_text) * text_scale;
+            const container_width: f32 = @floatFromInt(text_box.size.w);
+            const space_from_left: f32 = if (container_width > text_width) container_width - text_width else container_width;
+            const left_padding: f32 = switch (self.alignment_h) {
+                .left => 0.0,
+                .center => space_from_left / 2.0,
+                .right => space_from_left,
+            };
+            // Vertical alignment
+            const container_height: f32 = @floatFromInt(text_box.size.h);
+            const text_height: f32 = text_label_comp.font.text_height * text_scale;
+            const space_from_top: f32 = if (container_height > text_height) container_height - text_height else container_height;
+            const top_padding: f32 = switch (self.alignment_v) {
+                .top => 0.0,
+                .center => space_from_top / 2.0,
+                .bottom => space_from_top,
+            };
+            log(.debug, "left = {d}, top = {d}, text_height = {d}, space_from_top = {d}, container_height = {d}", .{ left_padding, top_padding, text_height, space_from_top, container_height });
+            // Update position
+            const local_text_pos: Vec2 = .{ .x = left_padding + self.alignment_padding.x, .y = top_padding + self.alignment_padding.y };
+            self.text_box.setLocalPosition(local_text_pos);
+        }
+    }
 };
 
 const GameObjectClass = union(enum) {
@@ -73,10 +119,13 @@ fn GameObjectParams(ClassT: type) type {
             collision: Rect2,
             font: *Font,
             text: ?[]const u8 = null,
-            text_offset: Vec2 = Vec2.Zero,
             on_hover: ?*const fn(Entity) void = null,
             on_unhover: ?*const fn(Entity) void = null,
             on_click: ?*const fn(Entity) void = null,
+            alignment_h: TextButtonClass.TextAlignmentH = .center,
+            alignment_v: TextButtonClass.TextAlignmentV = .center,
+            /// If additional padding adjustments are needed
+            alignment_padding: Vec2 = Vec2.Zero,
             transform: Transform2D = Transform2D.Identity,
             z_index: i32 = 0,
         },
@@ -176,11 +225,12 @@ pub const GameObject = struct {
                 try global.world.setComponent(node.entity, ColorRectComponent, &.{ .size = .{ .w = params.collision.w, .h = params.collision.h }, .color = .{ .r = 0.4, .g = 0.4, .b = 0.4 } });
                 const text_box = try initInScene(
                     TextBoxClass,
-                    .{ .font = params.font, .size = .{ .w = @intFromFloat(params.collision.w), .h = @intFromFloat(params.collision.h) }, .text = params.text, .transform = .{ .position = params.text_offset }, },
+                    .{ .font = params.font, .size = .{ .w = @intFromFloat(params.collision.w), .h = @intFromFloat(params.collision.h) }, .text = params.text },
                     node,
                     null
                 );
-                game_object.class = .{ .text_button = .{ .text_box = text_box } };
+                game_object.class = .{ .text_button = .{ .text_box = text_box, .alignment_h = params.alignment_h, .alignment_v = params.alignment_v, .alignment_padding = params.alignment_padding } };
+                game_object.class.text_button.refreshTextAlignment();
             },
             else => @compileError("Must use Game Object Class type!"),
         }

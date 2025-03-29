@@ -55,7 +55,7 @@ const EntityUtils = struct {
     pub fn createConfirmButton(on_hover: ?*const fn(Entity) void, on_unhover: ?*const fn(Entity) void, on_click: ?*const fn(Entity) void) !*GameObject {
         return try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Confirm", .text_offset = .{ .x = 12.0, .y = 17.0 }, .on_hover = on_hover, .on_unhover = on_unhover, .on_click = on_click, .transform = .{ .position = .{ .x = 500.0, .y = 300.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Confirm", .on_hover = on_hover, .on_unhover = on_unhover, .on_click = on_click, .transform = .{ .position = .{ .x = 500.0, .y = 300.0 } } },
             null,
             null
         );
@@ -63,7 +63,7 @@ const EntityUtils = struct {
     pub fn createBackButton(on_hover: ?*const fn(Entity) void, on_unhover: ?*const fn(Entity) void, on_click: ?*const fn(Entity) void) !*GameObject {
         return try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Back", .text_offset = .{ .x = 16.0, .y = 17.0 }, .on_hover = on_hover, .on_unhover = on_unhover, .on_click = on_click, .transform = .{ .position = .{ .x = 40.0, .y = 300.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Back", .on_hover = on_hover, .on_unhover = on_unhover, .on_click = on_click, .transform = .{ .position = .{ .x = 40.0, .y = 300.0 } } },
             null,
             null
         );
@@ -107,7 +107,7 @@ pub const MainMenuEntity = struct {
         );
         _ = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "New Game", .text_offset = .{ .x = 6.0, .y = 17.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 220.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "New Game", .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 220.0 } } },
             null,
             null
         );
@@ -146,14 +146,14 @@ pub const NewGameEntity = struct {
 
         self.new_button = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "New", .text_offset = .{ .x = 6.0, .y = 17.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 200.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "New", .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 200.0 } } },
             null,
             null
         );
 
         self.existing_button = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Existing", .text_offset = .{ .x = 6.0, .y = 17.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 230.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "Existing", .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 230.0 } } },
             null,
             null
         );
@@ -292,13 +292,13 @@ pub const NewCharacterEntity = struct {
         );
         self.add_lead_button = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "+", .text_offset = .{ .x = 6.0, .y = 16.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 320.0, .y = 170.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "+", .on_click = onClick, .transform = .{ .position = .{ .x = 320.0, .y = 170.0 } } },
             null,
             null
         );
         self.sub_lead_button = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "-", .text_offset = .{ .x = 8.0, .y = 16.0 }, .on_click = onClick, .transform = .{ .position = .{ .x = 160.0, .y = 170.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 25.0, .h = 25.0 }, .font = &global.assets.fonts.verdana_16, .text = "-", .on_click = onClick, .transform = .{ .position = .{ .x = 160.0, .y = 170.0 } } },
             null,
             null
         );
