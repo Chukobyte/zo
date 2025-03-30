@@ -131,8 +131,8 @@ fn getCharacterDetailsString(character: *Character, comptime detail_type: Charac
         .location_view_character => {
             return try std.fmt.bufPrint(
                 &Local.buffer,
-            "Role: {s}\nEthnicity: {s}\nLead: {d}\nMilitary: {d}\nCharisma: {d}\nIntelligence: {d}\nPolitics: {d}\nAbilities: {s}",
-                .{ character.role.toString(), character.ethnicity.toString(), character.lead, character.military, character.charisma, character.intelligence, character.politics, character.abilities.toString(), }
+            "Name: {s}\nRole: {s}\nEthnicity: {s}\nLead: {d}\nMilitary: {d}\nCharisma: {d}\nIntelligence: {d}\nPolitics: {d}\nAbilities: {s}",
+                .{ character.name.get(), character.role.toString(), character.ethnicity.toString(), character.lead, character.military, character.charisma, character.intelligence, character.politics, character.abilities.toString(), }
             );
         },
     }
