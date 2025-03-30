@@ -542,7 +542,7 @@ pub const LocationSceneDefinition = struct {
 pub const LocationEntity = struct {
     discover_button: *GameObject = undefined,
     interact_button: *GameObject = undefined,
-    map_button: *GameObject = undefined,
+    travel_button: *GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         _ = try GameObject.initInScene(
@@ -568,9 +568,9 @@ pub const LocationEntity = struct {
             null
         );
         base_pos.x += x_increment;
-        self.map_button = try GameObject.initInScene(
+        self.travel_button = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Map", .on_click = onClick, .transform = .{ .position = base_pos } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Travel", .on_click = onClick, .transform = .{ .position = base_pos } },
             null,
             null
         );
@@ -582,7 +582,7 @@ pub const LocationEntity = struct {
 
             } if (self.interact_button.node.entity == clicked_entity) {
 
-            } else if (self.map_button.node.entity == clicked_entity) {
+            } else if (self.travel_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(MapSceneDefinition);
             }
         }
