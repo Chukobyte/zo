@@ -152,3 +152,11 @@ pub var game_state: GameState = .{
         .year = 1700,
     },
 };
+
+// Structs not in use yet
+
+const Troop = struct {
+    active: u32,
+    injured: u32,
+    leader: ?*Character = null,
+};

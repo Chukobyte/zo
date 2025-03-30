@@ -2,6 +2,60 @@
 
 const std = @import("std");
 
+pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
+    return struct {
+        items: [capacity]T,
+        len: usize,
+
+        pub fn init() @This() {
+            return FixedArrayList{ .items = undefined, .len = 0 };
+        }
+
+        pub fn append(self: *@This(), item: u8) FixedArrayListError!void {
+            if (self.len >= self.items.len) return .OutOfCapacity;
+            self.items[self.len] = item;
+            self.len += 1;
+        }
+
+        pub fn pop(self: *@This()) !T {
+            if (self.len == 0) return .IndexOutOfBounds;
+            self.len -= 1;
+            return self.items[self.len];
+        }
+
+        pub fn swapRemove(self: *@This(), i: usize) FixedArrayListError!T {
+            if (self.len == 0 or i >= self.len) return .IndexOutOfBounds;
+            if (i == self.len - 1) {
+                return self.pop();
+            }
+            const removed = self.items[i];
+            // Replace the element at i with the last element.
+            self.items[i] = try self.pop();
+            return removed;
+        }
+
+        pub fn findIndexByValue(self: *@This(), value: *const T) ?usize {
+            for (self.items, 0..self.len) |*item, i| {
+                if (std.mem.eql(u8, std.mem.asBytes(item), std.mem.asBytes(value))) {
+                    return i;
+                }
+            }
+            return null;
+        }
+
+        pub fn removeByValue(self: *@This(), value: *const T) FixedArrayListError!?T {
+            if (self.findIndexByValue(value)) |i| {
+                return try self.swapRemove(i);
+            }
+            return null;
+        }
+
+        pub fn asSlice(self: *const FixedArrayList) []const u8 {
+            return self.items[0 .. self.len];
+        }
+    };
+}
+
 pub const ArrayListUtils = struct {
     pub fn findIndexByValue(comptime T: type, list: *std.ArrayList(T), value: *const T) ?usize {
         for (list.items, 0..list.items.len) |*item, i| {
@@ -217,6 +271,11 @@ pub fn TypeBitMask(comptime types: []const type) type {
         }
     };
 }
+
+pub const FixedArrayListError = error{
+    IndexOutOfBounds,
+    OutOfCapacity,
+};
 
 pub fn assertUnsigned(comptime T: type) void {
     const info = @typeInfo(T);
