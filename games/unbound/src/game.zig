@@ -241,8 +241,9 @@ pub const NewCharacterSceneDefinition = struct {
 };
 
 pub const NewCharacterEntity = struct {
-    const initial_name_text = "Name: ";
-
+    const minimum_name_text = "Name: ";
+    const default_name = "Samuel";
+    const initial_name_text = minimum_name_text ++ default_name;
     const ethnicity_selections: [3]EthnicityProfile = .{ EthnicityProfile.Black, EthnicityProfile.Indigenous, EthnicityProfile.White };
 
     /// Takes in keyboard input and updates a TextLabelComponent
@@ -270,7 +271,7 @@ pub const NewCharacterEntity = struct {
                     var text_label_comp = global.world.getComponent(name_obj.node.entity, TextLabelComponent).?;
                     var text_label = text_label_comp.class.label;
                     // Don't process backspace if at beginning
-                    if (std.mem.eql(u8, text_label.text.get(), initial_name_text)) { return; }
+                    if (std.mem.eql(u8, text_label.text.get(), minimum_name_text)) { return; }
                     text_label_comp.class.label.text.popChar();
                 }
             }
@@ -330,7 +331,7 @@ pub const NewCharacterEntity = struct {
     skill_points_object: *GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
-        self.character.name = String.init(global.allocator);
+        self.character.name = try String.initAndSetRaw(global.allocator, default_name);
         self.name_object = try GameObject.initInScene(
             TextLabelClass,
             .{ .font = &global.assets.fonts.pixeloid_16, .text = initial_name_text, .transform = .{ .position = .{ .x = 250.0, .y = 70.0 } }, },
@@ -345,7 +346,7 @@ pub const NewCharacterEntity = struct {
         );
         self.details_object = try GameObject.initInScene(
             TextBoxClass,
-            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 180, .h = 400 }, .text = try self.getCharacterDetailsString(), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 250.0, .y = 110.0 } }, },
+            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 200, .h = 400 }, .text = try self.getCharacterDetailsString(), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 250.0, .y = 110.0 } }, },
             null,
             null
         );
@@ -353,7 +354,7 @@ pub const NewCharacterEntity = struct {
         self.back_button = try ButtonUtils.createBackButton(onClick);
 
         const base_left_x: f32 = 200.0;
-        const base_right_x: f32 = 420.0;
+        const base_right_x: f32 = 460.0;
         var base_y: f32 = 130.0;
         const y_increment: f32 = 20.0;
 
