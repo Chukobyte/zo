@@ -1,5 +1,6 @@
 //! Game state related data.  Also using this to flesh out game details.
 
+const std = @import("std");
 const zo = @import("zo");
 const math = @import("zo").math;
 
@@ -77,7 +78,7 @@ pub const EthnicityProfile = struct {
     pub const Indigenous: @This() = .{ .indigenous = 100 };
     pub const White: @This() = .{ .white = 100 };
 
-    pub fn toString(self: *@This()) []const u8 {
+    pub fn toString(self: *const @This()) []const u8 {
         if (self.equal(&Black)) {
             return "Black";
         } else if (self.equal(&Indigenous)) {
@@ -94,6 +95,11 @@ pub const EthnicityProfile = struct {
 };
 
 pub const Character = struct {
+    const CharacterDetailsType = enum {
+        create_character,
+        location_view_character,
+    };
+
     name: String,
     role: Role,
     ethnicity: EthnicityProfile,
@@ -105,6 +111,28 @@ pub const Character = struct {
     abilities: Abilities = .none,
     starting_location: ?*const Location = null,
     action_points: u32 = 0,
+
+    pub fn toString(self: *const @This(), comptime detail_type: CharacterDetailsType) ![]const u8 {
+        const Local = struct {
+            var buffer: [256]u8 = undefined;
+        };
+        switch (detail_type) {
+            .create_character => {
+                return try std.fmt.bufPrint(
+                    &Local.buffer,
+                    "Role: {s}\nEthnicity: {s}\nLead: {d}\nMilitary: {d}\nCharisma: {d}\nIntelligence: {d}\nPolitics: {d}\nLocation: {s}",
+                    .{ self.role.toString(), self.ethnicity.toString(), self.lead, self.military, self.charisma, self.intelligence, self.politics, self.starting_location.?.name, }
+                );
+            },
+            .location_view_character => {
+                return try std.fmt.bufPrint(
+                    &Local.buffer,
+                    "Name: {s}\nRole: {s}\nEthnicity: {s}\nLead: {d}\nMilitary: {d}\nCharisma: {d}\nIntelligence: {d}\nPolitics: {d}\nAbilities: {s}",
+                    .{ self.name.get(), self.role.toString(), self.ethnicity.toString(), self.lead, self.military, self.charisma, self.intelligence, self.politics, self.abilities.toString(), }
+                );
+            },
+        }
+    }
 };
 
 pub const Date = struct {
@@ -131,6 +159,30 @@ pub const Date = struct {
         if (self.month == .jan) {
             self.year += 1;
         }
+    }
+
+    pub fn toMonthString(self: *const @This()) []const u8 {
+        return switch (self.month) {
+            .jan => return "Jan",
+            .feb => return "Feb",
+            .mar => return "Mar",
+            .apr => return "Apr",
+            .may => return "May",
+            .jun => return "Jun",
+            .jul => return "Jul",
+            .aug => return "Aug",
+            .sep => return "Sep",
+            .oct => return "Oct",
+            .nov => return "Nov",
+            .dec => return "Dec",
+        };
+    }
+
+    pub fn toString(self: *const @This()) []const u8 {
+        const Local = struct {
+            var buffer: [32]u8 = undefined;
+        };
+        return std.fmt.bufPrint(&Local.buffer, "{s} {d}", .{ self.toMonthString(), self.year }) catch unreachable;
     }
 };
 

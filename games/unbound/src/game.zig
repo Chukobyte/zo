@@ -111,33 +111,6 @@ const LocationSelector = struct {
     }
 };
 
-const CharacterDetailsType = enum {
-    create_character,
-    location_view_character,
-};
-
-fn getCharacterDetailsString(character: *Character, comptime detail_type: CharacterDetailsType) ![]const u8 {
-    const Local = struct {
-        var buffer: [256]u8 = undefined;
-    };
-    switch (detail_type) {
-        .create_character => {
-            return try std.fmt.bufPrint(
-                &Local.buffer,
-            "Role: {s}\nEthnicity: {s}\nLead: {d}\nMilitary: {d}\nCharisma: {d}\nIntelligence: {d}\nPolitics: {d}\nLocation: {s}",
-                .{ character.role.toString(), character.ethnicity.toString(), character.lead, character.military, character.charisma, character.intelligence, character.politics, character.starting_location.?.name, }
-            );
-        },
-        .location_view_character => {
-            return try std.fmt.bufPrint(
-                &Local.buffer,
-            "Name: {s}\nRole: {s}\nEthnicity: {s}\nLead: {d}\nMilitary: {d}\nCharisma: {d}\nIntelligence: {d}\nPolitics: {d}\nAbilities: {s}",
-                .{ character.name.get(), character.role.toString(), character.ethnicity.toString(), character.lead, character.military, character.charisma, character.intelligence, character.politics, character.abilities.toString(), }
-            );
-        },
-    }
-}
-
 // Scenes
 
 // INIT
@@ -385,7 +358,7 @@ pub const NewCharacterEntity = struct {
         );
         self.details_object = try GameObject.initInScene(
             TextBoxClass,
-            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 200, .h = 400 }, .text = try getCharacterDetailsString(player_character, .create_character), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 250.0, .y = 110.0 } }, },
+            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 200, .h = 400 }, .text = try player_character.toString(.create_character), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 250.0, .y = 110.0 } }, },
             null,
             null
         );
@@ -519,7 +492,7 @@ pub const NewCharacterEntity = struct {
 
     fn refreshCharacterDetails(self: *@This()) void {
         const text_label_comp = global.world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
-        const character_details: []const u8 = getCharacterDetailsString(player_character, .create_character) catch { unreachable; };
+        const character_details: []const u8 = player_character.toString( .create_character) catch { unreachable; };
         text_label_comp.class.text_box.setText(text_label_comp.font, character_details, 1.0) catch { unreachable; };
     }
 
@@ -573,6 +546,12 @@ pub const LocationEntity = struct {
         _ = try GameObject.initInScene(
             TextLabelClass,
             .{ .text = player_character.starting_location.?.name, .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 300.0, .y = 100.0 } }, },
+            null,
+            null
+        );
+        _ = try GameObject.initInScene(
+            TextLabelClass,
+            .{ .text = state.game_state.date.toString(), .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 200.0, .y = 100.0 } }, },
             null,
             null
         );
@@ -713,7 +692,7 @@ pub const CharacterViewEntity = struct {
 
         self.details_object = try GameObject.initInScene(
             TextBoxClass,
-            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 200, .h = 400 }, .text = try getCharacterDetailsString(player_character, .location_view_character), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 250.0, .y = 110.0 } }, },
+            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 200, .h = 400 }, .text = try player_character.toString(.location_view_character), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 250.0, .y = 110.0 } }, },
             null,
             null
         );
