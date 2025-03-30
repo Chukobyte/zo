@@ -412,16 +412,21 @@ pub inline fn getMousePosition() Vec2i {
 
 /// Maps screen mouse position from window size to render resolution for world mouse position
 pub fn getWorldMousePosition(window_size: Dim2i, render_resolution: Dim2i) Vec2i {
-    const mouse_pos: Vec2 = .{ .x = @floatFromInt(getMousePosition().x), .y = @floatFromInt(getMousePosition().y) };
-    const win_size: Vec2 = .{ .x = @floatFromInt(window_size.w), .y = @floatFromInt(window_size.h) };
-    const resolution: Vec2 = .{ .x = @floatFromInt(render_resolution.w), .y = @floatFromInt(render_resolution.h) };
-    const global_mouse_position: Vec2 = .{
-        .x = math.mapToRange(f32, mouse_pos.x, 0.0, win_size.x, 0.0, resolution.x),
-        .y = math.mapToRange(f32, mouse_pos.y, 0.0, win_size.y, 0.0, resolution.y)
+    const Local = struct {
+        var cached_global_mouse_pos: Vec2i = Vec2i.Zero;
     };
-    // TODO: Look into abnormal values in 'global_mouse_position'
-    const global_mouse_pos: Vec2i = .{ .x = @intFromFloat(global_mouse_position.x), .y = @intFromFloat(global_mouse_position.y) };
-    return global_mouse_pos;
+
+    const win_size: Vec2 = .{ .x = @floatFromInt(window_size.w), .y = @floatFromInt(window_size.h) };
+    if (win_size.x > 0 and win_size.y > 0) {
+        const mouse_pos: Vec2 = .{ .x = @floatFromInt(getMousePosition().x), .y = @floatFromInt(getMousePosition().y) };
+        const resolution: Vec2 = .{ .x = @floatFromInt(render_resolution.w), .y = @floatFromInt(render_resolution.h) };
+        const global_mouse_position: Vec2 = .{
+            .x = math.mapToRange(f32, mouse_pos.x, 0.0, win_size.x, 0.0, resolution.x),
+            .y = math.mapToRange(f32, mouse_pos.y, 0.0, win_size.y, 0.0, resolution.y)
+        };
+        Local.cached_global_mouse_pos = .{ .x = @intFromFloat(global_mouse_position.x), .y = @intFromFloat(global_mouse_position.y) };
+    }
+    return Local.cached_global_mouse_pos;
 }
 
 // Input Action
