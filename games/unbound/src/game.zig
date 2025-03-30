@@ -213,15 +213,21 @@ pub const ExistingCharacterEntity = struct {
     back_button: *GameObject = undefined,
     confirm_button: *GameObject = undefined,
 
-    pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
+    pub fn onEnterScene(self: *@This(), _: *World, _: Entity) !void {
         _ = try GameObject.initInScene(
             TextLabelClass,
-            .{ .font = &global.assets.fonts.pixeloid_16, .text = "Existing Character", .transform = .{ .position = .{ .x = 210.0, .y = 220.0 } }, },
+            .{ .font = &global.assets.fonts.pixeloid_16, .text = "Existing Character (WIP)", .transform = .{ .position = .{ .x = 210.0, .y = 120.0 } }, },
             null,
             null
         );
         self.back_button = try ButtonUtils.createBackButton(onClick);
         self.confirm_button = try ButtonUtils.createConfirmButton(onClick);
+    }
+
+    pub fn update(_: *@This(), _: *World, _: Entity, _: f32) !void {
+        if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
+            global.scene_system.changeScene(NewGameSceneDefinition);
+        }
     }
 
     pub fn onClick(clicked_entity: Entity) void {
@@ -389,6 +395,9 @@ pub const NewCharacterEntity = struct {
             const text_label_comp = world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
             try self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
             InputText.unsubscribeFromInput();
+        }
+        if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
+            global.scene_system.changeScene(NewGameSceneDefinition);
         }
     }
 
