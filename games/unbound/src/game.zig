@@ -375,20 +375,20 @@ pub const NewCharacterEntity = struct {
         self.ethnicity_left_button = try ButtonUtils.createValueChangeButton("<", .{ .x = base_left_x, .y = base_y }, onClick);
         self.ethnicity_right_button = try ButtonUtils.createValueChangeButton(">", .{ .x = base_right_x, .y = base_y }, onClick);
         base_y += y_increment;
-        self.sub_lead_button = try ButtonUtils.createValueChangeButton("-", .{ .x = base_left_x, .y = base_y }, onClick);
-        self.add_lead_button = try ButtonUtils.createValueChangeButton("+", .{ .x = base_right_x, .y = base_y }, onClick);
+        self.sub_lead_button = try ButtonUtils.createValueChangeButton("<", .{ .x = base_left_x, .y = base_y }, onClick);
+        self.add_lead_button = try ButtonUtils.createValueChangeButton(">", .{ .x = base_right_x, .y = base_y }, onClick);
         base_y += y_increment;
-        self.sub_military_button = try ButtonUtils.createValueChangeButton("-", .{ .x = base_left_x, .y = base_y }, onClick);
-        self.add_military_button = try ButtonUtils.createValueChangeButton("+", .{ .x = base_right_x, .y = base_y }, onClick);
+        self.sub_military_button = try ButtonUtils.createValueChangeButton("<", .{ .x = base_left_x, .y = base_y }, onClick);
+        self.add_military_button = try ButtonUtils.createValueChangeButton(">", .{ .x = base_right_x, .y = base_y }, onClick);
         base_y += y_increment;
-        self.sub_charisma_button = try ButtonUtils.createValueChangeButton("-", .{ .x = base_left_x, .y = base_y }, onClick);
-        self.add_charisma_button = try ButtonUtils.createValueChangeButton("+", .{ .x = base_right_x, .y = base_y }, onClick);
+        self.sub_charisma_button = try ButtonUtils.createValueChangeButton("<", .{ .x = base_left_x, .y = base_y }, onClick);
+        self.add_charisma_button = try ButtonUtils.createValueChangeButton(">", .{ .x = base_right_x, .y = base_y }, onClick);
         base_y += y_increment;
-        self.sub_intelligence_button = try ButtonUtils.createValueChangeButton("-", .{ .x = base_left_x, .y = base_y }, onClick);
-        self.add_intelligence_button = try ButtonUtils.createValueChangeButton("+", .{ .x = base_right_x, .y = base_y }, onClick);
+        self.sub_intelligence_button = try ButtonUtils.createValueChangeButton("<", .{ .x = base_left_x, .y = base_y }, onClick);
+        self.add_intelligence_button = try ButtonUtils.createValueChangeButton(">", .{ .x = base_right_x, .y = base_y }, onClick);
         base_y += y_increment;
-        self.sub_politics_button = try ButtonUtils.createValueChangeButton("-", .{ .x = base_left_x, .y = base_y }, onClick);
-        self.add_politics_button = try ButtonUtils.createValueChangeButton("+", .{ .x = base_right_x, .y = base_y }, onClick);
+        self.sub_politics_button = try ButtonUtils.createValueChangeButton("<", .{ .x = base_left_x, .y = base_y }, onClick);
+        self.add_politics_button = try ButtonUtils.createValueChangeButton(">", .{ .x = base_right_x, .y = base_y }, onClick);
         base_y += y_increment;
         self.location_left_button = try ButtonUtils.createValueChangeButton("<", .{ .x = base_left_x, .y = base_y }, onClick);
         self.location_right_button = try ButtonUtils.createValueChangeButton(">", .{ .x = base_right_x, .y = base_y }, onClick);
@@ -608,7 +608,15 @@ pub const LocationEntity = struct {
     pub fn onClick(clicked_entity: Entity) void {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.discover_button.node.entity == clicked_entity) {
-            } if (self.interact_button.node.entity == clicked_entity) {
+                if (player_character.action_points.value > 0) {
+                    player_character.action_points.value -= 1;
+                    self.refreshActionPointsText() catch unreachable;
+                }
+            } else if (self.interact_button.node.entity == clicked_entity) {
+                if (player_character.action_points.value > 0) {
+                    player_character.action_points.value -= 1;
+                    self.refreshActionPointsText() catch unreachable;
+                }
             } else if (self.travel_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(MapSceneDefinition);
             } else if (self.character_button.node.entity == clicked_entity) {
@@ -616,6 +624,7 @@ pub const LocationEntity = struct {
             } else if (self.end_turn_button.node.entity == clicked_entity) {
                 // TODO: Should go to a map scene that shows the overworld map and events progressing before going back to this scene
                 game_date.incrementMonth();
+                player_character.action_points.setToMax();
                 global.scene_system.changeScene(LocationSceneDefinition);
             }
         }
