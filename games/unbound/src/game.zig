@@ -519,6 +519,7 @@ pub const NewCharacterEntity = struct {
         player_character.politics = 40;
         player_character.abilities = .none;
         player_character.starting_location = self.location_selector.getLocation();
+        player_character.action_points = 3;
     }
 };
 
