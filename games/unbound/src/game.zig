@@ -243,6 +243,8 @@ pub const NewCharacterSceneDefinition = struct {
 pub const NewCharacterEntity = struct {
     const initial_name_text = "Name: ";
 
+    const ethnicity_selections: [3]EthnicityProfile = .{ EthnicityProfile.Black, EthnicityProfile.Indigenous, EthnicityProfile.White };
+
     /// Takes in keyboard input and updates a TextLabelComponent
     const InputText = struct {
         var handle: ?delegate.SubscriberHandle = null;
@@ -308,8 +310,11 @@ pub const NewCharacterEntity = struct {
     name_collision_rect: Rect2 = .{ .x = 250.0, .y = 70.0, .w = 200, .h = 30 },
     is_typing_name: bool = false,
     location_selector: LocationSelector = .{},
+    ethnicity_index: usize = 0,
     confirm_button: *GameObject = undefined,
     back_button: *GameObject = undefined,
+    ethnicity_left_button: *GameObject = undefined,
+    ethnicity_right_button: *GameObject = undefined,
     add_lead_button: *GameObject = undefined,
     sub_lead_button: *GameObject = undefined,
     add_military_button: *GameObject = undefined,
@@ -349,9 +354,12 @@ pub const NewCharacterEntity = struct {
 
         const base_left_x: f32 = 200.0;
         const base_right_x: f32 = 420.0;
-        var base_y: f32 = 147.0;
+        var base_y: f32 = 130.0;
         const y_increment: f32 = 20.0;
 
+        self.ethnicity_left_button = try ButtonUtils.createValueChangeButton("<", .{ .x = base_left_x, .y = base_y }, onClick);
+        self.ethnicity_right_button = try ButtonUtils.createValueChangeButton(">", .{ .x = base_right_x, .y = base_y }, onClick);
+        base_y += y_increment;
         self.sub_lead_button = try ButtonUtils.createValueChangeButton("-", .{ .x = base_left_x, .y = base_y }, onClick);
         self.add_lead_button = try ButtonUtils.createValueChangeButton("+", .{ .x = base_right_x, .y = base_y }, onClick);
         base_y += y_increment;
@@ -392,6 +400,22 @@ pub const NewCharacterEntity = struct {
             if (self.edit_name_button.node.entity == clicked_entity) {
                 const text_label_comp = global.world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
                 self.setIsTypingName(!self.is_typing_name, text_label_comp) catch { unreachable; }; // Toggle
+            } else if (self.ethnicity_left_button.node.entity == clicked_entity) {
+                if (self.ethnicity_index == 0) {
+                    self.ethnicity_index = ethnicity_selections.len - 1;
+                } else {
+                    self.ethnicity_index -= 1;
+                }
+                self.character.ethnicity = ethnicity_selections[self.ethnicity_index];
+                self.refreshCharacterDetails();
+            } else if (self.ethnicity_right_button.node.entity == clicked_entity) {
+                if (self.ethnicity_index + 1 >= ethnicity_selections.len) {
+                    self.ethnicity_index = 0;
+                } else {
+                    self.ethnicity_index += 1;
+                }
+                self.character.ethnicity = ethnicity_selections[self.ethnicity_index];
+                self.refreshCharacterDetails();
             } else if (self.add_lead_button.node.entity == clicked_entity) {
                 self.addToProperty(&self.character.lead);
             } else if (self.sub_lead_button.node.entity == clicked_entity) {
