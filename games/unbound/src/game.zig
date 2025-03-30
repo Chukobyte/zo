@@ -274,7 +274,12 @@ pub const NewCharacterEntity = struct {
         }
     };
 
-    character: Character = .{ .name = undefined, .role = .free_man, .ethnicity = EthnicityProfile.Black },
+    character: Character = .{
+        .name = undefined,
+        .role = .free_man,
+        .ethnicity = EthnicityProfile.Black,
+        .starting_location = &state.map_locations[9],
+    },
     skill_points: u32 = 100,
     name_object: *GameObject = undefined,
     edit_name_button: *GameObject = undefined,
@@ -439,8 +444,10 @@ pub const NewCharacterEntity = struct {
         const character: *Character = &self.character;
         return try std.fmt.bufPrint(
             &Local.buffer,
-            "Role: {s}\nEthnicity: {s}\nLead: {d}\nMilitary: {d}\nCharisma: {d}\nIntelligence: {d}\nPolitics: {d}\nAbilities: {s}",
-            .{ character.role.toString(), character.ethnicity.toString(), character.lead, character.military, character.charisma, character.intelligence, character.politics, character.abilities.toString(), }
+            // "Role: {s}\nEthnicity: {s}\nLead: {d}\nMilitary: {d}\nCharisma: {d}\nIntelligence: {d}\nPolitics: {d}\nAbilities: {s}",
+            // .{ character.role.toString(), character.ethnicity.toString(), character.lead, character.military, character.charisma, character.intelligence, character.politics, character.abilities.toString(), }
+            "Role: {s}\nEthnicity: {s}\nLead: {d}\nMilitary: {d}\nCharisma: {d}\nIntelligence: {d}\nPolitics: {d}\nLocation: {s}",
+            .{ character.role.toString(), character.ethnicity.toString(), character.lead, character.military, character.charisma, character.intelligence, character.politics, character.starting_location.?.name, }
         );
     }
 };
