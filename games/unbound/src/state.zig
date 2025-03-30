@@ -106,8 +106,36 @@ pub const Character = struct {
     starting_location: ?*const Location = null,
 };
 
+pub const Date = struct {
+    pub const Month = enum {
+        jan,
+        feb,
+        mar,
+        apr,
+        may,
+        jun,
+        jul,
+        aug,
+        sep,
+        oct,
+        nov,
+        dec
+    };
+
+    month: Month,
+    year: u32,
+
+    pub fn incrementMonth(self: *@This()) void {
+        self.month = @enumFromInt((@intFromEnum(self.month) + 1) % 12);
+        if (self.month == .jan) {
+            self.year += 1;
+        }
+    }
+};
+
 pub const GameState = struct {
     player_character: Character,
+    date: Date,
 };
 
 pub var game_state: GameState = .{
@@ -116,9 +144,9 @@ pub var game_state: GameState = .{
         .role = .free_man,
         .ethnicity = EthnicityProfile.Black,
         .starting_location = &map_locations[9],
-    }
+    },
+    .date = .{
+        .month = .jan,
+        .year = 1700,
+    },
 };
-
-// pub const character_pool: []Character = &.{
-  // .{ .name = "Guy", .ethnicity = EthnicityProfile.Black, .role = .free_man, .lead = 50, .military = 50, .charisma = 50, .intelligence = 50, .politics = 50, .abilities = .none },
-// };

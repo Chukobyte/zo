@@ -562,7 +562,7 @@ pub const MapEntity = struct {
         );
         self.selected_location_name = try GameObject.initInScene(
             TextLabelClass,
-            .{ .text = intitial_location.name, .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 100.0, .y = 340.0 } }, },
+            .{ .text = intitial_location.name, .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 100.0, .y = 330.0 } }, },
             null,
             null
         );
