@@ -42,6 +42,7 @@ const TextButtonClass = object.TextButtonClass;
 
 const log = zo.log;
 
+var player_character: *Character = &state.game_state.player_character;
 var move_left_input_handle: InputAction.Handle = 0;
 var move_right_input_handle: InputAction.Handle = 0;
 var move_up_input_handle: InputAction.Handle = 0;
@@ -112,6 +113,7 @@ pub const InitSceneDefinition = struct {
 pub const InitEntity = struct {
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
         _ = try GameObjectSystem.init(global.allocator);
+        player_character.name = String.init(global.allocator);
         move_left_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_left, .keyboard_a } } );
         move_right_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_right, .keyboard_d } } );
         move_up_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_up, .keyboard_w } } );
@@ -298,12 +300,6 @@ pub const NewCharacterEntity = struct {
         }
     };
 
-    character: Character = .{
-        .name = undefined,
-        .role = .free_man,
-        .ethnicity = EthnicityProfile.Black,
-        .starting_location = &state.map_locations[9],
-    },
     skill_points: u32 = 100,
     name_object: *GameObject = undefined,
     edit_name_button: *GameObject = undefined,
@@ -331,7 +327,7 @@ pub const NewCharacterEntity = struct {
     skill_points_object: *GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
-        self.character.name = try String.initAndSetRaw(global.allocator, default_name);
+        try self.resetPlayerCharacter();
         self.name_object = try GameObject.initInScene(
             TextLabelClass,
             .{ .font = &global.assets.fonts.pixeloid_16, .text = initial_name_text, .transform = .{ .position = .{ .x = 250.0, .y = 70.0 } }, },
@@ -407,7 +403,7 @@ pub const NewCharacterEntity = struct {
                 } else {
                     self.ethnicity_index -= 1;
                 }
-                self.character.ethnicity = ethnicity_selections[self.ethnicity_index];
+                player_character.ethnicity = ethnicity_selections[self.ethnicity_index];
                 self.refreshCharacterDetails();
             } else if (self.ethnicity_right_button.node.entity == clicked_entity) {
                 if (self.ethnicity_index + 1 >= ethnicity_selections.len) {
@@ -415,35 +411,35 @@ pub const NewCharacterEntity = struct {
                 } else {
                     self.ethnicity_index += 1;
                 }
-                self.character.ethnicity = ethnicity_selections[self.ethnicity_index];
+                player_character.ethnicity = ethnicity_selections[self.ethnicity_index];
                 self.refreshCharacterDetails();
             } else if (self.add_lead_button.node.entity == clicked_entity) {
-                self.addToProperty(&self.character.lead);
+                self.addToProperty(&player_character.lead);
             } else if (self.sub_lead_button.node.entity == clicked_entity) {
-                self.subFromProperty(&self.character.lead);
+                self.subFromProperty(&player_character.lead);
             } else if (self.add_military_button.node.entity == clicked_entity) {
-                self.addToProperty(&self.character.military);
+                self.addToProperty(&player_character.military);
             } else if (self.sub_military_button.node.entity == clicked_entity) {
-                self.subFromProperty(&self.character.military);
+                self.subFromProperty(&player_character.military);
             } else if (self.add_charisma_button.node.entity == clicked_entity) {
-                self.addToProperty(&self.character.charisma);
+                self.addToProperty(&player_character.charisma);
             } else if (self.sub_charisma_button.node.entity == clicked_entity) {
-                self.subFromProperty(&self.character.charisma);
+                self.subFromProperty(&player_character.charisma);
             } else if (self.add_intelligence_button.node.entity == clicked_entity) {
-                self.addToProperty(&self.character.intelligence);
+                self.addToProperty(&player_character.intelligence);
             } else if (self.sub_intelligence_button.node.entity == clicked_entity) {
-                self.subFromProperty(&self.character.intelligence);
+                self.subFromProperty(&player_character.intelligence);
             } else if (self.add_politics_button.node.entity == clicked_entity) {
-                self.addToProperty(&self.character.politics);
+                self.addToProperty(&player_character.politics);
             } else if (self.sub_politics_button.node.entity == clicked_entity) {
-                self.subFromProperty(&self.character.politics);
+                self.subFromProperty(&player_character.politics);
             } else if (self.location_left_button.node.entity == clicked_entity) {
                 self.location_selector.decrease();
-                self.character.starting_location = self.location_selector.getLocation();
+                player_character.starting_location = self.location_selector.getLocation();
                 self.refreshCharacterDetails();
             } else if (self.location_right_button.node.entity == clicked_entity) {
                 self.location_selector.increase();
-                self.character.starting_location = self.location_selector.getLocation();
+                player_character.starting_location = self.location_selector.getLocation();
                 self.refreshCharacterDetails();
             } else if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(NewGameSceneDefinition);
@@ -499,18 +495,30 @@ pub const NewCharacterEntity = struct {
         self.edit_name_button.class.text_button.refreshTextAlignment();
     }
 
-    fn getCharacterDetailsString(self: *@This()) ![]const u8 {
+    fn getCharacterDetailsString(_: *@This()) ![]const u8 {
         const Local = struct {
             var buffer: [256]u8 = undefined;
         };
-        const character: *Character = &self.character;
         return try std.fmt.bufPrint(
             &Local.buffer,
             // "Role: {s}\nEthnicity: {s}\nLead: {d}\nMilitary: {d}\nCharisma: {d}\nIntelligence: {d}\nPolitics: {d}\nAbilities: {s}",
             // .{ character.role.toString(), character.ethnicity.toString(), character.lead, character.military, character.charisma, character.intelligence, character.politics, character.abilities.toString(), }
             "Role: {s}\nEthnicity: {s}\nLead: {d}\nMilitary: {d}\nCharisma: {d}\nIntelligence: {d}\nPolitics: {d}\nLocation: {s}",
-            .{ character.role.toString(), character.ethnicity.toString(), character.lead, character.military, character.charisma, character.intelligence, character.politics, character.starting_location.?.name, }
+            .{ player_character.role.toString(), player_character.ethnicity.toString(), player_character.lead, player_character.military, player_character.charisma, player_character.intelligence, player_character.politics, player_character.starting_location.?.name, }
         );
+    }
+
+    /// Resets the player character to default values
+    fn resetPlayerCharacter(self: *@This()) !void {
+        try player_character.name.setRaw(default_name);
+        player_character.role = .free_man;
+        player_character.lead = 40;
+        player_character.military = 40;
+        player_character.charisma = 40;
+        player_character.intelligence = 40;
+        player_character.politics = 40;
+        player_character.abilities = .none;
+        player_character.starting_location = self.location_selector.getLocation();
     }
 };
 

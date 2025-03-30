@@ -106,6 +106,19 @@ pub const Character = struct {
     starting_location: ?*const Location = null,
 };
 
+pub const GameState = struct {
+    player_character: Character,
+};
+
+pub var game_state: GameState = .{
+    .player_character = .{
+        .name = undefined,
+        .role = .free_man,
+        .ethnicity = EthnicityProfile.Black,
+        .starting_location = &map_locations[9],
+    }
+};
+
 // pub const character_pool: []Character = &.{
   // .{ .name = "Guy", .ethnicity = EthnicityProfile.Black, .role = .free_man, .lead = 50, .military = 50, .charisma = 50, .intelligence = 50, .politics = 50, .abilities = .none },
 // };
