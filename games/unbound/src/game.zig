@@ -79,6 +79,27 @@ const ButtonUtils = struct {
     }
 };
 
+const LocationSelector = struct {
+    location_index: usize = 9, // Starts on virginia
+    pub fn getLocation(self: *const @This()) *const Location {
+        return &state.map_locations[self.location_index];
+    }
+    pub fn increase(self: *@This()) void {
+        if (self.location_index + 1 >= state.map_locations.len) {
+            self.location_index = 0;
+        } else {
+            self.location_index += 1;
+        }
+    }
+    pub fn decrease(self: *@This()) void {
+        if (self.location_index == 0) {
+            self.location_index = state.map_locations.len - 1;
+        } else {
+            self.location_index -= 1;
+        }
+    }
+};
+
 // Scenes
 
 // INIT
@@ -271,27 +292,6 @@ pub const NewCharacterEntity = struct {
                 return ' ';
             }
             return null;
-        }
-    };
-
-    const LocationSelector = struct {
-        location_index: usize = 9,
-        pub fn getLocation(self: *const @This()) *const Location {
-            return &state.map_locations[self.location_index];
-        }
-        pub fn increase(self: *@This()) void {
-            if (self.location_index + 1 >= state.map_locations.len) {
-                self.location_index = 0;
-            } else {
-                self.location_index += 1;
-            }
-        }
-        pub fn decrease(self: *@This()) void {
-            if (self.location_index == 0) {
-                self.location_index = state.map_locations.len - 1;
-            } else {
-                self.location_index -= 1;
-            }
         }
     };
 
@@ -508,7 +508,7 @@ pub const MapSceneDefinition = struct {
 pub const MapEntity = struct {
     selected_location_cursor: *GameObject = undefined,
     selected_location_name: *GameObject = undefined,
-    location_index: usize = 9,
+    location_selector: LocationSelector = .{},
 
     pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
         _ = world; _ = entity;
@@ -520,7 +520,7 @@ pub const MapEntity = struct {
             null
         );
 
-        const intitial_location = &state.map_locations[self.location_index];
+        const intitial_location = self.location_selector.getLocation();
         self.selected_location_cursor = try GameObject.initInScene(
             TextLabelClass,
             .{ .text = "{}", .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = intitial_location.map_position }, },
@@ -549,19 +549,11 @@ pub const MapEntity = struct {
 
     fn checkForLocationChange(self: *@This()) ?*const Location {
         if (input.isActionJustPressed(move_down_input_handle)) {
-            if (self.location_index + 1 >= state.map_locations.len) {
-                self.location_index = 0;
-            } else {
-                self.location_index += 1;
-            }
-            return &state.map_locations[self.location_index];
+            self.location_selector.increase();
+            return self.location_selector.getLocation();
         } else if (input.isActionJustPressed(move_up_input_handle)) {
-            if (self.location_index == 0) {
-                self.location_index = state.map_locations.len - 1;
-            } else {
-                self.location_index -= 1;
-            }
-            return &state.map_locations[self.location_index];
+            self.location_selector.decrease();
+            return self.location_selector.getLocation();
         }
         return null;
     }
