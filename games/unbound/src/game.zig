@@ -33,6 +33,7 @@ const InputKey = input.InputKey;
 const InputEvent = input.InputEvent;
 const InputAction = input.InputAction;
 const Character = state.Character;
+const Date = state.Date;
 const EthnicityProfile = state.EthnicityProfile;
 const SubscriberHandle = delegate.SubscriberHandle;
 const SpriteClass = object.SpriteClass;
@@ -43,6 +44,7 @@ const TextButtonClass = object.TextButtonClass;
 const log = zo.log;
 
 var player_character: *Character = &state.game_state.player_character;
+var game_date: *Date = &state.game_state.date;
 var move_left_input_handle: InputAction.Handle = 0;
 var move_right_input_handle: InputAction.Handle = 0;
 var move_up_input_handle: InputAction.Handle = 0;
@@ -525,7 +527,7 @@ pub const NewCharacterEntity = struct {
         player_character.politics = 40;
         player_character.abilities = .none;
         player_character.starting_location = self.location_selector.getLocation();
-        player_character.action_points = 3;
+        player_character.action_points.setToMax();
     }
 };
 
@@ -537,10 +539,12 @@ pub const LocationSceneDefinition = struct {
 };
 
 pub const LocationEntity = struct {
+    action_points_text: *GameObject = undefined,
     discover_button: *GameObject = undefined,
     interact_button: *GameObject = undefined,
     travel_button: *GameObject = undefined,
     character_button: *GameObject = undefined,
+    end_turn_button: *GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         _ = try GameObject.initInScene(
@@ -551,13 +555,20 @@ pub const LocationEntity = struct {
         );
         _ = try GameObject.initInScene(
             TextLabelClass,
-            .{ .text = state.game_state.date.toString(), .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 200.0, .y = 100.0 } }, },
+            .{ .text = game_date.toString(), .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 200.0, .y = 100.0 } }, },
             null,
             null
         );
+        self.action_points_text = try GameObject.initInScene(
+            TextLabelClass,
+            .{ .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 200.0, .y = 140.0 } }, },
+            null,
+            null
+        );
+        try self.refreshActionPointsText();
 
-        var base_pos: Vec2 = .{ .x = 100.0, .y = 250.0 };
-        const x_increment: f32 = 110.0;
+        var base_pos: Vec2 = .{ .x = 60.0, .y = 250.0 };
+        const x_increment: f32 = 105.0;
         self.discover_button = try GameObject.initInScene(
             TextButtonClass,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Discover", .on_click = onClick, .transform = .{ .position = base_pos } },
@@ -585,6 +596,13 @@ pub const LocationEntity = struct {
             null,
             null
         );
+        base_pos.x += x_increment;
+        self.end_turn_button = try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "End Turn", .on_click = onClick, .transform = .{ .position = base_pos } },
+            null,
+            null
+        );
     }
 
     pub fn onClick(clicked_entity: Entity) void {
@@ -595,7 +613,17 @@ pub const LocationEntity = struct {
                 global.scene_system.changeScene(MapSceneDefinition);
             } else if (self.character_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(CharacterViewSceneDefinition);
+            } else if (self.end_turn_button.node.entity == clicked_entity) {
+                // TODO: Should go to a map scene that shows the overworld map and events progressing before going back to this scene
+                game_date.incrementMonth();
+                global.scene_system.changeScene(LocationSceneDefinition);
             }
+        }
+    }
+
+    fn refreshActionPointsText(self: *@This()) !void {
+        if (global.world.getComponent(self.action_points_text.node.entity, TextLabelComponent)) |text_label_comp| {
+            try text_label_comp.class.label.text.set("AP: {d}", .{ player_character.action_points.value });
         }
     }
 };

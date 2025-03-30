@@ -5,6 +5,7 @@ const zo = @import("zo");
 const math = @import("zo").math;
 
 const Vec2 = math.Vec2;
+const MinMax = math.MinMax;
 const String = zo.string.HeapString;
 
 pub const Location = struct {
@@ -110,7 +111,7 @@ pub const Character = struct {
     politics: u32 = 0,
     abilities: Abilities = .none,
     starting_location: ?*const Location = null,
-    action_points: u32 = 0,
+    action_points: MinMax(u32) = .{ .value = 3, .min = 0, .max = 3 },
 
     pub fn toString(self: *const @This(), comptime detail_type: CharacterDetailsType) ![]const u8 {
         const Local = struct {
@@ -197,7 +198,6 @@ pub var game_state: GameState = .{
         .role = .free_man,
         .ethnicity = EthnicityProfile.Black,
         .starting_location = &map_locations[9],
-        .action_points = 3,
     },
     .date = .{
         .month = .jan,

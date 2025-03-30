@@ -584,6 +584,28 @@ pub const Dim2 = Dimensions2(f32);
 pub const Dim2i = Dimensions2(i32);
 pub const Dim2u = Dimensions2(u32);
 
+/// Used for a range of values
+pub fn MinMax(comptime T: type) type {
+    return struct {
+        value: T,
+        min: T,
+        max: T,
+
+        pub fn setToMin(self: *@This()) void {
+            self.value = self.min;
+        }
+
+        pub fn setToMax(self: *@This()) void {
+            self.value = self.max;
+        }
+
+        /// Sets the value and clamp it to min and max range
+        pub fn setValue(self: *@This(), value: T) void {
+            self.value = clamp(T, value, self.min, self.max);
+        }
+    };
+}
+
 /// Map a value from one range to another.
 pub inline fn mapToRange(comptime T: type, input: T, input_min: T, input_max: T, output_min: T, output_max: T) T {
     // if (T == Vec2f or T == Vec2i or T == Vec2u) {
