@@ -82,6 +82,7 @@ const ButtonUtils = struct {
 
 const LocationSelector = struct {
     location_index: usize = 9, // Starts on virginia
+
     pub fn getLocation(self: *const @This()) *const Location {
         return &state.map_locations[self.location_index];
     }
@@ -97,6 +98,15 @@ const LocationSelector = struct {
             self.location_index = state.map_locations.len - 1;
         } else {
             self.location_index -= 1;
+        }
+    }
+
+    pub fn setIndexByLocation(self: *@This(), location: *const Location) void {
+        for (0..state.map_locations.len) |i| {
+            if (location == &state.map_locations[i]) {
+                self.location_index = i;
+                break;
+            }
         }
     }
 };
@@ -634,6 +644,7 @@ pub const MapEntity = struct {
             null
         );
 
+        self.location_selector.setIndexByLocation(player_character.starting_location.?);
         const intitial_location = self.location_selector.getLocation();
         self.selected_location_cursor = try GameObject.initInScene(
             TextLabelClass,
