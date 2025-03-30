@@ -104,6 +104,7 @@ pub const Character = struct {
     politics: u32 = 0,
     abilities: Abilities = .none,
     starting_location: ?*const Location = null,
+    action_points: u32 = 0,
 };
 
 pub const Date = struct {
@@ -144,6 +145,7 @@ pub var game_state: GameState = .{
         .role = .free_man,
         .ethnicity = EthnicityProfile.Black,
         .starting_location = &map_locations[9],
+        .action_points = 3,
     },
     .date = .{
         .month = .jan,

@@ -229,7 +229,7 @@ pub const ExistingCharacterEntity = struct {
             if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(NewGameSceneDefinition);
             } else if (self.confirm_button.node.entity == clicked_entity) {
-                global.scene_system.changeScene(MapSceneDefinition);
+                global.scene_system.changeScene(LocationSceneDefinition);
             }
         }
     }
@@ -444,7 +444,7 @@ pub const NewCharacterEntity = struct {
             } else if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(NewGameSceneDefinition);
             } else if (self.confirm_button.node.entity == clicked_entity) {
-                global.scene_system.changeScene(MapSceneDefinition);
+                global.scene_system.changeScene(LocationSceneDefinition);
             }
         }
     }
@@ -529,7 +529,55 @@ pub const LocationSceneDefinition = struct {
     }
 };
 
-pub const LocationEntity = struct {};
+pub const LocationEntity = struct {
+    discover_button: *GameObject = undefined,
+    interact_button: *GameObject = undefined,
+    map_button: *GameObject = undefined,
+
+    pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
+        _ = try GameObject.initInScene(
+            TextLabelClass,
+            .{ .text = player_character.starting_location.?.name, .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 300.0, .y = 100.0 } }, },
+            null,
+            null
+        );
+
+        var base_pos: Vec2 = .{ .x = 180.0, .y = 250.0 };
+        const x_increment: f32 = 110.0;
+        self.discover_button = try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Discover", .on_click = onClick, .transform = .{ .position = base_pos } },
+            null,
+            null
+        );
+        base_pos.x += x_increment;
+        self.interact_button = try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Interact", .on_click = onClick, .transform = .{ .position = base_pos } },
+            null,
+            null
+        );
+        base_pos.x += x_increment;
+        self.map_button = try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Map", .on_click = onClick, .transform = .{ .position = base_pos } },
+            null,
+            null
+        );
+    }
+
+    pub fn onClick(clicked_entity: Entity) void {
+        if (global.world.findEntityScriptInstance(@This())) |self| {
+            if (self.discover_button.node.entity == clicked_entity) {
+
+            } if (self.interact_button.node.entity == clicked_entity) {
+
+            } else if (self.map_button.node.entity == clicked_entity) {
+                global.scene_system.changeScene(MapSceneDefinition);
+            }
+        }
+    }
+};
 
 // MAP
 pub const MapSceneDefinition = struct {
@@ -572,11 +620,15 @@ pub const MapEntity = struct {
         _ = self; _ = world; _ = entity;
     }
 
-    pub fn fixedUpdate(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
+    pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
         if (self.checkForLocationChange()) |new_location| {
             self.selected_location_cursor.setLocalPosition(new_location.map_position);
             var text_label_comp = world.getComponent(self.selected_location_name.node.entity, TextLabelComponent);
             try text_label_comp.?.class.label.text.setRaw(new_location.name);
+        }
+
+        if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
+            global.scene_system.changeScene(LocationSceneDefinition);
         }
     }
 

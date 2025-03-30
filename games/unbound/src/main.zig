@@ -22,7 +22,7 @@ pub const GameMain = struct {
         try global.scene_system.newFrame();
         try global.world.update(delta_seconds);
 
-        if (zo.input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
+        if (zo.input.isKeyJustPressed(.{ .key = .keyboard_q })) {
             zo.quit();
         }
     }
