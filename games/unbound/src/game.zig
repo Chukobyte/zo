@@ -274,6 +274,27 @@ pub const NewCharacterEntity = struct {
         }
     };
 
+    const LocationSelector = struct {
+        location_index: usize = 9,
+        pub fn getLocation(self: *const @This()) *const Location {
+            return &state.map_locations[self.location_index];
+        }
+        pub fn increase(self: *@This()) void {
+            if (self.location_index + 1 >= state.map_locations.len) {
+                self.location_index = 0;
+            } else {
+                self.location_index += 1;
+            }
+        }
+        pub fn decrease(self: *@This()) void {
+            if (self.location_index == 0) {
+                self.location_index = state.map_locations.len - 1;
+            } else {
+                self.location_index -= 1;
+            }
+        }
+    };
+
     character: Character = .{
         .name = undefined,
         .role = .free_man,
@@ -286,6 +307,7 @@ pub const NewCharacterEntity = struct {
     details_object: *GameObject = undefined,
     name_collision_rect: Rect2 = .{ .x = 250.0, .y = 70.0, .w = 200, .h = 30 },
     is_typing_name: bool = false,
+    location_selector: LocationSelector = .{},
     confirm_button: *GameObject = undefined,
     back_button: *GameObject = undefined,
     add_lead_button: *GameObject = undefined,
@@ -298,6 +320,8 @@ pub const NewCharacterEntity = struct {
     sub_intelligence_button: *GameObject = undefined,
     add_politics_button: *GameObject = undefined,
     sub_politics_button: *GameObject = undefined,
+    location_left_button: *GameObject = undefined,
+    location_right_button: *GameObject = undefined,
     skill_points_object: *GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
@@ -316,7 +340,7 @@ pub const NewCharacterEntity = struct {
         );
         self.details_object = try GameObject.initInScene(
             TextBoxClass,
-            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 200, .h = 400 }, .text = try self.getCharacterDetailsString(), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 250.0, .y = 110.0 } }, },
+            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 180, .h = 400 }, .text = try self.getCharacterDetailsString(), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 250.0, .y = 110.0 } }, },
             null,
             null
         );
@@ -324,7 +348,7 @@ pub const NewCharacterEntity = struct {
         self.back_button = try ButtonUtils.createBackButton(onClick);
 
         const base_left_x: f32 = 200.0;
-        const base_right_x: f32 = 390.0;
+        const base_right_x: f32 = 420.0;
         var base_y: f32 = 147.0;
         const y_increment: f32 = 20.0;
 
@@ -342,6 +366,9 @@ pub const NewCharacterEntity = struct {
         base_y += y_increment;
         self.sub_politics_button = try ButtonUtils.createValueChangeButton("-", .{ .x = base_left_x, .y = base_y }, onClick);
         self.add_politics_button = try ButtonUtils.createValueChangeButton("+", .{ .x = base_right_x, .y = base_y }, onClick);
+        base_y += y_increment;
+        self.location_left_button = try ButtonUtils.createValueChangeButton("<", .{ .x = base_left_x, .y = base_y }, onClick);
+        self.location_right_button = try ButtonUtils.createValueChangeButton(">", .{ .x = base_right_x, .y = base_y }, onClick);
 
         self.skill_points_object = try GameObject.initInScene(
             TextLabelClass,
@@ -385,6 +412,14 @@ pub const NewCharacterEntity = struct {
                 self.addToProperty(&self.character.politics);
             } else if (self.sub_politics_button.node.entity == clicked_entity) {
                 self.subFromProperty(&self.character.politics);
+            } else if (self.location_left_button.node.entity == clicked_entity) {
+                self.location_selector.decrease();
+                self.character.starting_location = self.location_selector.getLocation();
+                self.refreshCharacterDetails();
+            } else if (self.location_right_button.node.entity == clicked_entity) {
+                self.location_selector.increase();
+                self.character.starting_location = self.location_selector.getLocation();
+                self.refreshCharacterDetails();
             } else if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(NewGameSceneDefinition);
             } else if (self.confirm_button.node.entity == clicked_entity) {
@@ -396,27 +431,29 @@ pub const NewCharacterEntity = struct {
     fn addToProperty(self: *@This(), value: *u32) void {
         if (self.skill_points == 0) { return; }
         value.* += 1;
-        const text_label_comp = global.world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
-        const character_details: []const u8 = self.getCharacterDetailsString() catch { unreachable; };
-        text_label_comp.class.text_box.setText(text_label_comp.font, character_details, 1.0) catch { unreachable; };
         self.skill_points -= 1;
         self.refreshSkillPoints();
+        self.refreshCharacterDetails();
     }
 
     fn subFromProperty(self: *@This(), value: *u32) void {
         if (value.* == 0) { return; }
         value.* -= 1;
-        const text_label_comp = global.world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
-        const character_details: []const u8 = self.getCharacterDetailsString() catch { unreachable; };
-        text_label_comp.class.text_box.setText(text_label_comp.font, character_details, 1.0) catch { unreachable; };
         self.skill_points += 1;
         self.refreshSkillPoints();
+        self.refreshCharacterDetails();
     }
 
     fn refreshSkillPoints(self: *@This()) void {
         if (global.world.getComponent(self.skill_points_object.node.entity, TextLabelComponent)) |text_label_comp| {
             text_label_comp.class.label.text.set("Skill Points: {d}", .{ self.skill_points }) catch { unreachable; };
         }
+    }
+
+    fn refreshCharacterDetails(self: *@This()) void {
+        const text_label_comp = global.world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
+        const character_details: []const u8 = self.getCharacterDetailsString() catch { unreachable; };
+        text_label_comp.class.text_box.setText(text_label_comp.font, character_details, 1.0) catch { unreachable; };
     }
 
     fn setIsTypingName(self: *@This(), is_typing_name: bool, text_label_comp: *TextLabelComponent) !void {
