@@ -224,7 +224,7 @@ pub const GameObject = struct {
                 try global.world.setComponent(node.entity, ColorRectComponent, &.{ .size = .{ .w = params.collision.w, .h = params.collision.h }, .color = .{ .r = 0.4, .g = 0.4, .b = 0.4 } });
                 const text_box = try initInScene(
                     TextBoxClass,
-                    .{ .font = params.font, .size = .{ .w = @intFromFloat(params.collision.w), .h = @intFromFloat(params.collision.h) }, .text = params.text },
+                    .{ .font = params.font, .size = .{ .w = @intFromFloat(params.collision.w), .h = @intFromFloat(params.collision.h) }, .text = params.text, .z_index = params.z_index + 1 },
                     node,
                     null
                 );

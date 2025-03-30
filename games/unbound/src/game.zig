@@ -64,7 +64,7 @@ const ButtonUtils = struct {
     pub fn createBackButton(on_click: ?*const fn(Entity) void) !*GameObject {
         return try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Back", .on_click = on_click, .transform = .{ .position = .{ .x = 40.0, .y = 300.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Back", .on_click = on_click, .transform = .{ .position = .{ .x = 40.0, .y = 300.0 } }, .z_index = 1 },
             null,
             null
         );
@@ -100,6 +100,33 @@ const LocationSelector = struct {
         }
     }
 };
+
+const CharacterDetailsType = enum {
+    create_character,
+    location_view_character,
+};
+
+fn getCharacterDetailsString(character: *Character, comptime detail_type: CharacterDetailsType) ![]const u8 {
+    const Local = struct {
+        var buffer: [256]u8 = undefined;
+    };
+    switch (detail_type) {
+        .create_character => {
+            return try std.fmt.bufPrint(
+                &Local.buffer,
+            "Role: {s}\nEthnicity: {s}\nLead: {d}\nMilitary: {d}\nCharisma: {d}\nIntelligence: {d}\nPolitics: {d}\nLocation: {s}",
+                .{ character.role.toString(), character.ethnicity.toString(), character.lead, character.military, character.charisma, character.intelligence, character.politics, character.starting_location.?.name, }
+            );
+        },
+        .location_view_character => {
+            return try std.fmt.bufPrint(
+                &Local.buffer,
+            "Role: {s}\nEthnicity: {s}\nLead: {d}\nMilitary: {d}\nCharisma: {d}\nIntelligence: {d}\nPolitics: {d}\nAbilities: {s}",
+                .{ character.role.toString(), character.ethnicity.toString(), character.lead, character.military, character.charisma, character.intelligence, character.politics, character.abilities.toString(), }
+            );
+        },
+    }
+}
 
 // Scenes
 
@@ -171,7 +198,7 @@ pub const NewGameEntity = struct {
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         _ = try GameObject.initInScene(
             TextLabelClass,
-            .{ .font = &global.assets.fonts.pixeloid_16, .text = "Select Character to Play", .transform = .{ .position = .{ .x = 210.0, .y = 180.0 } }, },
+            .{ .font = &global.assets.fonts.pixeloid_16, .text = "Select character", .transform = .{ .position = .{ .x = 210.0, .y = 180.0 } }, },
             null,
             null
         );
@@ -348,7 +375,7 @@ pub const NewCharacterEntity = struct {
         );
         self.details_object = try GameObject.initInScene(
             TextBoxClass,
-            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 200, .h = 400 }, .text = try self.getCharacterDetailsString(), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 250.0, .y = 110.0 } }, },
+            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 200, .h = 400 }, .text = try getCharacterDetailsString(player_character, .create_character), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 250.0, .y = 110.0 } }, },
             null,
             null
         );
@@ -482,7 +509,7 @@ pub const NewCharacterEntity = struct {
 
     fn refreshCharacterDetails(self: *@This()) void {
         const text_label_comp = global.world.getComponent(self.details_object.node.entity, TextLabelComponent).?;
-        const character_details: []const u8 = self.getCharacterDetailsString() catch { unreachable; };
+        const character_details: []const u8 = getCharacterDetailsString(player_character, .create_character) catch { unreachable; };
         text_label_comp.class.text_box.setText(text_label_comp.font, character_details, 1.0) catch { unreachable; };
     }
 
@@ -502,19 +529,6 @@ pub const NewCharacterEntity = struct {
             }
         }
         self.edit_name_button.class.text_button.refreshTextAlignment();
-    }
-
-    fn getCharacterDetailsString(_: *@This()) ![]const u8 {
-        const Local = struct {
-            var buffer: [256]u8 = undefined;
-        };
-        return try std.fmt.bufPrint(
-            &Local.buffer,
-            // "Role: {s}\nEthnicity: {s}\nLead: {d}\nMilitary: {d}\nCharisma: {d}\nIntelligence: {d}\nPolitics: {d}\nAbilities: {s}",
-            // .{ character.role.toString(), character.ethnicity.toString(), character.lead, character.military, character.charisma, character.intelligence, character.politics, character.abilities.toString(), }
-            "Role: {s}\nEthnicity: {s}\nLead: {d}\nMilitary: {d}\nCharisma: {d}\nIntelligence: {d}\nPolitics: {d}\nLocation: {s}",
-            .{ player_character.role.toString(), player_character.ethnicity.toString(), player_character.lead, player_character.military, player_character.charisma, player_character.intelligence, player_character.politics, player_character.starting_location.?.name, }
-        );
     }
 
     /// Resets the player character to default values
@@ -543,6 +557,7 @@ pub const LocationEntity = struct {
     discover_button: *GameObject = undefined,
     interact_button: *GameObject = undefined,
     travel_button: *GameObject = undefined,
+    character_button: *GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         _ = try GameObject.initInScene(
@@ -552,7 +567,7 @@ pub const LocationEntity = struct {
             null
         );
 
-        var base_pos: Vec2 = .{ .x = 180.0, .y = 250.0 };
+        var base_pos: Vec2 = .{ .x = 100.0, .y = 250.0 };
         const x_increment: f32 = 110.0;
         self.discover_button = try GameObject.initInScene(
             TextButtonClass,
@@ -574,16 +589,23 @@ pub const LocationEntity = struct {
             null,
             null
         );
+        base_pos.x += x_increment;
+        self.character_button = try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Character", .on_click = onClick, .transform = .{ .position = base_pos } },
+            null,
+            null
+        );
     }
 
     pub fn onClick(clicked_entity: Entity) void {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.discover_button.node.entity == clicked_entity) {
-
             } if (self.interact_button.node.entity == clicked_entity) {
-
             } else if (self.travel_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(MapSceneDefinition);
+            } else if (self.character_button.node.entity == clicked_entity) {
+                global.scene_system.changeScene(CharacterViewSceneDefinition);
             }
         }
     }
@@ -599,6 +621,7 @@ pub const MapSceneDefinition = struct {
 pub const MapEntity = struct {
     selected_location_cursor: *GameObject = undefined,
     selected_location_name: *GameObject = undefined,
+    back_button: *GameObject = undefined,
     location_selector: LocationSelector = .{},
 
     pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
@@ -620,10 +643,11 @@ pub const MapEntity = struct {
         );
         self.selected_location_name = try GameObject.initInScene(
             TextLabelClass,
-            .{ .text = intitial_location.name, .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 100.0, .y = 330.0 } }, },
+            .{ .text = intitial_location.name, .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 160.0, .y = 330.0 } }, },
             null,
             null
         );
+        self.back_button = try ButtonUtils.createBackButton(onClick);
     }
 
     pub fn onExitScene(self: *@This(), world: *World, entity: ecs.Entity) void {
@@ -642,6 +666,14 @@ pub const MapEntity = struct {
         }
     }
 
+    pub fn onClick(clicked_entity: Entity) void {
+        if (global.world.findEntityScriptInstance(@This())) |self| {
+            if (self.back_button.node.entity == clicked_entity) {
+                global.scene_system.changeScene(LocationSceneDefinition);
+            }
+        }
+    }
+
     fn checkForLocationChange(self: *@This()) ?*const Location {
         if (input.isActionJustPressed(move_down_input_handle)) {
             self.location_selector.increase();
@@ -651,5 +683,43 @@ pub const MapEntity = struct {
             return self.location_selector.getLocation();
         }
         return null;
+    }
+};
+
+// CHARACTER VIEW
+pub const CharacterViewSceneDefinition = struct {
+    pub fn getNodeInterface() type {
+        return CharacterViewEntity;
+    }
+};
+
+pub const CharacterViewEntity = struct {
+    details_object: *GameObject = undefined,
+    back_button: *GameObject = undefined,
+
+    pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
+        _ = world; _ = entity;
+
+        self.details_object = try GameObject.initInScene(
+            TextBoxClass,
+            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 200, .h = 400 }, .text = try getCharacterDetailsString(player_character, .location_view_character), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 250.0, .y = 110.0 } }, },
+            null,
+            null
+        );
+        self.back_button = try ButtonUtils.createBackButton(onClick);
+    }
+
+    pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
+        if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
+            global.scene_system.changeScene(LocationSceneDefinition);
+        }
+    }
+
+    pub fn onClick(clicked_entity: Entity) void {
+        if (global.world.findEntityScriptInstance(@This())) |self| {
+            if (self.back_button.node.entity == clicked_entity) {
+                global.scene_system.changeScene(LocationSceneDefinition);
+            }
+        }
     }
 };
