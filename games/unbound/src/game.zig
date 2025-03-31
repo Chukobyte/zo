@@ -19,6 +19,7 @@ const Vec2 = math.Vec2;
 const Vec2i = math.Vec2i;
 const Rect2 = math.Rect2;
 const Dim2 = math.Dim2;
+const Dim2u = math.Dim2u;
 const String = zo.string.HeapString;
 const Entity = ecs.Entity;
 const World = global.World;
@@ -794,6 +795,16 @@ pub const EndTurnMapEntity = struct {
             null,
             null
         );
+        const event_text = "A real event with an actual description and other mechanics will soon be present here!";
+        const text_box_size: Dim2u = .{ .w = 300, .h = 200 };
+        const event_text_object = try GameObject.initInScene(
+            TextBoxClass,
+            .{ .font = &global.assets.fonts.pixeloid_16, .size = text_box_size, .text = event_text, .line_spacing = 5.0, .transform = .{ .position = .{ .x = 100.0, .y = 300.0 } }, .z_index = 1 },
+            null,
+            null
+        );
+        // TODO: Make a property of TextBox class to include background and border
+        try global.world.setComponent(event_text_object.node.entity, ColorRectComponent, &.{ .size = .{ .w = @floatFromInt(text_box_size.w), .h = @floatFromInt(text_box_size.h) }, .color = .{ .r = 0.4, .g = 0.4, .b = 0.4 } });
     }
 
     pub fn update(self: *@This(), _: *World, _: ecs.Entity, delta_time_seconds: f32) !void {
