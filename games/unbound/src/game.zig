@@ -644,6 +644,7 @@ pub const LocationEntity = struct {
             } else if (self.military_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(MilitarySceneDefinition);
             } else if (self.travel_button.node.entity == clicked_entity) {
+                if (player_character.action_points.value == 0) { return .invalid; }
                 global.scene_system.changeScene(MapSceneDefinition);
             } else if (self.character_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(CharacterViewSceneDefinition);
@@ -671,6 +672,7 @@ pub const MapSceneDefinition = struct {
 pub const MapEntity = struct {
     selected_location_cursor: *GameObject = undefined,
     selected_location_name: *GameObject = undefined,
+    confirm_button: *GameObject = undefined,
     back_button: *GameObject = undefined,
     location_selector: LocationSelector = .{},
 
@@ -699,6 +701,7 @@ pub const MapEntity = struct {
             null
         );
         self.back_button = try ButtonUtils.createBackButton(onClick);
+        self.confirm_button = try ButtonUtils.createConfirmButton(onClick);
     }
 
     pub fn onExitScene(self: *@This(), world: *World, entity: ecs.Entity) void {
@@ -720,7 +723,11 @@ pub const MapEntity = struct {
 
     pub fn onClick(clicked_entity: Entity) OnClickResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
-            if (self.back_button.node.entity == clicked_entity) {
+            if (self.confirm_button.node.entity == clicked_entity) {
+                player_character.action_points.value -= 1;
+                player_character.starting_location = self.location_selector.getLocation();
+                global.scene_system.changeScene(LocationSceneDefinition);
+            } else if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(LocationSceneDefinition);
             }
         }
