@@ -95,6 +95,11 @@ pub const EthnicityProfile = struct {
     }
 };
 
+const Troop = struct {
+    active: u32 = 0,
+    injured: u32 = 0,
+};
+
 pub const Character = struct {
     const CharacterDetailsType = enum {
         create_character,
@@ -112,6 +117,7 @@ pub const Character = struct {
     abilities: Abilities = .none,
     starting_location: ?*const Location = null,
     action_points: MinMax(u32) = .{ .value = 3, .min = 0, .max = 3 },
+    troop: Troop = .{},
 
     pub fn toString(self: *const @This(), comptime detail_type: CharacterDetailsType) ![]const u8 {
         const Local = struct {
@@ -203,12 +209,4 @@ pub var game_state: GameState = .{
         .month = .jan,
         .year = 1700,
     },
-};
-
-// Structs not in use yet
-
-const Troop = struct {
-    active: u32,
-    injured: u32,
-    leader: ?*Character = null,
 };

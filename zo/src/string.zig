@@ -40,13 +40,18 @@ pub fn DynamicString(stack_buffer_size: comptime_int, comptime auto_free_heap: b
         }
 
         pub fn set(self: *@This(), comptime fmt: []const u8, args: anytype) !void {
+            // const string_length = std.fmt.count(fmt, args) + 1;
             const string_length = std.fmt.count(fmt, args) + 1;
             if (string_length > stack_buffer_size) {
                 self.mode = .heap;
                 if (self.heap_buffer == null) {
                     self.heap_buffer = try self.allocator.alloc(u8, string_length);
                 } else if (self.heap_buffer.?.len < string_length){
-                    if (!self.allocator.resize(self.heap_buffer.?, string_length)) {
+                    if (self.allocator.resize(self.heap_buffer.?, string_length)) {
+                        // We need to update the len field manually after resizing
+                        self.heap_buffer.?.len = string_length;
+                    } else {
+                        // Since resizing has failed, just free up the old memory and allocate new memory
                         self.allocator.free(self.heap_buffer.?);
                         self.heap_buffer = try self.allocator.alloc(u8, string_length);
                     }
@@ -171,7 +176,7 @@ pub fn DynamicString(stack_buffer_size: comptime_int, comptime auto_free_heap: b
 
         /// Will free heap if no longer being used
         pub fn freeHeap(self: *@This()) void {
-            if (self.mode == .stack) {
+            if (self.mode == .heap) {
                 return;
             }
             if (self.heap_buffer) |buffer| {

@@ -848,9 +848,24 @@ pub const MilitarySceneDefinition = struct {
 };
 
 pub const MilitaryEntity = struct {
+    troop_text: *GameObject = undefined,
+    recruit_button: *GameObject = undefined,
     back_button: *GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
+        self.troop_text = try GameObject.initInScene(
+            TextLabelClass,
+            .{ .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 210.0, .y = 180.0 } }, },
+            null,
+            null
+        );
+        try self.refreshTroopCount();
+        self.recruit_button = try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Recruit", .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 220.0 } } },
+            null,
+            null
+        );
         self.back_button = try ButtonUtils.createBackButton(onClick);
     }
 
@@ -863,9 +878,19 @@ pub const MilitaryEntity = struct {
 
     pub fn onClick(clicked_entity: Entity) void {
         if (global.world.findEntityScriptInstance(@This())) |self| {
+            if (self.recruit_button.node.entity == clicked_entity) {
+                player_character.troop.active += 1000;
+                self.refreshTroopCount() catch unreachable;
+            }
             if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(LocationSceneDefinition);
             }
+        }
+    }
+
+    fn refreshTroopCount(self: *@This()) !void {
+        if (global.world.getComponent(self.troop_text.node.entity, TextLabelComponent)) |text_label_comp| {
+            try text_label_comp.class.label.text.set("Troops: {d}", .{player_character.troop.active});
         }
     }
 };
