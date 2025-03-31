@@ -6,6 +6,7 @@ const math = zo.math;
 const renderer = zo.renderer;
 const input = zo.input;
 const window = zo.window;
+const audio = zo.audio;
 const FixedDelegate = zo.delegate.FixedDelegate;
 
 const Transform2D = math.Transform2D;
@@ -18,6 +19,7 @@ const Dim2 = math.Dim2;
 const Dim2u = math.Dim2u;
 const Font = renderer.Font;
 const Texture = renderer.Texture;
+const AudioSource = audio.AudioSource;
 const String = zo.string.HeapString;
 const MultiLineString = zo.string.HeapMultiLineString;
 const World = global.World;
@@ -367,6 +369,7 @@ pub const UIEventSystem = struct {
 
     spatial_hash_map: EntitySpatialHashMap = undefined,
     prev_mouse_pos: Vec2i = Vec2i.Zero,
+    on_click_audio_override: ?*AudioSource = null,
 
     pub fn init(self: *@This(), _: *World) !void {
         self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 64);
@@ -412,7 +415,9 @@ pub const UIEventSystem = struct {
                     if (event_comp.on_click) |on_click| {
                         on_click(iter.getEntity());
                     }
-                    try global.assets.audio.click.play(false);
+                    var click_audio: *AudioSource = self.on_click_audio_override orelse &global.assets.audio.click;
+                    try click_audio.play(false);
+                    self.on_click_audio_override = null;
                 }
             }
         }

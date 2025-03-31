@@ -893,6 +893,10 @@ pub const MilitaryEntity = struct {
                     player_character.troop.active += 1000;
                     self.refreshTroopCount() catch unreachable;
                     player_character.action_points.value -= 1;
+                } else {
+                    if (global.world.getSystemInstance(UIEventSystem)) |ui_event_sys| {
+                        ui_event_sys.on_click_audio_override = &global.assets.audio.invalid_click;
+                    }
                 }
             }
             if (self.back_button.node.entity == clicked_entity) {

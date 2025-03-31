@@ -10,3 +10,4 @@ pub const map_texture = StaticAsset.create(@embedFile("assets/images/map_mockup.
 
 // Audio
 pub const click_audio = StaticAsset.create(@embedFile("assets/audio/click.wav"));
+pub const invalid_click_audio = StaticAsset.create(@embedFile("assets/audio/invalid_click.wav"));
