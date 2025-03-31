@@ -412,6 +412,7 @@ pub const UIEventSystem = struct {
                     if (event_comp.on_click) |on_click| {
                         on_click(iter.getEntity());
                     }
+                    try global.assets.audio.click.play(false);
                 }
             }
         }

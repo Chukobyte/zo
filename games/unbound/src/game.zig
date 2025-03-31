@@ -158,14 +158,6 @@ pub const MainMenuEntity = struct {
         );
     }
 
-    pub fn update(_: *@This(), _: *World, _: ecs.Entity, delta_seconds: f32) !void {
-        const Local = struct {
-            var time: f32 = 0.0;
-        };
-        Local.time += delta_seconds;
-        log(.debug, "time = {d}", .{ Local.time });
-    }
-
     pub fn onClick(_: Entity) void {
         global.scene_system.changeScene(NewGameSceneDefinition);
     }

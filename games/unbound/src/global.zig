@@ -55,7 +55,7 @@ pub const AssetManager = struct {
     },
 
     audio: struct {
-        rainbow_orb: AudioSource,
+        click: AudioSource,
     },
 
 
@@ -69,7 +69,7 @@ pub const AssetManager = struct {
                 .pixeloid_32 = try Font.initFromMemory2(static_assets.default_font, 32, true),
             },
             .audio = .{
-                .rainbow_orb = try AudioSource.initWavFromMemory2(static_assets.rainbow_orb_audio),
+                .click = try AudioSource.initWavFromMemory2(static_assets.click_audio),
             },
         };
         // TODO: Temp manual adjustments, fix later...
