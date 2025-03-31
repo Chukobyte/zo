@@ -474,17 +474,17 @@ pub const NewCharacterEntity = struct {
     }
 
     fn addToProperty(self: *@This(), value: *u32) void {
-        if (self.skill_points == 0) { return; }
-        value.* += 1;
-        self.skill_points -= 1;
+        if (self.skill_points == 0 or value.* >= 90) { return; }
+        value.* += 10;
+        self.skill_points -= 10;
         self.refreshSkillPoints();
         self.refreshCharacterDetails();
     }
 
     fn subFromProperty(self: *@This(), value: *u32) void {
         if (value.* == 0) { return; }
-        value.* -= 1;
-        self.skill_points += 1;
+        value.* -= 10;
+        self.skill_points += 10;
         self.refreshSkillPoints();
         self.refreshCharacterDetails();
     }
@@ -850,6 +850,7 @@ pub const MilitarySceneDefinition = struct {
 pub const MilitaryEntity = struct {
     troop_text: *GameObject = undefined,
     recruit_button: *GameObject = undefined,
+    battle_button: *GameObject = undefined,
     back_button: *GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
@@ -860,9 +861,18 @@ pub const MilitaryEntity = struct {
             null
         );
         try self.refreshTroopCount();
+        var base_pos: Vec2 = .{ .x = 240.0, .y = 220.0 };
+        const x_increment: f32 = 105.0;
         self.recruit_button = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Recruit", .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 220.0 } } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Recruit", .on_click = onClick, .transform = .{ .position = base_pos } },
+            null,
+            null
+        );
+        base_pos.x += x_increment;
+        self.battle_button = try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Battle", .on_click = onClick, .transform = .{ .position = base_pos } },
             null,
             null
         );
@@ -879,8 +889,11 @@ pub const MilitaryEntity = struct {
     pub fn onClick(clicked_entity: Entity) void {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.recruit_button.node.entity == clicked_entity) {
-                player_character.troop.active += 1000;
-                self.refreshTroopCount() catch unreachable;
+                if (player_character.action_points.value > 0) {
+                    player_character.troop.active += 1000;
+                    self.refreshTroopCount() catch unreachable;
+                    player_character.action_points.value -= 1;
+                }
             }
             if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(LocationSceneDefinition);
