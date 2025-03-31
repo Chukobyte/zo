@@ -111,6 +111,7 @@ fn GameObjectParams(ClassT: type) type {
             size: Dim2u,
             text: ?[]const u8 = null,
             line_spacing: f32 = 0.0,
+            use_background: bool = false,
             transform: Transform2D = Transform2D.Identity,
             z_index: i32 = 0,
         },
@@ -216,6 +217,9 @@ pub const GameObject = struct {
                     const text_label_comp = global.world.getComponent(node.entity, TextLabelComponent).?;
                     try text_label_comp.class.text_box.setText(params.font, text, transform_comp.global.scale.x);
                     game_object.class = .{ .text_box = .{ } };
+                }
+                if (params.use_background) {
+                    try global.world.setComponent(node.entity, ColorRectComponent, &.{ .size = .{ .w = @floatFromInt(params.size.w), .h = @floatFromInt(params.size.h) }, .color = .{ .r = 0.4, .g = 0.4, .b = 0.4 } });
                 }
             },
             TextButtonClass => {

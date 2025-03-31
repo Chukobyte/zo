@@ -765,6 +765,78 @@ pub const CharacterViewEntity = struct {
     }
 };
 
+// TODO: Move this somewhere else
+const Timer = struct {
+    duration: f32,
+    time: f32 = 0.0,
+
+    pub inline fn update(self: *@This(), delta_time_seconds: f32) void {
+        self.time += delta_time_seconds;
+    }
+
+    pub inline fn hasTimedOut(self: *const @This()) bool {
+        return self.time >= self.duration;
+    }
+};
+
+pub const DiscoverSceneDefinition = struct {
+    pub fn getNodeInterface() type {
+        return DiscoverEntity;
+    }
+};
+
+pub const DiscoverEntity = struct {
+    timer: Timer = .{ .duration = 5.0 },
+
+    pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
+        const event_text = "Discover test where random events will happen here!";
+        _ = try GameObject.initInScene(
+            TextBoxClass,
+            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 400, .h = 200 }, .text = event_text, .line_spacing = 5.0, .use_background = true, .transform = .{ .position = .{ .x = 120.0, .y = 300.0 } }, .z_index = 1 },
+            null,
+            null
+        );
+    }
+
+    pub fn update(self: *@This(), _: *World, _: ecs.Entity, delta_time_seconds: f32) !void {
+        self.timer.update(delta_time_seconds);
+        if (self.timer.hasTimedOut()) {
+            game_date.incrementMonth();
+            player_character.action_points.setToMax();
+            global.scene_system.changeScene(LocationSceneDefinition);
+        }
+    }
+};
+
+pub const InteractSceneDefinition = struct {
+    pub fn getNodeInterface() type {
+        return InteractEntity;
+    }
+};
+
+pub const InteractEntity = struct {
+    timer: Timer = .{ .duration = 5.0 },
+
+    pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
+        const event_text = "Interact test where random events will happen here with people you've interacted with!";
+        _ = try GameObject.initInScene(
+            TextBoxClass,
+            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 400, .h = 200 }, .text = event_text, .line_spacing = 5.0, .use_background = true, .transform = .{ .position = .{ .x = 120.0, .y = 300.0 } }, .z_index = 1 },
+            null,
+            null
+        );
+    }
+
+    pub fn update(self: *@This(), _: *World, _: ecs.Entity, delta_time_seconds: f32) !void {
+        self.timer.update(delta_time_seconds);
+        if (self.timer.hasTimedOut()) {
+            game_date.incrementMonth();
+            player_character.action_points.setToMax();
+            global.scene_system.changeScene(LocationSceneDefinition);
+        }
+    }
+};
+
 pub const EndTurnMapSceneDefinition = struct {
     pub fn getNodeInterface() type {
         return EndTurnMapEntity;
@@ -772,19 +844,6 @@ pub const EndTurnMapSceneDefinition = struct {
 };
 
 pub const EndTurnMapEntity = struct {
-    const Timer = struct {
-        duration: f32,
-        time: f32 = 0.0,
-
-        pub inline fn update(self: *@This(), delta_time_seconds: f32) void {
-            self.time += delta_time_seconds;
-        }
-
-        pub inline fn hasTimedOut(self: *const @This()) bool {
-            return self.time >= self.duration;
-        }
-    };
-
     timer: Timer = .{ .duration = 5.0 },
 
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
@@ -796,15 +855,12 @@ pub const EndTurnMapEntity = struct {
             null
         );
         const event_text = "A real event with an actual description and other mechanics will soon be present here!";
-        const text_box_size: Dim2u = .{ .w = 300, .h = 200 };
-        const event_text_object = try GameObject.initInScene(
+        _ = try GameObject.initInScene(
             TextBoxClass,
-            .{ .font = &global.assets.fonts.pixeloid_16, .size = text_box_size, .text = event_text, .line_spacing = 5.0, .transform = .{ .position = .{ .x = 100.0, .y = 300.0 } }, .z_index = 1 },
+            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 400, .h = 200 }, .text = event_text, .line_spacing = 5.0, .use_background = true, .transform = .{ .position = .{ .x = 120.0, .y = 300.0 } }, .z_index = 1 },
             null,
             null
         );
-        // TODO: Make a property of TextBox class to include background and border
-        try global.world.setComponent(event_text_object.node.entity, ColorRectComponent, &.{ .size = .{ .w = @floatFromInt(text_box_size.w), .h = @floatFromInt(text_box_size.h) }, .color = .{ .r = 0.4, .g = 0.4, .b = 0.4 } });
     }
 
     pub fn update(self: *@This(), _: *World, _: ecs.Entity, delta_time_seconds: f32) !void {
