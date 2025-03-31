@@ -211,7 +211,9 @@ pub const NewGameEntity = struct {
             if (self.new_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(NewCharacterSceneDefinition);
             } else if (self.existing_button.node.entity == clicked_entity) {
-                global.scene_system.changeScene(ExistingCharacterSceneDefinition);
+                // TODO: Will add this once this is fully implemented
+                // global.scene_system.changeScene(ExistingCharacterSceneDefinition);
+                return .invalid;
             }
         }
         return .success;
@@ -801,7 +803,7 @@ pub const DiscoverEntity = struct {
     timer: Timer = .{ .duration = 5.0 },
 
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
-        const event_text = "Discover test where random events will happen here!";
+        const event_text = "Random events will be implemented here in the future!";
         _ = try GameObject.initInScene(
             TextBoxClass,
             .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 400, .h = 60 }, .text = event_text, .line_spacing = 5.0, .use_background = true, .transform = .{ .position = .{ .x = 120.0, .y = 290.0 } }, .z_index = 1 },
@@ -828,7 +830,7 @@ pub const InteractEntity = struct {
     timer: Timer = .{ .duration = 5.0 },
 
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
-        const event_text = "Interact test where random events will happen here with people you've interacted with!";
+        const event_text = "Here you will be able to interact with people you've met!";
         _ = try GameObject.initInScene(
             TextBoxClass,
             .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 400, .h = 60 }, .text = event_text, .line_spacing = 5.0, .use_background = true, .transform = .{ .position = .{ .x = 120.0, .y = 290.0 } }, .z_index = 1 },
@@ -947,7 +949,7 @@ pub const BattleEntity = struct {
             null,
             null
         );
-        const event_text = "A battle has taken place...";
+        const event_text = "A battle has taken place...you've won and lost 0 troops!";
         _ = try GameObject.initInScene(
             TextBoxClass,
             .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 400, .h = 60 }, .text = event_text, .line_spacing = 5.0, .use_background = true, .transform = .{ .position = .{ .x = 120.0, .y = 290.0 } }, .z_index = 1 },
@@ -981,7 +983,7 @@ pub const EndTurnMapEntity = struct {
             null,
             null
         );
-        const event_text = "A real event with an actual description and other mechanics will soon be present here!";
+        const event_text = "Real events with descriptions and other mechanics will soon be present here!";
         _ = try GameObject.initInScene(
             TextBoxClass,
             .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 400, .h = 60 }, .text = event_text, .line_spacing = 5.0, .use_background = true, .transform = .{ .position = .{ .x = 120.0, .y = 290.0 } }, .z_index = 1 },
