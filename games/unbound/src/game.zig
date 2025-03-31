@@ -627,12 +627,14 @@ pub const LocationEntity = struct {
             if (self.discover_button.node.entity == clicked_entity) {
                 if (player_character.action_points.value > 0) {
                     player_character.action_points.value -= 1;
-                    self.refreshActionPointsText() catch unreachable;
+                    global.scene_system.changeScene(DiscoverSceneDefinition);
+                    // self.refreshActionPointsText() catch unreachable;
                 }
             } else if (self.interact_button.node.entity == clicked_entity) {
                 if (player_character.action_points.value > 0) {
                     player_character.action_points.value -= 1;
-                    self.refreshActionPointsText() catch unreachable;
+                    global.scene_system.changeScene(InteractSceneDefinition);
+                    // self.refreshActionPointsText() catch unreachable;
                 }
             } else if (self.travel_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(MapSceneDefinition);
@@ -792,7 +794,7 @@ pub const DiscoverEntity = struct {
         const event_text = "Discover test where random events will happen here!";
         _ = try GameObject.initInScene(
             TextBoxClass,
-            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 400, .h = 200 }, .text = event_text, .line_spacing = 5.0, .use_background = true, .transform = .{ .position = .{ .x = 120.0, .y = 300.0 } }, .z_index = 1 },
+            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 400, .h = 60 }, .text = event_text, .line_spacing = 5.0, .use_background = true, .transform = .{ .position = .{ .x = 120.0, .y = 290.0 } }, .z_index = 1 },
             null,
             null
         );
@@ -801,8 +803,6 @@ pub const DiscoverEntity = struct {
     pub fn update(self: *@This(), _: *World, _: ecs.Entity, delta_time_seconds: f32) !void {
         self.timer.update(delta_time_seconds);
         if (self.timer.hasTimedOut()) {
-            game_date.incrementMonth();
-            player_character.action_points.setToMax();
             global.scene_system.changeScene(LocationSceneDefinition);
         }
     }
@@ -821,7 +821,7 @@ pub const InteractEntity = struct {
         const event_text = "Interact test where random events will happen here with people you've interacted with!";
         _ = try GameObject.initInScene(
             TextBoxClass,
-            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 400, .h = 200 }, .text = event_text, .line_spacing = 5.0, .use_background = true, .transform = .{ .position = .{ .x = 120.0, .y = 300.0 } }, .z_index = 1 },
+            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 400, .h = 60 }, .text = event_text, .line_spacing = 5.0, .use_background = true, .transform = .{ .position = .{ .x = 120.0, .y = 290.0 } }, .z_index = 1 },
             null,
             null
         );
@@ -830,8 +830,6 @@ pub const InteractEntity = struct {
     pub fn update(self: *@This(), _: *World, _: ecs.Entity, delta_time_seconds: f32) !void {
         self.timer.update(delta_time_seconds);
         if (self.timer.hasTimedOut()) {
-            game_date.incrementMonth();
-            player_character.action_points.setToMax();
             global.scene_system.changeScene(LocationSceneDefinition);
         }
     }
@@ -857,7 +855,7 @@ pub const EndTurnMapEntity = struct {
         const event_text = "A real event with an actual description and other mechanics will soon be present here!";
         _ = try GameObject.initInScene(
             TextBoxClass,
-            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 400, .h = 200 }, .text = event_text, .line_spacing = 5.0, .use_background = true, .transform = .{ .position = .{ .x = 120.0, .y = 300.0 } }, .z_index = 1 },
+            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 400, .h = 60 }, .text = event_text, .line_spacing = 5.0, .use_background = true, .transform = .{ .position = .{ .x = 120.0, .y = 290.0 } }, .z_index = 1 },
             null,
             null
         );
