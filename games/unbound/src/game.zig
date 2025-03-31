@@ -901,16 +901,15 @@ pub const MilitaryEntity = struct {
     pub fn onClick(clicked_entity: Entity) OnClickResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.recruit_button.node.entity == clicked_entity) {
-                if (player_character.action_points.value > 0) {
-                    player_character.troop.active += 1000;
-                    player_character.action_points.value -= 1;
-                    self.refreshTroopCount() catch unreachable;
-                    self.refreshActionPointsText() catch unreachable;
-                } else {
-                    return .invalid;
-                }
+                if (player_character.action_points.value == 0) { return .invalid; }
+                player_character.troop.active += 1000;
+                player_character.action_points.value -= 1;
+                self.refreshTroopCount() catch unreachable;
+                self.refreshActionPointsText() catch unreachable;
             } else if (self.battle_button.node.entity == clicked_entity) {
-                return .invalid;
+                if (player_character.action_points.value == 0 or player_character.troop.active == 0) { return .invalid; }
+                player_character.action_points.value -= 1;
+                global.scene_system.changeScene(BattleSceneDefinition);
             } else if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(LocationSceneDefinition);
             }
@@ -927,6 +926,40 @@ pub const MilitaryEntity = struct {
     fn refreshActionPointsText(self: *@This()) !void {
         if (global.world.getComponent(self.action_points_text.node.entity, TextLabelComponent)) |text_label_comp| {
             try text_label_comp.class.label.text.set("AP: {d}", .{ player_character.action_points.value });
+        }
+    }
+};
+
+pub const BattleSceneDefinition = struct {
+    pub fn getNodeInterface() type {
+        return BattleEntity;
+    }
+};
+
+pub const BattleEntity = struct {
+    timer: Timer = .{ .duration = 5.0 },
+
+    pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
+        const map_texuture_size: Dim2 = .{ .w = @floatFromInt(global.assets.textures.map.width), .h = @floatFromInt(global.assets.textures.map.height) };
+        _ = try GameObject.initInScene(
+            SpriteClass,
+            .{ .texture = &global.assets.textures.map, .draw_source = .{ .x = 0.0, .y = 0.0, .w = map_texuture_size.w, .h = map_texuture_size.h } },
+            null,
+            null
+        );
+        const event_text = "A battle has taken place...";
+        _ = try GameObject.initInScene(
+            TextBoxClass,
+            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 400, .h = 60 }, .text = event_text, .line_spacing = 5.0, .use_background = true, .transform = .{ .position = .{ .x = 120.0, .y = 290.0 } }, .z_index = 1 },
+            null,
+            null
+        );
+    }
+
+    pub fn update(self: *@This(), _: *World, _: ecs.Entity, delta_time_seconds: f32) !void {
+        self.timer.update(delta_time_seconds);
+        if (self.timer.hasTimedOut()) {
+            global.scene_system.changeScene(MilitarySceneDefinition);
         }
     }
 };

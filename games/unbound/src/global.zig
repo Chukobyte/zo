@@ -26,7 +26,7 @@ pub const World = ecs.ECSWorld(.{
     .entity_interfaces = &.{
         game.InitEntity, game.MainMenuEntity, game.NewGameEntity, game.ExistingCharacterEntity, game.NewCharacterEntity,
         game.LocationEntity, game.MapEntity, game.CharacterViewEntity, game.EndTurnMapEntity, game.DiscoverEntity,
-        game.MilitaryEntity, game.InteractEntity,
+        game.MilitaryEntity, game.InteractEntity, game.BattleEntity,
     },
     .components = &.{ Transform2DComponent, SpriteComponent, TextLabelComponent, ColorRectComponent, UIEventComponent },
     .systems = &.{ SpriteRenderingSystem, TextRenderingSystem, UIEventSystem, ColorRectSystem },
@@ -41,7 +41,7 @@ pub const World = ecs.ECSWorld(.{
 pub const SceneSystem = World.SceneSystem(.{ .definitions = &.{
     game.InitSceneDefinition, game.MainMenuSceneDefinition, game.NewGameSceneDefinition, game.ExistingCharacterSceneDefinition,
     game.NewCharacterSceneDefinition, game.LocationSceneDefinition, game.MapSceneDefinition, game.CharacterViewSceneDefinition,
-    game.DiscoverSceneDefinition, game.InteractSceneDefinition, game.MilitarySceneDefinition, game.EndTurnMapSceneDefinition,
+    game.DiscoverSceneDefinition, game.InteractSceneDefinition, game.MilitarySceneDefinition, game.BattleSceneDefinition, game.EndTurnMapSceneDefinition,
 } });
 
 pub const AssetManager = struct {
