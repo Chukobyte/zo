@@ -853,6 +853,7 @@ pub const MilitarySceneDefinition = struct {
 
 pub const MilitaryEntity = struct {
     troop_text: *GameObject = undefined,
+    action_points_text: *GameObject = undefined,
     recruit_button: *GameObject = undefined,
     battle_button: *GameObject = undefined,
     back_button: *GameObject = undefined,
@@ -865,6 +866,13 @@ pub const MilitaryEntity = struct {
             null
         );
         try self.refreshTroopCount();
+        self.action_points_text = try GameObject.initInScene(
+            TextLabelClass,
+            .{ .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 400.0, .y = 100.0 } }, },
+            null,
+            null
+        );
+        try self.refreshActionPointsText();
         var base_pos: Vec2 = .{ .x = 240.0, .y = 220.0 };
         const x_increment: f32 = 105.0;
         self.recruit_button = try GameObject.initInScene(
@@ -895,8 +903,9 @@ pub const MilitaryEntity = struct {
             if (self.recruit_button.node.entity == clicked_entity) {
                 if (player_character.action_points.value > 0) {
                     player_character.troop.active += 1000;
-                    self.refreshTroopCount() catch unreachable;
                     player_character.action_points.value -= 1;
+                    self.refreshTroopCount() catch unreachable;
+                    self.refreshActionPointsText() catch unreachable;
                 } else {
                     return .invalid;
                 }
@@ -911,7 +920,13 @@ pub const MilitaryEntity = struct {
 
     fn refreshTroopCount(self: *@This()) !void {
         if (global.world.getComponent(self.troop_text.node.entity, TextLabelComponent)) |text_label_comp| {
-            try text_label_comp.class.label.text.set("Troops: {d}", .{player_character.troop.active});
+            try text_label_comp.class.label.text.set("Troops: {d}", .{ player_character.troop.active });
+        }
+    }
+
+    fn refreshActionPointsText(self: *@This()) !void {
+        if (global.world.getComponent(self.action_points_text.node.entity, TextLabelComponent)) |text_label_comp| {
+            try text_label_comp.class.label.text.set("AP: {d}", .{ player_character.action_points.value });
         }
     }
 };
