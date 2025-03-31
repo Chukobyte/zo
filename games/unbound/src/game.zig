@@ -632,17 +632,13 @@ pub const LocationEntity = struct {
     pub fn onClick(clicked_entity: Entity) OnClickResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.discover_button.node.entity == clicked_entity) {
-                if (player_character.action_points.value > 0) {
-                    player_character.action_points.value -= 1;
-                    global.scene_system.changeScene(DiscoverSceneDefinition);
-                    // self.refreshActionPointsText() catch unreachable;
-                }
+                if (player_character.action_points.value == 0) { return .invalid; }
+                player_character.action_points.value -= 1;
+                global.scene_system.changeScene(DiscoverSceneDefinition);
             } else if (self.interact_button.node.entity == clicked_entity) {
-                if (player_character.action_points.value > 0) {
-                    player_character.action_points.value -= 1;
-                    global.scene_system.changeScene(InteractSceneDefinition);
-                    // self.refreshActionPointsText() catch unreachable;
-                }
+                if (player_character.action_points.value == 0) { return .invalid; }
+                player_character.action_points.value -= 1;
+                global.scene_system.changeScene(InteractSceneDefinition);
             } else if (self.military_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(MilitarySceneDefinition);
             } else if (self.travel_button.node.entity == clicked_entity) {
@@ -904,8 +900,9 @@ pub const MilitaryEntity = struct {
                 } else {
                     return .invalid;
                 }
-            }
-            if (self.back_button.node.entity == clicked_entity) {
+            } else if (self.battle_button.node.entity == clicked_entity) {
+                return .invalid;
+            } else if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(LocationSceneDefinition);
             }
         }
