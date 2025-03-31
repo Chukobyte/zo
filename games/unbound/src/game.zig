@@ -239,6 +239,7 @@ pub const ExistingCharacterEntity = struct {
 
     pub fn update(_: *@This(), _: *World, _: Entity, _: f32) !void {
         if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
+            try global.assets.audio.click.play(false);
             global.scene_system.changeScene(NewGameSceneDefinition);
         }
     }
@@ -410,6 +411,7 @@ pub const NewCharacterEntity = struct {
             InputText.unsubscribeFromInput();
         }
         if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
+            try global.assets.audio.click.play(false);
             global.scene_system.changeScene(NewGameSceneDefinition);
         }
     }
@@ -544,6 +546,7 @@ pub const LocationEntity = struct {
     action_points_text: *GameObject = undefined,
     discover_button: *GameObject = undefined,
     interact_button: *GameObject = undefined,
+    military_button: *GameObject = undefined,
     travel_button: *GameObject = undefined,
     character_button: *GameObject = undefined,
     end_turn_button: *GameObject = undefined,
@@ -592,6 +595,13 @@ pub const LocationEntity = struct {
             null
         );
         base_pos.x += x_increment;
+        self.military_button = try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Military", .on_click = onClick, .transform = .{ .position = base_pos } },
+            null,
+            null
+        );
+        base_pos.x += x_increment;
         self.travel_button = try GameObject.initInScene(
             TextButtonClass,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Travel", .on_click = onClick, .transform = .{ .position = base_pos } },
@@ -605,10 +615,10 @@ pub const LocationEntity = struct {
             null,
             null
         );
-        base_pos.x += x_increment;
+        // base_pos.x += x_increment;
         self.end_turn_button = try GameObject.initInScene(
             TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "End Turn", .on_click = onClick, .transform = .{ .position = base_pos } },
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "End Turn", .on_click = onClick, .transform = .{ .position = .{ .x = 270.0, .y = 290.0 } } },
             null,
             null
         );
@@ -628,6 +638,8 @@ pub const LocationEntity = struct {
                     global.scene_system.changeScene(InteractSceneDefinition);
                     // self.refreshActionPointsText() catch unreachable;
                 }
+            } else if (self.military_button.node.entity == clicked_entity) {
+                global.scene_system.changeScene(MilitarySceneDefinition);
             } else if (self.travel_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(MapSceneDefinition);
             } else if (self.character_button.node.entity == clicked_entity) {
@@ -697,6 +709,7 @@ pub const MapEntity = struct {
         }
 
         if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
+            try global.assets.audio.click.play(false);
             global.scene_system.changeScene(LocationSceneDefinition);
         }
     }
@@ -746,6 +759,7 @@ pub const CharacterViewEntity = struct {
 
     pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
         if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
+            try global.assets.audio.click.play(false);
             global.scene_system.changeScene(LocationSceneDefinition);
         }
     }
@@ -823,6 +837,35 @@ pub const InteractEntity = struct {
         self.timer.update(delta_time_seconds);
         if (self.timer.hasTimedOut()) {
             global.scene_system.changeScene(LocationSceneDefinition);
+        }
+    }
+};
+
+pub const MilitarySceneDefinition = struct {
+    pub fn getNodeInterface() type {
+        return MilitaryEntity;
+    }
+};
+
+pub const MilitaryEntity = struct {
+    back_button: *GameObject = undefined,
+
+    pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
+        self.back_button = try ButtonUtils.createBackButton(onClick);
+    }
+
+    pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
+        if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
+            try global.assets.audio.click.play(false);
+            global.scene_system.changeScene(LocationSceneDefinition);
+        }
+    }
+
+    pub fn onClick(clicked_entity: Entity) void {
+        if (global.world.findEntityScriptInstance(@This())) |self| {
+            if (self.back_button.node.entity == clicked_entity) {
+                global.scene_system.changeScene(LocationSceneDefinition);
+            }
         }
     }
 };

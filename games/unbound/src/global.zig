@@ -25,7 +25,8 @@ const ColorRectSystem = component_systems.ColorRectSystem;
 pub const World = ecs.ECSWorld(.{
     .entity_interfaces = &.{
         game.InitEntity, game.MainMenuEntity, game.NewGameEntity, game.ExistingCharacterEntity, game.NewCharacterEntity,
-        game.LocationEntity, game.MapEntity, game.CharacterViewEntity, game.EndTurnMapEntity, game.DiscoverEntity, game.InteractEntity,
+        game.LocationEntity, game.MapEntity, game.CharacterViewEntity, game.EndTurnMapEntity, game.DiscoverEntity,
+        game.MilitaryEntity, game.InteractEntity,
     },
     .components = &.{ Transform2DComponent, SpriteComponent, TextLabelComponent, ColorRectComponent, UIEventComponent },
     .systems = &.{ SpriteRenderingSystem, TextRenderingSystem, UIEventSystem, ColorRectSystem },
@@ -40,7 +41,7 @@ pub const World = ecs.ECSWorld(.{
 pub const SceneSystem = World.SceneSystem(.{ .definitions = &.{
     game.InitSceneDefinition, game.MainMenuSceneDefinition, game.NewGameSceneDefinition, game.ExistingCharacterSceneDefinition,
     game.NewCharacterSceneDefinition, game.LocationSceneDefinition, game.MapSceneDefinition, game.CharacterViewSceneDefinition,
-    game.DiscoverSceneDefinition, game.InteractSceneDefinition, game.EndTurnMapSceneDefinition,
+    game.DiscoverSceneDefinition, game.InteractSceneDefinition, game.MilitarySceneDefinition, game.EndTurnMapSceneDefinition,
 } });
 
 pub const AssetManager = struct {
