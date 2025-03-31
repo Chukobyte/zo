@@ -30,6 +30,7 @@ const Location = state.Location;
 const TextLabelComponent = component_systems.TextLabelComponent;
 const ColorRectComponent = component_systems.ColorRectComponent;
 const UIEventSystem = component_systems.UIEventSystem;
+const OnClickResponse = component_systems.OnClickResponse;
 const InputKey = input.InputKey;
 const InputEvent = input.InputEvent;
 const InputAction = input.InputAction;
@@ -56,7 +57,7 @@ const ButtonUtils = struct {
     on_unhover: ?*const fn(Entity) void = null,
     on_click: ?*const fn(Entity) void = null,
 
-    pub fn createConfirmButton(on_click: ?*const fn(Entity) void) !*GameObject {
+    pub fn createConfirmButton(on_click: ?*const fn(Entity) OnClickResponse) !*GameObject {
         return try GameObject.initInScene(
             TextButtonClass,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Confirm", .on_click = on_click, .transform = .{ .position = .{ .x = 500.0, .y = 300.0 } } },
@@ -64,7 +65,7 @@ const ButtonUtils = struct {
             null
         );
     }
-    pub fn createBackButton(on_click: ?*const fn(Entity) void) !*GameObject {
+    pub fn createBackButton(on_click: ?*const fn(Entity) OnClickResponse) !*GameObject {
         return try GameObject.initInScene(
             TextButtonClass,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Back", .on_click = on_click, .transform = .{ .position = .{ .x = 40.0, .y = 300.0 } }, .z_index = 1 },
@@ -73,7 +74,7 @@ const ButtonUtils = struct {
         );
     }
 
-    pub fn createValueChangeButton(symbol: []const u8, position: Vec2, on_click: ?*const fn(Entity) void) !*GameObject {
+    pub fn createValueChangeButton(symbol: []const u8, position: Vec2, on_click: ?*const fn(Entity) OnClickResponse) !*GameObject {
         return try GameObject.initInScene(
             TextButtonClass,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 15.0, .h = 15.0 }, .font = &global.assets.fonts.pixeloid_16, .text = symbol, .on_click = on_click, .transform = .{ .position = position } },
@@ -158,8 +159,9 @@ pub const MainMenuEntity = struct {
         );
     }
 
-    pub fn onClick(_: Entity) void {
+    pub fn onClick(_: Entity) OnClickResponse {
         global.scene_system.changeScene(NewGameSceneDefinition);
+        return .success;
     }
 };
 
@@ -204,7 +206,7 @@ pub const NewGameEntity = struct {
         );
     }
 
-    pub fn onClick(clicked_entity: Entity) void {
+    pub fn onClick(clicked_entity: Entity) OnClickResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.new_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(NewCharacterSceneDefinition);
@@ -212,6 +214,7 @@ pub const NewGameEntity = struct {
                 global.scene_system.changeScene(ExistingCharacterSceneDefinition);
             }
         }
+        return .success;
     }
 };
 
@@ -244,7 +247,7 @@ pub const ExistingCharacterEntity = struct {
         }
     }
 
-    pub fn onClick(clicked_entity: Entity) void {
+    pub fn onClick(clicked_entity: Entity) OnClickResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(NewGameSceneDefinition);
@@ -252,6 +255,7 @@ pub const ExistingCharacterEntity = struct {
                 global.scene_system.changeScene(LocationSceneDefinition);
             }
         }
+        return .success;
     }
 };
 
@@ -416,7 +420,7 @@ pub const NewCharacterEntity = struct {
         }
     }
 
-    pub fn onClick(clicked_entity: Entity) void {
+    pub fn onClick(clicked_entity: Entity) OnClickResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.edit_name_button.node.entity == clicked_entity) {
                 const text_label_comp = global.world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
@@ -471,6 +475,7 @@ pub const NewCharacterEntity = struct {
                 global.scene_system.changeScene(LocationSceneDefinition);
             }
         }
+        return .success;
     }
 
     fn addToProperty(self: *@This(), value: *u32) void {
@@ -624,7 +629,7 @@ pub const LocationEntity = struct {
         );
     }
 
-    pub fn onClick(clicked_entity: Entity) void {
+    pub fn onClick(clicked_entity: Entity) OnClickResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.discover_button.node.entity == clicked_entity) {
                 if (player_character.action_points.value > 0) {
@@ -648,6 +653,7 @@ pub const LocationEntity = struct {
                 global.scene_system.changeScene(EndTurnMapSceneDefinition);
             }
         }
+        return .success;
     }
 
     fn refreshActionPointsText(self: *@This()) !void {
@@ -714,12 +720,13 @@ pub const MapEntity = struct {
         }
     }
 
-    pub fn onClick(clicked_entity: Entity) void {
+    pub fn onClick(clicked_entity: Entity) OnClickResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(LocationSceneDefinition);
             }
         }
+        return .success;
     }
 
     fn checkForLocationChange(self: *@This()) ?*const Location {
@@ -764,12 +771,13 @@ pub const CharacterViewEntity = struct {
         }
     }
 
-    pub fn onClick(clicked_entity: Entity) void {
+    pub fn onClick(clicked_entity: Entity) OnClickResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(LocationSceneDefinition);
             }
         }
+        return .success;
     }
 };
 
@@ -886,7 +894,7 @@ pub const MilitaryEntity = struct {
         }
     }
 
-    pub fn onClick(clicked_entity: Entity) void {
+    pub fn onClick(clicked_entity: Entity) OnClickResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.recruit_button.node.entity == clicked_entity) {
                 if (player_character.action_points.value > 0) {
@@ -894,15 +902,14 @@ pub const MilitaryEntity = struct {
                     self.refreshTroopCount() catch unreachable;
                     player_character.action_points.value -= 1;
                 } else {
-                    if (global.world.getSystemInstance(UIEventSystem)) |ui_event_sys| {
-                        ui_event_sys.on_click_audio_override = &global.assets.audio.invalid_click;
-                    }
+                    return .invalid;
                 }
             }
             if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(LocationSceneDefinition);
             }
         }
+        return .success;
     }
 
     fn refreshTroopCount(self: *@This()) !void {

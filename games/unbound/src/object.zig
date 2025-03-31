@@ -27,6 +27,7 @@ const UIEventComponent = component_systems.UIEventComponent;
 const ColorRectComponent = component_systems.ColorRectComponent;
 const NodeMatrixInterface = component_systems.NodeMatrixInterface;
 const UIEventSystem = component_systems.UIEventSystem;
+const OnClickResponse = component_systems.OnClickResponse;
 
 const log = zo.log;
 
@@ -121,7 +122,7 @@ fn GameObjectParams(ClassT: type) type {
             text: ?[]const u8 = null,
             on_hover: ?*const fn(Entity) void = null,
             on_unhover: ?*const fn(Entity) void = null,
-            on_click: ?*const fn(Entity) void = null,
+            on_click: ?*const fn(Entity) OnClickResponse = null,
             alignment_h: TextButtonClass.TextAlignmentH = .center,
             alignment_v: TextButtonClass.TextAlignmentV = .center,
             /// If additional padding adjustments are needed

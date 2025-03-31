@@ -338,6 +338,12 @@ pub const ColorRectSystem = struct {
     }
 };
 
+pub const OnClickResponse = enum {
+    none,
+    success,
+    invalid,
+};
+
 pub const UIEventComponent = struct {
     pub const Style = struct {
         hover: ?LinearColor = null,
@@ -354,7 +360,7 @@ pub const UIEventComponent = struct {
     collider: Rect2,
     on_hover: ?*const fn(Entity) void = null,
     on_unhover: ?*const fn(Entity) void = null,
-    on_click: ?*const fn(Entity) void = null,
+    on_click: ?*const fn(Entity) OnClickResponse = null,
     style: Style = default_style,
     is_mouse_hovering: bool = false,
 };
@@ -369,7 +375,6 @@ pub const UIEventSystem = struct {
 
     spatial_hash_map: EntitySpatialHashMap = undefined,
     prev_mouse_pos: Vec2i = Vec2i.Zero,
-    on_click_audio_override: ?*AudioSource = null,
 
     pub fn init(self: *@This(), _: *World) !void {
         self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 64);
@@ -412,12 +417,15 @@ pub const UIEventSystem = struct {
                     setStyleColor(.hover, entity, event_comp);
                 }
                 if (just_clicked_pressed) {
+                    var on_click_response: OnClickResponse = .success;
                     if (event_comp.on_click) |on_click| {
-                        on_click(iter.getEntity());
+                        on_click_response = on_click(iter.getEntity());
                     }
-                    var click_audio: *AudioSource = self.on_click_audio_override orelse &global.assets.audio.click;
-                    try click_audio.play(false);
-                    self.on_click_audio_override = null;
+                    switch (on_click_response) {
+                        .success => try global.assets.audio.click.play(false),
+                        .invalid => try global.assets.audio.invalid_click.play(false),
+                        .none => {},
+                    }
                 }
             }
         }
