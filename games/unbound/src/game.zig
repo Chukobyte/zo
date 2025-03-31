@@ -465,11 +465,11 @@ pub const NewCharacterEntity = struct {
                 self.subFromProperty(&player_character.politics);
             } else if (self.location_left_button.node.entity == clicked_entity) {
                 self.location_selector.decrease();
-                player_character.starting_location = self.location_selector.getLocation();
+                player_character.location = self.location_selector.getLocation();
                 self.refreshCharacterDetails();
             } else if (self.location_right_button.node.entity == clicked_entity) {
                 self.location_selector.increase();
-                player_character.starting_location = self.location_selector.getLocation();
+                player_character.location = self.location_selector.getLocation();
                 self.refreshCharacterDetails();
             } else if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(NewGameSceneDefinition);
@@ -536,7 +536,7 @@ pub const NewCharacterEntity = struct {
         player_character.intelligence = 40;
         player_character.politics = 40;
         player_character.abilities = .none;
-        player_character.starting_location = self.location_selector.getLocation();
+        player_character.location = self.location_selector.getLocation();
         player_character.action_points.setToMax();
     }
 };
@@ -561,7 +561,7 @@ pub const LocationEntity = struct {
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         _ = try GameObject.initInScene(
             TextLabelClass,
-            .{ .text = player_character.starting_location.?.name, .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 150.0, .y = 100.0 } }, },
+            .{ .text = player_character.location.?.name, .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 150.0, .y = 100.0 } }, },
             null,
             null
         );
@@ -686,7 +686,7 @@ pub const MapEntity = struct {
             null
         );
 
-        self.location_selector.setIndexByLocation(player_character.starting_location.?);
+        self.location_selector.setIndexByLocation(player_character.location.?);
         const intitial_location = self.location_selector.getLocation();
         self.selected_location_cursor = try GameObject.initInScene(
             TextLabelClass,
@@ -715,6 +715,11 @@ pub const MapEntity = struct {
             try text_label_comp.?.class.label.text.setRaw(new_location.name);
         }
 
+        if (input.isKeyJustPressed(.{ .key = .keyboard_return })) {
+            self.confirmLocation();
+            global.scene_system.changeScene(LocationSceneDefinition);
+        }
+
         if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
             try global.assets.audio.click.play(false);
             global.scene_system.changeScene(LocationSceneDefinition);
@@ -724,14 +729,20 @@ pub const MapEntity = struct {
     pub fn onClick(clicked_entity: Entity) OnClickResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.confirm_button.node.entity == clicked_entity) {
-                player_character.action_points.value -= 1;
-                player_character.starting_location = self.location_selector.getLocation();
+                self.confirmLocation();
                 global.scene_system.changeScene(LocationSceneDefinition);
             } else if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(LocationSceneDefinition);
             }
         }
         return .success;
+    }
+
+    fn confirmLocation(self: *@This()) void {
+        if (player_character.location != self.location_selector.getLocation()) {
+            player_character.action_points.value -= 1;
+            player_character.location = self.location_selector.getLocation();
+        }
     }
 
     fn checkForLocationChange(self: *@This()) ?*const Location {

@@ -115,7 +115,7 @@ pub const Character = struct {
     intelligence: u32 = 0,
     politics: u32 = 0,
     abilities: Abilities = .none,
-    starting_location: ?*const Location = null,
+    location: ?*const Location = null,
     action_points: MinMax(u32) = .{ .value = 3, .min = 0, .max = 3 },
     troop: Troop = .{},
 
@@ -128,7 +128,7 @@ pub const Character = struct {
                 return try std.fmt.bufPrint(
                     &Local.buffer,
                     "Role: {s}\nEthnicity: {s}\nLead: {d}\nMilitary: {d}\nCharisma: {d}\nIntelligence: {d}\nPolitics: {d}\nLocation: {s}",
-                    .{ self.role.toString(), self.ethnicity.toString(), self.lead, self.military, self.charisma, self.intelligence, self.politics, self.starting_location.?.name, }
+                    .{ self.role.toString(), self.ethnicity.toString(), self.lead, self.military, self.charisma, self.intelligence, self.politics, self.location.?.name, }
                 );
             },
             .location_view_character => {
@@ -203,7 +203,7 @@ pub var game_state: GameState = .{
         .name = undefined,
         .role = .free_man,
         .ethnicity = EthnicityProfile.Black,
-        .starting_location = &map_locations[9],
+        .location = &map_locations[9],
     },
     .date = .{
         .month = .jan,
