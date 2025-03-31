@@ -157,6 +157,14 @@ pub const MainMenuEntity = struct {
         );
     }
 
+    pub fn update(_: *@This(), _: *World, _: ecs.Entity, delta_seconds: f32) !void {
+        const Local = struct {
+            var time: f32 = 0.0;
+        };
+        Local.time += delta_seconds;
+        log(.debug, "time = {d}", .{ Local.time });
+    }
+
     pub fn onClick(_: Entity) void {
         global.scene_system.changeScene(NewGameSceneDefinition);
     }
@@ -539,6 +547,7 @@ pub const LocationSceneDefinition = struct {
 };
 
 pub const LocationEntity = struct {
+    character_name_text: *GameObject = undefined,
     action_points_text: *GameObject = undefined,
     discover_button: *GameObject = undefined,
     interact_button: *GameObject = undefined,
@@ -549,19 +558,26 @@ pub const LocationEntity = struct {
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         _ = try GameObject.initInScene(
             TextLabelClass,
-            .{ .text = player_character.starting_location.?.name, .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 300.0, .y = 100.0 } }, },
+            .{ .text = player_character.starting_location.?.name, .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 150.0, .y = 100.0 } }, },
             null,
             null
         );
         _ = try GameObject.initInScene(
             TextLabelClass,
-            .{ .text = game_date.toString(), .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 200.0, .y = 100.0 } }, },
+            .{ .text = game_date.toString(), .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 150.0, .y = 60.0 } }, },
+            null,
+            null
+        );
+
+        self.character_name_text = try GameObject.initInScene(
+            TextLabelClass,
+            .{ .text = player_character.name.get(), .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 400.0, .y = 60.0 } }, },
             null,
             null
         );
         self.action_points_text = try GameObject.initInScene(
             TextLabelClass,
-            .{ .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 200.0, .y = 140.0 } }, },
+            .{ .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 400.0, .y = 100.0 } }, },
             null,
             null
         );
@@ -622,10 +638,7 @@ pub const LocationEntity = struct {
             } else if (self.character_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(CharacterViewSceneDefinition);
             } else if (self.end_turn_button.node.entity == clicked_entity) {
-                // TODO: Should go to a map scene that shows the overworld map and events progressing before going back to this scene
-                game_date.incrementMonth();
-                player_character.action_points.setToMax();
-                global.scene_system.changeScene(LocationSceneDefinition);
+                global.scene_system.changeScene(EndTurnMapSceneDefinition);
             }
         }
     }
@@ -747,6 +760,48 @@ pub const CharacterViewEntity = struct {
             if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(LocationSceneDefinition);
             }
+        }
+    }
+};
+
+pub const EndTurnMapSceneDefinition = struct {
+    pub fn getNodeInterface() type {
+        return EndTurnMapEntity;
+    }
+};
+
+pub const EndTurnMapEntity = struct {
+    const Timer = struct {
+        duration: f32,
+        time: f32 = 0.0,
+
+        pub inline fn update(self: *@This(), delta_time_seconds: f32) void {
+            self.time += delta_time_seconds;
+        }
+
+        pub inline fn hasTimedOut(self: *const @This()) bool {
+            return self.time >= self.duration;
+        }
+    };
+
+    timer: Timer = .{ .duration = 5.0 },
+
+    pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
+        const map_texuture_size: Dim2 = .{ .w = @floatFromInt(global.assets.textures.map.width), .h = @floatFromInt(global.assets.textures.map.height) };
+        _ = try GameObject.initInScene(
+            SpriteClass,
+            .{ .texture = &global.assets.textures.map, .draw_source = .{ .x = 0.0, .y = 0.0, .w = map_texuture_size.w, .h = map_texuture_size.h } },
+            null,
+            null
+        );
+    }
+
+    pub fn update(self: *@This(), _: *World, _: ecs.Entity, delta_time_seconds: f32) !void {
+        self.timer.update(delta_time_seconds);
+        if (self.timer.hasTimedOut()) {
+            game_date.incrementMonth();
+            player_character.action_points.setToMax();
+            global.scene_system.changeScene(LocationSceneDefinition);
         }
     }
 };
