@@ -381,6 +381,8 @@ pub const UIEventSystem = struct {
         right: ?*@This() = null,
         up: ?*@This() = null,
         down: ?*@This() = null,
+        on_focus: ?*const fn() void = null,
+        on_unfocus: ?*const fn() void = null,
 
         pub fn getElementFromDir(self: *@This(), dir: Vec2i) ?*@This() {
             if (dir.x == -1) return self.left;
@@ -565,10 +567,19 @@ pub const UIEventSystem = struct {
     }
 
     fn setFocused(self: *@This(), nav_element: *NavigationElement) void {
+        self.unfocus();
         self.focued_nav_element = nav_element;
+        if (self.focued_nav_element.?.on_focus) |on_focus| {
+            on_focus();
+        }
     }
 
     fn unfocus(self: *@This()) void {
-        self.focued_nav_element = null;
+        if (self.focued_nav_element) |focus_element| {
+            if (focus_element.on_unfocus) |on_unfocus| {
+                on_unfocus();
+                self.focued_nav_element = null;
+            }
+        }
     }
 };
