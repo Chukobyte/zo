@@ -368,7 +368,7 @@ pub const NewCharacterEntity = struct {
         );
         self.details_object = try GameObject.initInScene(
             TextBoxClass,
-            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 200, .h = 400 }, .text = try player_character.toString(.create_character), .line_spacing = 5.0, .transform = .{ .position = .{ .x = 250.0, .y = 110.0 } }, },
+            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 200, .h = 400 }, .text = try player_character.toString(.create_character), .line_spacing = 10.0, .transform = .{ .position = .{ .x = 250.0, .y = 110.0 } }, },
             null,
             null
         );
@@ -377,8 +377,8 @@ pub const NewCharacterEntity = struct {
 
         const base_left_x: f32 = 200.0;
         const base_right_x: f32 = 460.0;
-        var base_y: f32 = 130.0;
-        const y_increment: f32 = 20.0;
+        var base_y: f32 = 135.0;
+        const y_increment: f32 = 24.0;
 
         self.ethnicity_left_button = try ButtonUtils.createValueChangeButton("<", .{ .x = base_left_x, .y = base_y }, onClick);
         self.ethnicity_right_button = try ButtonUtils.createValueChangeButton(">", .{ .x = base_right_x, .y = base_y }, onClick);

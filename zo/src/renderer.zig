@@ -212,7 +212,7 @@ pub const Texture = struct {
         return try initFromMemory(allocator, asset.ptr, asset.len, nearest_neighbor);
     }
 
-    pub inline fn initWhiteSquare(allocator: std.mem.Allocator, nearest_neighbor: bool, size: Dim2i) !@This() {
+    pub fn initWhiteSquare(allocator: std.mem.Allocator, nearest_neighbor: bool, size: Dim2i) !@This() {
         var texture: Texture = initImpl(allocator, nearest_neighbor);
         texture.nr_channels = 4;
         texture.width = size.w;
@@ -224,6 +224,39 @@ pub const Texture = struct {
         for (0..data_size) |i| {
             texture.data[i] = 255;
         }
+        try texture.generate();
+        return texture;
+    }
+
+    pub fn initWhiteSquareBorder(allocator: std.mem.Allocator, nearest_neighbor: bool, size: Dim2i, thickness: u32) !@This() {
+        var texture: Texture = initImpl(allocator, nearest_neighbor);
+        texture.nr_channels = 4;
+        texture.width = size.w;
+        texture.height = size.h;
+        texture.is_white_square = true;
+
+        const data_size: usize = @intCast(size.w * size.h * texture.nr_channels);
+        const data: []u8 = try allocator.alloc(u8, data_size);
+        texture.data = @ptrCast(data);
+
+        for (0..size.h) |y| {
+            for (0..size.w) |x| {
+                const idx = (y * size.w + x) * 4;
+                const is_border = x < thickness or x >= size.w - thickness or y < thickness or y >= size.h - thickness;
+                if (is_border) {
+                    texture.data[idx + 0] = 255; // R
+                    texture.data[idx + 1] = 255; // G
+                    texture.data[idx + 2] = 255; // B
+                    texture.data[idx + 3] = 255; // A (Opaque)
+                } else {
+                    texture.data[idx + 0] = 0;   // R
+                    texture.data[idx + 1] = 0;   // G
+                    texture.data[idx + 2] = 0;   // B
+                    texture.data[idx + 3] = 0;   // A (Transparent)
+                }
+            }
+        }
+
         try texture.generate();
         return texture;
     }

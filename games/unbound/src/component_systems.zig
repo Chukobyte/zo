@@ -402,6 +402,7 @@ pub const UIEventSystem = struct {
         const global_mouse_pos: Vec2 = .{ .x = @floatFromInt(mouse_pos.x), .y = @floatFromInt(mouse_pos.y) };
         const clicked_pressed: bool = input.isKeyPressed(.{ .key = .mouse_button_left });
         const just_clicked_pressed: bool = input.isKeyJustPressed(.{ .key = .mouse_button_left });
+        // TODO: We can use the spatial hash cell based on the global mouse position instead of iterating over every entity
         var comp_iter = ComponentIterator.init(world);
         while (comp_iter.next()) |iter| {
             const entity = iter.getEntity();
