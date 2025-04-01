@@ -55,6 +55,10 @@ fn buildZoModule(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.
     const freetype_lib: *std.Build.Step.Compile = try add_freetype(b, target, optimize);
     const zo_audio_lib: *std.Build.Step.Compile = try add_zo_audio(b, target, optimize);
 
+    const zigwin32_dep = b.dependency("zigwin32", .{
+    });
+    const zigwin32_module = zigwin32_dep.module("win32");
+
     const zo_module = b.addModule("zo", .{
         .root_source_file = b.path("zo/src/zo.zig"),
         .target = target,
@@ -68,6 +72,7 @@ fn buildZoModule(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.
     zo_module.linkLibrary(stb_image_lib);
     zo_module.linkLibrary(freetype_lib);
     zo_module.linkLibrary(zo_audio_lib);
+    zo_module.addImport("win32",zigwin32_module);
 
     return zo_module;
 }

@@ -8,5 +8,10 @@
         "build.zig",
         "build.zig.zon",
     },
-    .dependencies = .{},
+    .dependencies = .{
+        .zigwin32 = .{
+            .url = "thirdparty/zigwin32",
+            .hash = "zigwin32-25.0.28-preview-AAAAAI0J-wP-8_KKo4Yjr33XLhVhlJmeagGUedByaOnX",
+        },
+    },
 }
