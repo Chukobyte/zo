@@ -8,10 +8,10 @@ pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
         len: usize,
 
         pub fn init() @This() {
-            return FixedArrayList{ .items = undefined, .len = 0 };
+            return @This(){ .items = undefined, .len = 0 };
         }
 
-        pub fn append(self: *@This(), item: u8) FixedArrayListError!void {
+        pub fn append(self: *@This(), item: T) FixedArrayListError!void {
             if (self.len >= self.items.len) return .OutOfCapacity;
             self.items[self.len] = item;
             self.len += 1;
@@ -50,8 +50,12 @@ pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
             return null;
         }
 
-        pub fn asSlice(self: *const FixedArrayList) []const u8 {
+        pub inline fn asSlice(self: *const @This()) []const u8 {
             return self.items[0 .. self.len];
+        }
+
+        pub inline fn clear(self: *@This()) void {
+            self.len = 0;
         }
     };
 }

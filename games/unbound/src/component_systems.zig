@@ -25,6 +25,7 @@ const MultiLineString = zo.string.HeapMultiLineString;
 const World = global.World;
 const Node = World.Node;
 const Entity = zo.ecs.Entity;
+const FixedArrayList = zo.misc.FixedArrayList;
 const SpatialHashMap = zo.spatial_hash_map.SpatialHashMap;
 
 const log = zo.log;
@@ -373,11 +374,42 @@ pub const UIEventSystem = struct {
         click
     };
 
+    const NavigationElement = struct {
+        position: Vec2, // World position
+        size: Dim2, // Container size
+        left: ?*@This() = null,
+        right: ?*@This() = null,
+        up: ?*@This() = null,
+        down: ?*@This() = null,
+
+        pub fn getElementFromDir(self: *@This(), dir: Vec2i) ?*@This() {
+            if (dir.x == -1) return self.left;
+            if (dir.x == 1) return self.right;
+            if (dir.y == -1) return self.up;
+            if (dir.y == 1) return self.down;
+            return null;
+        }
+    };
+
     spatial_hash_map: EntitySpatialHashMap = undefined,
     prev_mouse_pos: Vec2i = Vec2i.Zero,
+    nav_elements: FixedArrayList(NavigationElement, 16) = undefined,
+    focued_nav_element: ?*NavigationElement = null,
+
+    pub fn generateNavElement(self: *@This(), position: Vec2, size: Dim2) !*NavigationElement {
+        const index: usize = self.nav_elements.len;
+        try self.nav_elements.append(.{ .position = position, .size = size });
+        return &self.nav_elements.items[index];
+    }
+
+    pub fn resetNavElements(self: *@This()) void {
+        self.focued_nav_element = null;
+        self.nav_elements.clear();
+    }
 
     pub fn init(self: *@This(), _: *World) !void {
         self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 64);
+        self.nav_elements = FixedArrayList(NavigationElement, 16).init();
     }
 
     pub fn deinit(self: *@This(), _: *World) void {
@@ -429,6 +461,38 @@ pub const UIEventSystem = struct {
                     }
                 }
             }
+        }
+
+        // Process navigation
+        if (self.nav_elements.len == 0) { return; }
+        // Clear nav element when a click is registered and don't process this frame
+        if (just_clicked_pressed) {
+            self.unfocus();
+            return;
+        }
+        // Process navigation movement
+        var nav_dir: Vec2i = Vec2i.Zero;
+        if (input.isKeyJustPressed(.{ .key = .keyboard_left })) {
+            nav_dir.x = -1;
+        } else if (input.isKeyJustPressed(.{ .key = .keyboard_right })) {
+            nav_dir.x = 1;
+        } else if (input.isKeyJustPressed(.{ .key = .keyboard_up })) {
+            nav_dir.y = -1;
+        } else if (input.isKeyJustPressed(.{ .key = .keyboard_down })) {
+            nav_dir.y = 1;
+        } else {
+            // Early out as there has been no navigational movement, allows enter to also set navigation in motion
+            if (!input.isKeyJustPressed(.{ .key = .keyboard_return })) {
+                return;
+            }
+        }
+
+        if (self.focued_nav_element) |nav_element| {
+            if (nav_element.getElementFromDir(nav_dir)) |new_nav_element| {
+                self.setFocused(new_nav_element);
+            }
+        } else {
+            self.setFocused(&self.nav_elements.items[0]);
         }
     }
 
@@ -498,5 +562,13 @@ pub const UIEventSystem = struct {
                 },
             }
         }
+    }
+
+    fn setFocused(self: *@This(), nav_element: *NavigationElement) void {
+        self.focued_nav_element = nav_element;
+    }
+
+    fn unfocus(self: *@This()) void {
+        self.focued_nav_element = null;
     }
 };
