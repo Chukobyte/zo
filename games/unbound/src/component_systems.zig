@@ -406,7 +406,7 @@ pub const UIEventSystem = struct {
     pub fn init(self: *@This(), _: *World) !void {
         self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 64);
         self.nav_elements = FixedArrayList(NavigationElement, 16).init();
-        self.border_texture = try Texture.initWhiteSquareBorder(global.allocator, true, .{ .w = @intFromFloat(border_draw_source.w), .h = @intFromFloat(border_draw_source.h) }, 1);
+        self.border_texture = try Texture.initWhiteSquareBorder(global.allocator, true, .{ .w = @intFromFloat(border_draw_source.w), .h = @intFromFloat(border_draw_source.h) }, 2);
     }
 
     pub fn deinit(self: *@This(), _: *World) void {
