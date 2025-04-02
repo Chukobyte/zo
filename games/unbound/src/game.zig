@@ -160,8 +160,10 @@ pub const MainMenuEntity = struct {
         );
         if (global.world.getSystemInstance(UIEventSystem)) |ui_event_system| {
             const ui_event_comp = global.world.getComponent(new_game_button.getEntity(), UIEventComponent).?;
-            const container_size = ui_event_comp.collider;
-            var new_game_button_element = try ui_event_system.generateNavElement(new_game_button.getLocalPosition(), .{ .w = container_size.w, .h = container_size.h }, new_game_button.getEntity());
+            const border_thickness: f32 = 2.0;
+            const container_size: Dim2 = .{ .w = ui_event_comp.collider.w + border_thickness, .h = ui_event_comp.collider.h + border_thickness };
+            const border_position: Vec2 = .{ .x = new_game_button.getLocalPosition().x - 2, .y = new_game_button.getLocalPosition().y - 2 };
+            var new_game_button_element = try ui_event_system.generateNavElement(border_position, container_size, new_game_button.getEntity());
             new_game_button_element.on_pressed = onPressed;
         }
     }

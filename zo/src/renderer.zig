@@ -228,7 +228,7 @@ pub const Texture = struct {
         return texture;
     }
 
-    pub fn initWhiteSquareBorder(allocator: std.mem.Allocator, nearest_neighbor: bool, size: Dim2i, thickness: u32) !@This() {
+    pub fn initWhiteSquareBorder(allocator: std.mem.Allocator, nearest_neighbor: bool, size: Dim2i, thickness: usize) !@This() {
         var texture: Texture = initImpl(allocator, nearest_neighbor);
         texture.nr_channels = 4;
         texture.width = size.w;
@@ -239,10 +239,13 @@ pub const Texture = struct {
         const data: []u8 = try allocator.alloc(u8, data_size);
         texture.data = @ptrCast(data);
 
-        for (0..size.h) |y| {
-            for (0..size.w) |x| {
-                const idx = (y * size.w + x) * 4;
-                const is_border = x < thickness or x >= size.w - thickness or y < thickness or y >= size.h - thickness;
+        const height: usize = @intCast(size.h);
+        const width: usize = @intCast(size.w);
+        for (0..height) |y| {
+            for (0..width) |x| {
+                const idx: usize = (y * width + x) * 4;
+                const is_border = x < thickness or x >= width - thickness or y < thickness or y >= height - thickness;
+                log(.debug, "({d}, {d}) - is_border = {any}", .{ x, y, is_border });
                 if (is_border) {
                     texture.data[idx + 0] = 255; // R
                     texture.data[idx + 1] = 255; // G
@@ -497,7 +500,7 @@ pub const RenderData = struct {
 pub const DrawSpriteParams = struct {
     texture: *const Texture,
     source_rect: Rect2,
-    global_matrix: *Mat4,
+    global_matrix: Mat4,
     dest_size: ?Dim2 = null,
     modulate: LinearColor = .{ .r = 1.0, .g = 1.0, .b = 1.0 },
     flip_h: bool = false,
@@ -616,24 +619,21 @@ const SpriteRenderer = struct {
         glad.glBindVertexArray(render_data.vao);
         glad.glBindBuffer(glad.GL_ARRAY_BUFFER, render_data.vbo);
 
-        const dest_size_2d: Dim2 = p.dest_size orelse .{ .w = @floatFromInt(p.texture.width), .h = @floatFromInt(p.texture.height) };
-        const dest_size: Vec3 = .{ .x = dest_size_2d.w, .y = dest_size_2d.h, .z = 1.0 };
         var models: [max_sprite_count]Mat4 = undefined;
         const number_of_sprites: usize = 1;
+        var verts: [vertex_buffer_size * number_of_sprites]GLfloat = undefined;
+        render_data.shader.use();
         for (0..number_of_sprites) |i| {
-            var model = p.global_matrix.*;
+            const dest_size_2d: Dim2 = p.dest_size orelse .{ .w = @floatFromInt(p.texture.width), .h = @floatFromInt(p.texture.height) };
+            const dest_size: Vec3 = .{ .x = dest_size_2d.w, .y = dest_size_2d.h, .z = 1.0 };
+            var model = p.global_matrix;
             model.scale2(dest_size);
             models[i] = model;
-
-            render_data.shader.use();
 
             const model_id: f32 = @floatFromInt(i);
             const texture_coords: TextureCoords = TextureCoords.generate(p.texture, &p.source_rect, p.flip_h, p.flip_v);
 
-            render_data.shader.setUniformArray("models", []Mat4, &models, number_of_sprites);
-
             // Create vertex data for the sprite.
-            var verts: [vertex_buffer_size]GLfloat = undefined;
             for (0..number_of_vertices) |j| {
                 const use_s_min: bool = (j == 0 or j == 2 or j == 3);
                 const use_t_min: bool = (j == 1 or j == 2 or j == 5);
@@ -650,15 +650,16 @@ const SpriteRenderer = struct {
                 verts[row + 8] = @as(GLfloat, p.modulate.a);
                 verts[row + 9] = if(p.texture.using_nearest_neighbor) 1.0 else 0.0;
             }
-
-            glad.glActiveTexture(glad.GL_TEXTURE0);
-            glad.glBindTexture(glad.GL_TEXTURE_2D, p.texture.id);
-
-            glad.glBufferData(glad.GL_ARRAY_BUFFER, @sizeOf(@TypeOf(verts)), @ptrCast(&verts[0]), glad.GL_DYNAMIC_DRAW);
-            glad.glDrawArrays(glad.GL_TRIANGLES, 0, @as(GLsizei, number_of_sprites * number_of_vertices));
-
-            glad.glBindVertexArray(0);
         }
+        render_data.shader.setUniformArray("models", []Mat4, &models, number_of_sprites);
+
+        glad.glActiveTexture(glad.GL_TEXTURE0);
+        glad.glBindTexture(glad.GL_TEXTURE_2D, p.texture.id);
+
+        glad.glBufferData(glad.GL_ARRAY_BUFFER, @sizeOf(@TypeOf(verts)), @ptrCast(&verts[0]), glad.GL_DYNAMIC_DRAW);
+        glad.glDrawArrays(glad.GL_TRIANGLES, 0, @as(GLsizei, number_of_sprites * number_of_vertices));
+
+        glad.glBindVertexArray(0);
     }
 };
 

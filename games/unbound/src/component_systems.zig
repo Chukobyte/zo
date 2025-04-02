@@ -227,7 +227,7 @@ pub const SpriteRenderingSystem = struct {
                 try renderer.queueSpriteDraw(&.{
                     .texture = sprite_comp.texture,
                     .source_rect = sprite_comp.draw_source,
-                    .global_matrix = &transform_comp.global_matrix,
+                    .global_matrix = transform_comp.global_matrix,
                     .modulate = sprite_comp.modulate,
                     .flip_h = sprite_comp.flip_h,
                     .flip_v = sprite_comp.flip_v,
@@ -299,9 +299,6 @@ pub const TextRenderingSystem = struct {
 };
 
 pub const ColorRectSystem = struct {
-
-    const draw_source: Rect2 = .{ .x = 0.0, .y = 0.0, .w = 1.0, .h = 1.0 };
-
     texture: Texture = undefined,
 
     pub fn init(self: *@This(), _: *World) !void {
@@ -313,6 +310,7 @@ pub const ColorRectSystem = struct {
     }
 
     pub fn postWorldTick(self: *@This(), world: *World) !void {
+        const draw_source: Rect2 = .{ .x = 0.0, .y = 0.0, .w = 1.0, .h = 1.0 };
         const ComponentIterator = World.ArchetypeComponentIterator(getSignature());
         var comp_iter = ComponentIterator.init(world);
         while (comp_iter.next()) |iter| {
@@ -323,7 +321,7 @@ pub const ColorRectSystem = struct {
                 try renderer.queueSpriteDraw(&.{
                     .texture = &self.texture,
                     .source_rect = draw_source,
-                    .global_matrix = &transform_comp.global_matrix,
+                    .global_matrix = transform_comp.global_matrix,
                     .dest_size = color_rect.size,
                     .modulate = color_rect.color,
                     .flip_h = false,
@@ -339,6 +337,7 @@ pub const ColorRectSystem = struct {
     }
 };
 
+/// Responses from clicking with the left mouse button, also used for 'Return' for confirmations
 pub const OnClickResponse = enum {
     none,
     success,
@@ -400,25 +399,17 @@ pub const UIEventSystem = struct {
     prev_mouse_pos: Vec2i = Vec2i.Zero,
     nav_elements: FixedArrayList(NavigationElement, 16) = undefined,
     focued_nav_element: ?*NavigationElement = null,
-
-    pub fn generateNavElement(self: *@This(), position: Vec2, size: Dim2, owner_entity: Entity) !*NavigationElement {
-        const index: usize = self.nav_elements.len;
-        try self.nav_elements.append(.{ .position = position, .size = size, .owner_entity = owner_entity });
-        return &self.nav_elements.items[index];
-    }
-
-    pub fn resetNavElements(self: *@This()) void {
-        self.focued_nav_element = null;
-        self.nav_elements.clear();
-    }
+    border_texture: Texture = undefined,
 
     pub fn init(self: *@This(), _: *World) !void {
         self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 64);
         self.nav_elements = FixedArrayList(NavigationElement, 16).init();
+        self.border_texture = try Texture.initWhiteSquareBorder(global.allocator, true, .{ .w = 16, .h = 8 }, 1);
     }
 
     pub fn deinit(self: *@This(), _: *World) void {
         self.spatial_hash_map.deinit();
+        self.border_texture.deinit();
     }
 
     pub fn onEntityRegistered(self: *@This(), _: *World, entity: Entity) void {
@@ -509,6 +500,22 @@ pub const UIEventSystem = struct {
         }
     }
 
+    pub fn postWorldTick(self: *@This(), _: *World) !void {
+        if (self.focued_nav_element) |nav_element| {
+            const screen_transform: Transform2D = .{ .position = nav_element.position };
+            const draw_source: Rect2 = .{ .x = 0.0, .y = 0.0, .w = 8.0, .h = 4.0 };
+            const border_color: LinearColor = .{ .r = 0.0, .g = 0.8, .b = 0.8 };
+            try renderer.queueSpriteDraw(&.{
+                .texture = &self.border_texture,
+                .source_rect = draw_source,
+                .global_matrix = screen_transform.toMat4(),
+                .dest_size = nav_element.size,
+                .modulate = border_color,
+                .z_index =  10,
+            });
+        }
+    }
+
     pub fn onUpdatePosition(self: *@This(), entity: Entity) !void {
         if (global.world.getComponent(entity, Transform2DComponent)) |transform_comp| {
         if (global.world.getComponent(entity, UIEventComponent)) |event_comp| {
@@ -520,6 +527,17 @@ pub const UIEventSystem = struct {
 
     pub inline fn getClickedEntities(self: *@This(), pos: Vec2) []Entity {
         return self.spatial_hash_map.getObjects(pos);
+    }
+
+    pub fn generateNavElement(self: *@This(), position: Vec2, size: Dim2, owner_entity: Entity) !*NavigationElement {
+        const index: usize = self.nav_elements.len;
+        try self.nav_elements.append(.{ .position = position, .size = size, .owner_entity = owner_entity });
+        return &self.nav_elements.items[index];
+    }
+
+    pub fn resetNavElements(self: *@This()) void {
+        self.focued_nav_element = null;
+        self.nav_elements.clear();
     }
 
     pub fn getSignature() []const type {
