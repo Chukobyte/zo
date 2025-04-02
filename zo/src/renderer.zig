@@ -558,7 +558,7 @@ const SpriteRenderer = struct {
         \\}}
         ;
 
-    const max_sprite_count = 10;
+    const max_sprite_count = 16;
     const number_of_vertices = 6;
     const verts_stride = 10;
     const vertex_buffer_size: comptime_int = verts_stride * number_of_vertices * max_sprite_count;
@@ -613,17 +613,24 @@ const SpriteRenderer = struct {
 
     pub fn deinit() void {}
 
-    pub fn drawSprite(p: *const DrawSpriteParams) void {
+    pub fn drawSprite(params: *const DrawSpriteParams) void {
+        var single: [1]*const DrawSpriteParams = .{ params };
+        drawSprites(single[0..]);
+    }
+
+    pub fn drawSprites(params: []*const DrawSpriteParams) void {
         glad.glDepthMask(glad.GL_FALSE);
 
         glad.glBindVertexArray(render_data.vao);
         glad.glBindBuffer(glad.GL_ARRAY_BUFFER, render_data.vbo);
 
         var models: [max_sprite_count]Mat4 = undefined;
-        const number_of_sprites: usize = 1;
-        var verts: [vertex_buffer_size * number_of_sprites]GLfloat = undefined;
+        var verts: [vertex_buffer_size * max_sprite_count]GLfloat = undefined;
+        const number_of_sprites: usize = params.len;
+        if (number_of_sprites > max_sprite_count) { log(.critical, "Reached max sprite in draw call, aborting!", .{}); return; }
         render_data.shader.use();
         for (0..number_of_sprites) |i| {
+            const p = params[i];
             const dest_size_2d: Dim2 = p.dest_size orelse .{ .w = @floatFromInt(p.texture.width), .h = @floatFromInt(p.texture.height) };
             const dest_size: Vec3 = .{ .x = dest_size_2d.w, .y = dest_size_2d.h, .z = 1.0 };
             var model = p.global_matrix;
@@ -654,10 +661,10 @@ const SpriteRenderer = struct {
         render_data.shader.setUniformArray("models", []Mat4, &models, number_of_sprites);
 
         glad.glActiveTexture(glad.GL_TEXTURE0);
-        glad.glBindTexture(glad.GL_TEXTURE_2D, p.texture.id);
+        glad.glBindTexture(glad.GL_TEXTURE_2D, params[0].texture.id);
 
         glad.glBufferData(glad.GL_ARRAY_BUFFER, @sizeOf(@TypeOf(verts)), @ptrCast(&verts[0]), glad.GL_DYNAMIC_DRAW);
-        glad.glDrawArrays(glad.GL_TRIANGLES, 0, @as(GLsizei, number_of_sprites * number_of_vertices));
+        glad.glDrawArrays(glad.GL_TRIANGLES, 0, @as(GLsizei, @intCast(number_of_sprites * number_of_vertices)));
 
         glad.glBindVertexArray(0);
     }
