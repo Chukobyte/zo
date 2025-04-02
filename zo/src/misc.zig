@@ -12,7 +12,7 @@ pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
         }
 
         pub fn append(self: *@This(), item: T) FixedArrayListError!void {
-            if (self.len >= self.items.len) return .OutOfCapacity;
+            if (self.len >= self.items.len) return FixedArrayListError.OutOfCapacity;
             self.items[self.len] = item;
             self.len += 1;
         }
@@ -24,7 +24,7 @@ pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
         }
 
         pub fn swapRemove(self: *@This(), i: usize) FixedArrayListError!T {
-            if (self.len == 0 or i >= self.len) return .IndexOutOfBounds;
+            if (self.len == 0 or i >= self.len) return FixedArrayListError.IndexOutOfBounds;
             if (i == self.len - 1) {
                 return self.pop();
             }

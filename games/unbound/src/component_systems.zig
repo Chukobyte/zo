@@ -378,14 +378,14 @@ pub const UIEventSystem = struct {
     const NavigationElement = struct {
         position: Vec2, // World position
         size: Dim2, // Container size
+        owner_entity: Entity,
         left: ?*@This() = null,
         right: ?*@This() = null,
         up: ?*@This() = null,
         down: ?*@This() = null,
-        on_focus: ?*const fn(*@This()) void = null,
-        on_unfocus: ?*const fn(*@This()) void = null,
-        on_pressed: ?*const fn(*@This()) void = null,
-        owner_entity: ?Entity = null,
+        on_focus: ?*const fn(Entity) void = null,
+        on_unfocus: ?*const fn(Entity) void = null,
+        on_pressed: ?*const fn(Entity) OnClickResponse = null,
 
         pub fn getElementFromDir(self: *@This(), dir: Vec2i) ?*@This() {
             if (dir.x == -1) { return self.left; }
@@ -401,9 +401,9 @@ pub const UIEventSystem = struct {
     nav_elements: FixedArrayList(NavigationElement, 16) = undefined,
     focued_nav_element: ?*NavigationElement = null,
 
-    pub fn generateNavElement(self: *@This(), position: Vec2, size: Dim2) !*NavigationElement {
+    pub fn generateNavElement(self: *@This(), position: Vec2, size: Dim2, owner_entity: Entity) !*NavigationElement {
         const index: usize = self.nav_elements.len;
-        try self.nav_elements.append(.{ .position = position, .size = size });
+        try self.nav_elements.append(.{ .position = position, .size = size, .owner_entity = owner_entity });
         return &self.nav_elements.items[index];
     }
 
@@ -459,11 +459,7 @@ pub const UIEventSystem = struct {
                     if (event_comp.on_click) |on_click| {
                         on_click_response = on_click(iter.getEntity());
                     }
-                    switch (on_click_response) {
-                        .success => try global.assets.audio.click.play(false),
-                        .invalid => try global.assets.audio.invalid_click.play(false),
-                        .none => {},
-                    }
+                    try processOnClickResponse(on_click_response);
                 }
             }
         }
@@ -494,16 +490,22 @@ pub const UIEventSystem = struct {
         if (self.focued_nav_element) |nav_element| {
             // Pressing element takes precedence over directional movements
             if (element_just_pressed) {
+                var on_click_response: OnClickResponse = .success;
                 if (nav_element.on_pressed) |on_pressed| {
-                    on_pressed(nav_element);
+                    on_click_response = on_pressed(nav_element.owner_entity);
                 }
+                try processOnClickResponse(on_click_response);
+                log(.debug, "on_Pressed for entity = {d}", .{ nav_element.owner_entity });
             } else if (nav_dir) |dir| {
                 if (nav_element.getElementFromDir(dir)) |new_nav_element| {
                     self.setFocused(new_nav_element);
+                    log(.debug, "navigated to entity = {d}", .{ nav_element.owner_entity });
                 }
             }
         } else {
+            // Set focused item to first created navigation element.
             self.setFocused(&self.nav_elements.items[0]);
+            log(.debug, "default navigated to entity = {d}", .{ self.nav_elements.items[0].owner_entity });
         }
     }
 
@@ -579,16 +581,24 @@ pub const UIEventSystem = struct {
         self.unfocus();
         self.focued_nav_element = nav_element;
         if (self.focued_nav_element.?.on_focus) |on_focus| {
-            on_focus(nav_element);
+            on_focus(nav_element.owner_entity);
         }
     }
 
     fn unfocus(self: *@This()) void {
         if (self.focued_nav_element) |focused_element| {
             if (focused_element.on_unfocus) |on_unfocus| {
-                on_unfocus(focused_element);
+                on_unfocus(focused_element.owner_entity);
                 self.focued_nav_element = null;
             }
+        }
+    }
+
+    fn processOnClickResponse(on_click_response: OnClickResponse) !void {
+        switch (on_click_response) {
+            .success => try global.assets.audio.click.play(false),
+            .invalid => try global.assets.audio.invalid_click.play(false),
+            .none => {},
         }
     }
 };

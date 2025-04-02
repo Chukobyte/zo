@@ -172,6 +172,11 @@ pub const GameObject = struct {
         self.onMovementUpdate("update local position");
     }
 
+    pub fn getLocalPosition(self: *@This()) Vec2 {
+        const transform_comp = global.world.getComponent(self.node.entity, Transform2DComponent).?;
+        return transform_comp.local.position;
+    }
+
     /// Overrides global position
     pub fn setGlobalPosition(self: *@This(), pos: Vec2) void {
         const transform_comp = global.world.getComponent(self.node.entity, Transform2DComponent).?;
@@ -188,6 +193,15 @@ pub const GameObject = struct {
         transform_comp.global_matrix = transform_comp.global.toMat4();
         global.scene_system.updateNodeLocalMatrix(NodeMatrixInterface, global.scene_system.getNode(self.node.entity).?);
         self.onMovementUpdate("update global position");
+    }
+
+    pub fn getGlobalPosition(self: *@This()) Vec2 {
+        const transform_comp = global.world.getComponent(self.node.entity, Transform2DComponent).?;
+        return transform_comp.global.position;
+    }
+
+    pub inline fn getEntity(self: *const @This()) Entity {
+        return self.node.entity;
     }
 
     pub inline fn isValid(self: *const @This()) bool {

@@ -29,6 +29,7 @@ const GameObjectSystem = object.GameObjectSystem;
 const Location = state.Location;
 const TextLabelComponent = component_systems.TextLabelComponent;
 const ColorRectComponent = component_systems.ColorRectComponent;
+const UIEventComponent = component_systems.UIEventComponent;
 const UIEventSystem = component_systems.UIEventSystem;
 const OnClickResponse = component_systems.OnClickResponse;
 const InputKey = input.InputKey;
@@ -151,17 +152,27 @@ pub const MainMenuEntity = struct {
             null,
             null
         );
-        _ = try GameObject.initInScene(
+        var new_game_button = try GameObject.initInScene(
             TextButtonClass,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "New Game", .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 220.0 } } },
             null,
             null
         );
+        if (global.world.getSystemInstance(UIEventSystem)) |ui_event_system| {
+            const ui_event_comp = global.world.getComponent(new_game_button.getEntity(), UIEventComponent).?;
+            const container_size = ui_event_comp.collider;
+            var new_game_button_element = try ui_event_system.generateNavElement(new_game_button.getLocalPosition(), .{ .w = container_size.w, .h = container_size.h }, new_game_button.getEntity());
+            new_game_button_element.on_pressed = onPressed;
+        }
     }
 
     pub fn onClick(_: Entity) OnClickResponse {
         global.scene_system.changeScene(NewGameSceneDefinition);
         return .success;
+    }
+
+    pub fn onPressed(entity: Entity) OnClickResponse {
+        return onClick(entity);
     }
 };
 
