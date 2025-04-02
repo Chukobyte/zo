@@ -509,22 +509,18 @@ pub const UIEventSystem = struct {
             const border_color: LinearColor = .{ .r = 0.0, .g = 0.8, .b = 0.8 };
             const border: Rect2 = .{ .x = 1.0, .y = 1.0, .w = 14.0, .h = 6.0 };
             const z_index: i32 = 10;
-
             var param_list = FixedArrayList(renderer.DrawSpriteParams, 9).init();
-
             const left   = border.x;
-            const right  = texture_size.w - border.x - border.w;
+            const right  = texture_size.w - (border.x + border.w);
             const top    = border.y;
-            const bottom = texture_size.h - border.y - border.h;
+            const bottom = texture_size.h - (border.y + border.h);
             const center_width  = border.w;
             const center_height = border.h;
-
             const src_x = [4]f32{ 0.0, left, left + center_width, texture_size.w };
             const src_y = [4]f32{ 0.0, top, top + center_height, texture_size.h };
-
             const dst_x = [4]f32{ 0.0, left, nav_element.size.w - right, nav_element.size.w };
             const dst_y = [4]f32{ 0.0, top, nav_element.size.h - bottom, nav_element.size.h };
-
+            // Iterate through 9 slices and queue draw accordingly
             for (0..3) |i| {
                 for (0..3) |j| {
                     const src_rect = Rect2{
