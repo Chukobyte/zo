@@ -395,6 +395,8 @@ pub const UIEventSystem = struct {
         }
     };
 
+    const border_draw_source: Rect2 = .{ .x = 0.0, .y = 0.0, .w = 16.0, .h = 8.0 };
+
     spatial_hash_map: EntitySpatialHashMap = undefined,
     prev_mouse_pos: Vec2i = Vec2i.Zero,
     nav_elements: FixedArrayList(NavigationElement, 16) = undefined,
@@ -404,7 +406,7 @@ pub const UIEventSystem = struct {
     pub fn init(self: *@This(), _: *World) !void {
         self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 64);
         self.nav_elements = FixedArrayList(NavigationElement, 16).init();
-        self.border_texture = try Texture.initWhiteSquareBorder(global.allocator, true, .{ .w = 16, .h = 8 }, 1);
+        self.border_texture = try Texture.initWhiteSquareBorder(global.allocator, true, .{ .w = @intFromFloat(border_draw_source.w), .h = @intFromFloat(border_draw_source.h) }, 1);
     }
 
     pub fn deinit(self: *@This(), _: *World) void {
@@ -501,18 +503,58 @@ pub const UIEventSystem = struct {
     }
 
     pub fn postWorldTick(self: *@This(), _: *World) !void {
+        // Draw border as 9 slice rect
         if (self.focued_nav_element) |nav_element| {
-            const screen_transform: Transform2D = .{ .position = nav_element.position };
-            const draw_source: Rect2 = .{ .x = 0.0, .y = 0.0, .w = 8.0, .h = 4.0 };
+            const texture_size: Dim2 = .{ .w = @floatFromInt(self.border_texture.width), .h = @floatFromInt(self.border_texture.height) };
             const border_color: LinearColor = .{ .r = 0.0, .g = 0.8, .b = 0.8 };
-            try renderer.queueSpriteDraw(&.{
-                .texture = &self.border_texture,
-                .source_rect = draw_source,
-                .global_matrix = screen_transform.toMat4(),
-                .dest_size = nav_element.size,
-                .modulate = border_color,
-                .z_index =  10,
-            });
+            const border: Rect2 = .{ .x = 1.0, .y = 1.0, .w = 14.0, .h = 6.0 };
+            const z_index: i32 = 10;
+
+            var param_list = FixedArrayList(renderer.DrawSpriteParams, 9).init();
+
+            const left   = border.x;
+            const right  = texture_size.w - border.x - border.w;
+            const top    = border.y;
+            const bottom = texture_size.h - border.y - border.h;
+            const center_width  = border.w;
+            const center_height = border.h;
+
+            const src_x = [4]f32{ 0.0, left, left + center_width, texture_size.w };
+            const src_y = [4]f32{ 0.0, top, top + center_height, texture_size.h };
+
+            const dst_x = [4]f32{ 0.0, left, nav_element.size.w - right, nav_element.size.w };
+            const dst_y = [4]f32{ 0.0, top, nav_element.size.h - bottom, nav_element.size.h };
+
+            for (0..3) |i| {
+                for (0..3) |j| {
+                    const src_rect = Rect2{
+                        .x = src_x[i],
+                        .y = src_y[j],
+                        .w = src_x[i + 1] - src_x[i],
+                        .h = src_y[j + 1] - src_y[j],
+                    };
+
+                    const dest = Dim2{
+                        .w = dst_x[i + 1] - dst_x[i],
+                        .h = dst_y[j + 1] - dst_y[j],
+                    };
+
+                    const transform = Transform2D{
+                        .position = nav_element.position.add(&Vec2{ .x = dst_x[i], .y = dst_y[j] }),
+                    };
+
+                    try param_list.append(.{
+                        .texture = &self.border_texture,
+                        .source_rect = src_rect,
+                        .global_matrix = transform.toMat4(),
+                        .dest_size = dest,
+                        .modulate = border_color,
+                        .z_index = z_index,
+                    });
+                }
+            }
+
+            try renderer.queueSpriteDraws(param_list.asSlice());
         }
     }
 

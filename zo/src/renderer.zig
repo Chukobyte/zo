@@ -831,10 +831,10 @@ pub fn queueSpriteDraw(p: *const DrawSpriteParams) !void {
     draw_command_index += 1;
 }
 
-pub fn queueSpriteDraws(params: []*const DrawSpriteParams) !void {
+pub fn queueSpriteDraws(params: []const DrawSpriteParams) !void {
     var draw_sprites: DrawCommand.BatchDrawSpritesParams = .{};
     for (params) |p| {
-        draw_sprites.params.append(p.*);
+        try draw_sprites.params.append(p);
     }
     try draw_command_data.append(.{
         .command = .{ .sprites = draw_sprites },
