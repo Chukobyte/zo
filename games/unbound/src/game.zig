@@ -83,6 +83,26 @@ const ButtonUtils = struct {
             null
         );
     }
+
+    pub fn clearNavElementState() void {
+        if (global.world.getSystemInstance(UIEventSystem)) |ui_event_system| {
+            ui_event_system.resetNavElements();
+        }
+    }
+
+    pub fn setupNavElement(button_object: *GameObject, on_pressed: ?*const fn(Entity) OnClickResponse) !*UIEventSystem.NavigationElement {
+        if (global.world.getSystemInstance(UIEventSystem)) |ui_event_system| {
+            const ui_event_comp = global.world.getComponent(button_object.getEntity(), UIEventComponent).?;
+            const border_thickness: f32 = 2.0;
+            const container_size: Dim2 = .{ .w = ui_event_comp.collider.w + border_thickness, .h = ui_event_comp.collider.h + border_thickness };
+            const border_position: Vec2 = .{ .x = button_object.getLocalPosition().x - 2, .y = button_object.getLocalPosition().y - 2 };
+            var new_game_button_element = try ui_event_system.generateNavElement(border_position, container_size, button_object.getEntity());
+            new_game_button_element.on_pressed = on_pressed;
+            return new_game_button_element;
+        }
+        // TODO: Return error
+        unreachable;
+    }
 };
 
 const LocationSelector = struct {
@@ -146,26 +166,20 @@ pub const MainMenuSceneDefinition = struct {
 
 pub const MainMenuEntity = struct {
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
+        ButtonUtils.clearNavElementState();
         _ = try GameObject.initInScene(
             TextLabelClass,
             .{ .font = &global.assets.fonts.pixeloid_32, .text = "Unbound", .transform = .{ .position = .{ .x = 225.0, .y = 100.0 } }, },
             null,
             null
         );
-        var new_game_button = try GameObject.initInScene(
+        const new_game_button = try GameObject.initInScene(
             TextButtonClass,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "New Game", .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 220.0 } } },
             null,
             null
         );
-        if (global.world.getSystemInstance(UIEventSystem)) |ui_event_system| {
-            const ui_event_comp = global.world.getComponent(new_game_button.getEntity(), UIEventComponent).?;
-            const border_thickness: f32 = 2.0;
-            const container_size: Dim2 = .{ .w = ui_event_comp.collider.w + border_thickness, .h = ui_event_comp.collider.h + border_thickness };
-            const border_position: Vec2 = .{ .x = new_game_button.getLocalPosition().x - 2, .y = new_game_button.getLocalPosition().y - 2 };
-            var new_game_button_element = try ui_event_system.generateNavElement(border_position, container_size, new_game_button.getEntity());
-            new_game_button_element.on_pressed = onPressed;
-        }
+        _ = try ButtonUtils.setupNavElement(new_game_button, onPressed);
     }
 
     pub fn onClick(_: Entity) OnClickResponse {
@@ -197,6 +211,7 @@ pub const NewGameEntity = struct {
     existing_button: *GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
+        ButtonUtils.clearNavElementState();
         _ = try GameObject.initInScene(
             TextLabelClass,
             .{ .font = &global.assets.fonts.pixeloid_16, .text = "Select character", .transform = .{ .position = .{ .x = 210.0, .y = 180.0 } }, },
@@ -210,13 +225,18 @@ pub const NewGameEntity = struct {
             null,
             null
         );
-
         self.existing_button = try GameObject.initInScene(
             TextButtonClass,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Existing", .on_click = onClick, .transform = .{ .position = .{ .x = 240.0, .y = 230.0 } } },
             null,
             null
         );
+        var new_button_element = try ButtonUtils.setupNavElement(self.new_button, onPressed);
+        var existing_button_element = try ButtonUtils.setupNavElement(self.existing_button, onPressed);
+        new_button_element.up = existing_button_element;
+        new_button_element.down = existing_button_element;
+        existing_button_element.up = new_button_element;
+        existing_button_element.down = new_button_element;
     }
 
     pub fn onClick(clicked_entity: Entity) OnClickResponse {
@@ -230,6 +250,10 @@ pub const NewGameEntity = struct {
             }
         }
         return .success;
+    }
+
+    pub fn onPressed(entity: Entity) OnClickResponse {
+        return onClick(entity);
     }
 };
 

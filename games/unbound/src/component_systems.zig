@@ -374,7 +374,7 @@ pub const UIEventSystem = struct {
     };
 
     /// Keyboard navigational element
-    const NavigationElement = struct {
+    pub const NavigationElement = struct {
         position: Vec2, // World position
         size: Dim2, // Container size
         owner_entity: Entity,
