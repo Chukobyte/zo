@@ -33,9 +33,8 @@ const Mat4 = math.Mat4;
 const Dim2 = math.Dim2;
 const Dim2i = math.Dim2i;
 const LinearColor = math.LinearColor;
-
 const String = string.String;
-
+const FixedArrayList = @import("misc.zig").FixedArrayList;
 const StaticAsset = @import("static_asset.zig").StaticAsset;
 
 const log = @import("logger.zig").log;
@@ -613,12 +612,12 @@ const SpriteRenderer = struct {
 
     pub fn deinit() void {}
 
-    pub fn drawSprite(params: *const DrawSpriteParams) void {
-        var single: [1]*const DrawSpriteParams = .{ params };
+    pub fn drawSprite(params: DrawSpriteParams) void {
+        var single: [1]DrawSpriteParams = .{ params };
         drawSprites(single[0..]);
     }
 
-    pub fn drawSprites(params: []*const DrawSpriteParams) void {
+    pub fn drawSprites(params: []const DrawSpriteParams) void {
         glad.glDepthMask(glad.GL_FALSE);
 
         glad.glBindVertexArray(render_data.vao);
@@ -630,7 +629,7 @@ const SpriteRenderer = struct {
         if (number_of_sprites > max_sprite_count) { log(.critical, "Reached max sprite in draw call, aborting!", .{}); return; }
         render_data.shader.use();
         for (0..number_of_sprites) |i| {
-            const p = params[i];
+            const p = &params[i];
             const dest_size_2d: Dim2 = p.dest_size orelse .{ .w = @floatFromInt(p.texture.width), .h = @floatFromInt(p.texture.height) };
             const dest_size: Vec3 = .{ .x = dest_size_2d.w, .y = dest_size_2d.h, .z = 1.0 };
             var model = p.global_matrix;
@@ -776,12 +775,18 @@ const FontRenderer = struct {
 };
 
 pub const DrawCommand = union(enum) {
+    pub const BatchDrawSpritesParams = struct {
+        params: FixedArrayList(DrawSpriteParams, 16) = FixedArrayList(DrawSpriteParams, 16).init(),
+    };
+
     sprite: DrawSpriteParams,
+    sprites: BatchDrawSpritesParams,
     text: DrawTextParams,
 
     pub inline fn getZIndex(self: *const @This()) i32 {
         return switch (self.*) {
             .sprite => |sprite| sprite.z_index,
+            .sprites => |sprites| sprites.params.items[0].z_index,
             .text => |text| text.z_index,
         };
     }
@@ -818,7 +823,7 @@ pub inline fn getResolution() Dim2i {
 
 // TODO: Pre sort and batch draw calls
 
-pub inline fn queueSpriteDraw(p: *const DrawSpriteParams) !void {
+pub fn queueSpriteDraw(p: *const DrawSpriteParams) !void {
     try draw_command_data.append(.{
         .command = .{ .sprite = p.* },
         .id = draw_command_index,
@@ -826,7 +831,19 @@ pub inline fn queueSpriteDraw(p: *const DrawSpriteParams) !void {
     draw_command_index += 1;
 }
 
-pub inline fn queueTextDraw(p: *const DrawTextParams) !void {
+pub fn queueSpriteDraws(params: []*const DrawSpriteParams) !void {
+    var draw_sprites: DrawCommand.BatchDrawSpritesParams = .{};
+    for (params) |p| {
+        draw_sprites.params.append(p.*);
+    }
+    try draw_command_data.append(.{
+        .command = .{ .sprites = draw_sprites },
+        .id = draw_command_index,
+    });
+    draw_command_index += 1;
+}
+
+pub fn queueTextDraw(p: *const DrawTextParams) !void {
     try draw_command_data.append(.{
         .command = .{ .text = p.* },
         .id = draw_command_index,
@@ -853,7 +870,8 @@ pub fn processQueuedDrawCalls() void {
 
     for (draw_command_data.items) |*data| {
         switch (data.command) {
-            .sprite => SpriteRenderer.drawSprite(&data.command.sprite),
+            .sprite => SpriteRenderer.drawSprite(data.command.sprite),
+            .sprites => SpriteRenderer.drawSprites(data.command.sprites.params.asSlice()),
             .text => FontRenderer.drawText(&data.command.text),
         }
     }

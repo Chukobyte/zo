@@ -50,7 +50,7 @@ pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
             return null;
         }
 
-        pub inline fn asSlice(self: *const @This()) []const u8 {
+        pub inline fn asSlice(self: *const @This()) []const T {
             return self.items[0 .. self.len];
         }
 
