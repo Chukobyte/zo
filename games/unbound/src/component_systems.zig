@@ -374,6 +374,7 @@ pub const UIEventSystem = struct {
         click
     };
 
+    /// Keyboard navigational element
     const NavigationElement = struct {
         position: Vec2, // World position
         size: Dim2, // Container size
@@ -381,14 +382,16 @@ pub const UIEventSystem = struct {
         right: ?*@This() = null,
         up: ?*@This() = null,
         down: ?*@This() = null,
-        on_focus: ?*const fn() void = null,
-        on_unfocus: ?*const fn() void = null,
+        on_focus: ?*const fn(*@This()) void = null,
+        on_unfocus: ?*const fn(*@This()) void = null,
+        on_pressed: ?*const fn(*@This()) void = null,
+        owner_entity: ?Entity = null,
 
         pub fn getElementFromDir(self: *@This(), dir: Vec2i) ?*@This() {
-            if (dir.x == -1) return self.left;
-            if (dir.x == 1) return self.right;
-            if (dir.y == -1) return self.up;
-            if (dir.y == 1) return self.down;
+            if (dir.x == -1) { return self.left; }
+            else if (dir.x == 1) { return self.right; }
+            else if (dir.y == -1) { return self.up; }
+            else if (dir.y == 1) { return self.down; }
             return null;
         }
     };
@@ -472,26 +475,32 @@ pub const UIEventSystem = struct {
             self.unfocus();
             return;
         }
+        const element_just_pressed: bool = input.isKeyJustPressed(.{ .key = .keyboard_return });
         // Process navigation movement
-        var nav_dir: Vec2i = Vec2i.Zero;
+        var nav_dir: ?Vec2i = null;
         if (input.isKeyJustPressed(.{ .key = .keyboard_left })) {
-            nav_dir.x = -1;
+            nav_dir = Vec2i.Left;
         } else if (input.isKeyJustPressed(.{ .key = .keyboard_right })) {
-            nav_dir.x = 1;
+            nav_dir = Vec2i.Right;
         } else if (input.isKeyJustPressed(.{ .key = .keyboard_up })) {
-            nav_dir.y = -1;
+            nav_dir = Vec2i.Up;
         } else if (input.isKeyJustPressed(.{ .key = .keyboard_down })) {
-            nav_dir.y = 1;
-        } else {
-            // Early out as there has been no navigational movement, allows enter to also set navigation in motion
-            if (!input.isKeyJustPressed(.{ .key = .keyboard_return })) {
-                return;
-            }
+            nav_dir = Vec2i.Down;
         }
 
+        // Early out as there has been no navigational movement or confirmation (Return)
+        if (!element_just_pressed and nav_dir == null) { return; }
+
         if (self.focued_nav_element) |nav_element| {
-            if (nav_element.getElementFromDir(nav_dir)) |new_nav_element| {
-                self.setFocused(new_nav_element);
+            // Pressing element takes precedence over directional movements
+            if (element_just_pressed) {
+                if (nav_element.on_pressed) |on_pressed| {
+                    on_pressed(nav_element);
+                }
+            } else if (nav_dir) |dir| {
+                if (nav_element.getElementFromDir(dir)) |new_nav_element| {
+                    self.setFocused(new_nav_element);
+                }
             }
         } else {
             self.setFocused(&self.nav_elements.items[0]);
@@ -570,14 +579,14 @@ pub const UIEventSystem = struct {
         self.unfocus();
         self.focued_nav_element = nav_element;
         if (self.focued_nav_element.?.on_focus) |on_focus| {
-            on_focus();
+            on_focus(nav_element);
         }
     }
 
     fn unfocus(self: *@This()) void {
-        if (self.focued_nav_element) |focus_element| {
-            if (focus_element.on_unfocus) |on_unfocus| {
-                on_unfocus();
+        if (self.focued_nav_element) |focused_element| {
+            if (focused_element.on_unfocus) |on_unfocus| {
+                on_unfocus(focused_element);
                 self.focued_nav_element = null;
             }
         }
