@@ -244,7 +244,6 @@ pub const Texture = struct {
             for (0..width) |x| {
                 const idx: usize = (y * width + x) * 4;
                 const is_border = x < thickness or x >= width - thickness or y < thickness or y >= height - thickness;
-                log(.debug, "({d}, {d}) - is_border = {any}", .{ x, y, is_border });
                 if (is_border) {
                     texture.data[idx + 0] = 255; // R
                     texture.data[idx + 1] = 255; // G

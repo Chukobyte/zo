@@ -84,12 +84,6 @@ const ButtonUtils = struct {
         );
     }
 
-    pub fn clearNavElementState() void {
-        if (global.world.getSystemInstance(UIEventSystem)) |ui_event_system| {
-            ui_event_system.resetNavElements();
-        }
-    }
-
     pub fn setupNavElement(button_object: *GameObject, on_pressed: ?*const fn(Entity) OnClickResponse) !*UIEventSystem.NavigationElement {
         if (global.world.getSystemInstance(UIEventSystem)) |ui_event_system| {
             const ui_event_comp = global.world.getComponent(button_object.getEntity(), UIEventComponent).?;
@@ -166,7 +160,6 @@ pub const MainMenuSceneDefinition = struct {
 
 pub const MainMenuEntity = struct {
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
-        ButtonUtils.clearNavElementState();
         _ = try GameObject.initInScene(
             TextLabelClass,
             .{ .font = &global.assets.fonts.pixeloid_32, .text = "Unbound", .transform = .{ .position = .{ .x = 225.0, .y = 100.0 } }, },
@@ -211,7 +204,6 @@ pub const NewGameEntity = struct {
     existing_button: *GameObject = undefined,
 
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
-        ButtonUtils.clearNavElementState();
         _ = try GameObject.initInScene(
             TextLabelClass,
             .{ .font = &global.assets.fonts.pixeloid_16, .text = "Select character", .transform = .{ .position = .{ .x = 210.0, .y = 180.0 } }, },

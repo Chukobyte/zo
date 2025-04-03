@@ -7,8 +7,8 @@ const renderer = zo.renderer;
 const input = zo.input;
 const window = zo.window;
 const audio = zo.audio;
-const FixedDelegate = zo.delegate.FixedDelegate;
 
+const SubscriberHandle = zo.delegate.SubscriberHandle;
 const Transform2D = math.Transform2D;
 const Vec2 = math.Vec2;
 const Vec2i = math.Vec2i;
@@ -402,14 +402,17 @@ pub const UIEventSystem = struct {
     nav_elements: FixedArrayList(NavigationElement, 16) = undefined,
     focued_nav_element: ?*NavigationElement = null,
     border_texture: Texture = undefined,
+    scene_change_handle: ?SubscriberHandle = null,
 
     pub fn init(self: *@This(), _: *World) !void {
         self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 64);
         self.nav_elements = FixedArrayList(NavigationElement, 16).init();
         self.border_texture = try Texture.initWhiteSquareBorder(global.allocator, true, .{ .w = @intFromFloat(border_draw_source.w), .h = @intFromFloat(border_draw_source.h) }, 2);
+        // self.scene_change_handle = try global.scene_system.on_scene_changed.subscribe(onSceneChange);
     }
 
     pub fn deinit(self: *@This(), _: *World) void {
+        global.scene_system.on_scene_changed.unsubscribe(self.scene_change_handle.?);
         self.spatial_hash_map.deinit();
         self.border_texture.deinit();
     }
@@ -420,6 +423,10 @@ pub const UIEventSystem = struct {
 
     pub fn preWorldTick(self: *@This(), world: *World) !void {
         const ComponentIterator = World.ArchetypeComponentIterator(getSignature());
+
+        if (self.scene_change_handle == null) {
+            self.scene_change_handle = try global.scene_system.on_scene_changed.subscribe(onSceneChange);
+        }
 
         const mouse_pos: Vec2i = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
 
@@ -488,17 +495,14 @@ pub const UIEventSystem = struct {
                     on_click_response = on_pressed(nav_element.owner_entity);
                 }
                 try processOnClickResponse(on_click_response);
-                log(.debug, "on_Pressed for entity = {d}", .{ nav_element.owner_entity });
             } else if (nav_dir) |dir| {
                 if (nav_element.getElementFromDir(dir)) |new_nav_element| {
                     self.setFocused(new_nav_element);
-                    log(.debug, "navigated to entity = {d}", .{ nav_element.owner_entity });
                 }
             }
         } else {
             // Set focused item to first created navigation element.
             self.setFocused(&self.nav_elements.items[0]);
-            log(.debug, "default navigated to entity = {d}", .{ self.nav_elements.items[0].owner_entity });
         }
     }
 
@@ -580,6 +584,12 @@ pub const UIEventSystem = struct {
 
     pub fn getSignature() []const type {
         return &.{ Transform2DComponent, UIEventComponent };
+    }
+
+    pub fn onSceneChange(_: usize) void {
+        if (global.world.getSystemInstance(@This())) |self| {
+            self.resetNavElements();
+        }
     }
 
     fn updateState(self: *@This(), entity: Entity, global_mouse_pos: *const Vec2, transform_comp: *Transform2DComponent, event_comp: *UIEventComponent) !void {

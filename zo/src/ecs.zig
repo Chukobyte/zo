@@ -288,6 +288,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
                 world: *ECSWorldType,
                 queued_nodes_for_deletion: std.ArrayList(*Node),
+                on_scene_changed: FixedDelegate(fn (usize) void, 4) = .{},
                 current_scene: ?Scene = null,
                 queued_scene_def_id: ?usize = null,
 
@@ -305,9 +306,6 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 }
 
                 pub fn changeScene(self: *@This(), comptime SceneDefT: type) void {
-                    // if (!SceneDefTypeList.hasType(SceneDefT)) {
-                    //     @compileLog("Scene def doesn't exist!  Scene def = ", SceneDefT);
-                    // }
                     self.queued_scene_def_id = SceneDefTypeList.getIndex(SceneDefT);
                 }
 
@@ -473,9 +471,11 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                             if (i == def_id) {
                                 self.queued_scene_def_id = null;
                                 self.current_scene = .{
-                                .name = "Default",
-                                .nodes = std.ArrayList(*Node).init(self.world.allocator),
-                            };
+                                    .name = "Default",
+                                    .nodes = std.ArrayList(*Node).init(self.world.allocator),
+                                };
+                                // Broadcast on scene change before onSceneChanged is called on nodes
+                                self.on_scene_changed.broadcast(.{ def_id });
                                 const SceneDefT = SceneDefTypeList.getType(i);
                                 if (@hasDecl(SceneDefT, "getNodeInterface")) {
                                     const node_interface = SceneDefT.getNodeInterface();
@@ -562,7 +562,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                 const SystemT = SystemsTypeList.getType(i);
                 var new_system: *SystemT = try allocator.create(SystemT);
                 // All system members should have default values in order to 'default construct' them
-                @memcpy(std.mem.asBytes(new_system), std.mem.asBytes(&SystemT{}));
+                new_system.* = SystemT{};
                 world.system_data[i].interface_instance = new_system;
                 if (@hasDecl(SystemT, "getSignature")) {
                     const system_component_signature: []const type = SystemT.getSignature();
