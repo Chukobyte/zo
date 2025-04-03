@@ -304,13 +304,13 @@ pub const NewCharacterEntity = struct {
     const InputText = struct {
         var handle: ?delegate.SubscriberHandle = null;
         var name_object: ?*GameObject = null;
-        var disable_ui_elements_token: ?*zo.misc.Token = null;
+        var disable_nav_movement_token: ?*zo.misc.Token = null;
 
         pub fn subscribeToInput(name_obj: *GameObject) !void {
             name_object = name_obj;
             handle = try input.registered_input_delegate.subscribe(onRegisteredInput);
             const ui_event_system = global.world.getSystemInstance(UIEventSystem);
-            disable_ui_elements_token = try ui_event_system.pause_navigation_elements_tokens.takeToken();
+            disable_nav_movement_token = try ui_event_system.pause_navigation_movement_tokens.takeToken();
         }
         pub fn unsubscribeFromInput() void {
             if (handle) |h| {
@@ -318,10 +318,10 @@ pub const NewCharacterEntity = struct {
                 handle = null;
             }
             name_object = null;
-            if (disable_ui_elements_token) |token| {
+            if (disable_nav_movement_token) |token| {
                 const ui_event_system = global.world.getSystemInstance(UIEventSystem);
-                ui_event_system.pause_navigation_elements_tokens.returnToken(token);
-                disable_ui_elements_token = null;
+                ui_event_system.pause_navigation_movement_tokens.returnToken(token);
+                disable_nav_movement_token = null;
                 log(.debug, "disable ui elements token", .{});
             }
         }

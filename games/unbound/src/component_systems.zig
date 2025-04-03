@@ -403,7 +403,7 @@ pub const UIEventSystem = struct {
     nav_elements: FixedArrayList(NavigationElement, 16) = undefined,
     focued_nav_element: ?*NavigationElement = null,
     border_texture: Texture = undefined,
-    pause_navigation_elements_tokens: TokenList(4) = .{},
+    pause_navigation_movement_tokens: TokenList(4) = .{},
 
     pub fn init(self: *@This(), _: *World) !void {
         self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 64);
@@ -460,7 +460,7 @@ pub const UIEventSystem = struct {
         }
 
         // Process navigation
-        if (self.nav_elements.len == 0 or self.pause_navigation_elements_tokens.hasTokens()) { return; }
+        if (self.nav_elements.len == 0) { return; }
         // Clear nav element when a click is registered and don't process this frame
         if (just_clicked_pressed) {
             self.unfocus();
@@ -490,8 +490,8 @@ pub const UIEventSystem = struct {
                     on_click_response = on_pressed(nav_element.owner_entity);
                 }
                 try processOnClickResponse(on_click_response);
-            } else if (nav_dir) |dir| {
-                if (nav_element.getElementFromDir(dir)) |new_nav_element| {
+            } else if (nav_dir != null and !self.pause_navigation_movement_tokens.hasTokens()) {
+                if (nav_element.getElementFromDir(nav_dir.?)) |new_nav_element| {
                     self.setFocused(new_nav_element);
                 }
             }
