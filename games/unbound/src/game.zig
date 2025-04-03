@@ -400,6 +400,21 @@ pub const NewCharacterEntity = struct {
         );
         self.confirm_button = try ButtonUtils.createConfirmButton(onClick);
         self.back_button = try ButtonUtils.createBackButton(onClick);
+        var edit_name_button_element = try ButtonUtils.setupNavElement(self.edit_name_button, onPressed);
+        var confirm_button_element = try ButtonUtils.setupNavElement(self.confirm_button, onPressed);
+        var back_button_element = try ButtonUtils.setupNavElement(self.back_button, onPressed);
+        edit_name_button_element.up = back_button_element;
+        edit_name_button_element.down = back_button_element;
+        edit_name_button_element.left = back_button_element;
+        edit_name_button_element.right = confirm_button_element;
+        confirm_button_element.right = back_button_element;
+        confirm_button_element.left = back_button_element;
+        confirm_button_element.up = edit_name_button_element;
+        confirm_button_element.down = edit_name_button_element;
+        back_button_element.right = confirm_button_element;
+        back_button_element.left = confirm_button_element;
+        back_button_element.up = edit_name_button_element;
+        back_button_element.down = edit_name_button_element;
 
         const base_left_x: f32 = 200.0;
         const base_right_x: f32 = 460.0;
@@ -504,6 +519,10 @@ pub const NewCharacterEntity = struct {
             }
         }
         return .success;
+    }
+
+    pub fn onPressed(entity: Entity) OnClickResponse {
+        return onClick(entity);
     }
 
     fn addToProperty(self: *@This(), value: *u32) void {
