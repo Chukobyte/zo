@@ -2,6 +2,11 @@
 
 const std = @import("std");
 
+pub const FixedArrayListError = error{
+    IndexOutOfBounds,
+    OutOfCapacity,
+};
+
 pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
     return struct {
         items: [capacity]T,
@@ -19,15 +24,21 @@ pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
 
         pub fn addOne(self: *@This()) FixedArrayListError!*T {
             if (self.len >= self.items.len) return FixedArrayListError.OutOfCapacity;
-            const new_item: *T = &self.items[self.items.len];
-            self.items.len += 1;
+            const new_item: *T = &self.items[self.len];
+            self.len += 1;
             return new_item;
         }
 
         pub fn pop(self: *@This()) !T {
-            if (self.len == 0) return .IndexOutOfBounds;
+            if (self.len == 0) return FixedArrayListError.IndexOutOfBounds;
             self.len -= 1;
             return self.items[self.len];
+        }
+
+        pub fn popPtr(self: *@This()) !*T {
+            if (self.len == 0) return FixedArrayListError.IndexOutOfBounds;
+            self.len -= 1;
+            return &self.items[self.len];
         }
 
         pub fn swapRemove(self: *@This(), i: usize) FixedArrayListError!T {
@@ -41,9 +52,21 @@ pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
             return removed;
         }
 
+        pub fn swapRemovePtr(self: *@This(), i: usize) FixedArrayListError!T {
+            if (self.len == 0 or i >= self.len) return FixedArrayListError.IndexOutOfBounds;
+            if (i == self.len - 1) {
+                return self.popPtr();
+            }
+            const removed = self.items[i];
+            // Replace the element at i with the last element.
+            self.items[i] = try self.pop();
+            return &removed;
+        }
+
         pub fn findIndexByValue(self: *@This(), value: *const T) ?usize {
-            for (self.items, 0..self.len) |*item, i| {
-                if (std.mem.eql(u8, std.mem.asBytes(item), std.mem.asBytes(value))) {
+            for (0..self.len) |i| {
+                const item = &self.items[i];
+                if (std.mem.eql(u8, std.mem.asBytes(&item), std.mem.asBytes(value))) {
                     return i;
                 }
             }
@@ -67,24 +90,41 @@ pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
     };
 }
 
-const Token = struct {};
+pub const TokenListError = error{
+    OutOfCapacity,
+};
+
+pub const Token = struct {};
 
 pub fn TokenList(capacity: comptime_int) type {
     return struct {
-        list: FixedArrayList(Token, capacity) = FixedArrayList(Token, capacity).init(),
+        items: [capacity]?Token = [_]?Token{ null } ** capacity,
+        len: usize = 0,
 
         pub fn hasTokens(self: *const @This()) bool {
-            return self.list.len > 0;
+            return self.len > 0;
         }
 
-        pub fn takeToken(self: *@This()) !*Token {
-            const new_token: *Token = try self.list.addOne();
-            new_token.* = .{};
-            return new_token;
+        pub fn takeToken(self: *@This()) TokenListError!*Token {
+            for (0..capacity) |i| {
+                if (self.items[i] == null) {
+                    self.items[i] = .{};
+                    self.len += 1;
+                    return &self.items[i].?;
+                }
+            }
+            return TokenListError.OutOfCapacity;
         }
 
         pub fn returnToken(self: *@This(), token: *const Token) void {
-            self.list.removeByValue(token);
+            for (0..capacity) |i| {
+                if (self.items[i]) |*other_token| {
+                    if (token == other_token) {
+                        self.items[i] = null;
+                        self.len -= 1;
+                    }
+                }
+            }
         }
     };
 }
@@ -304,11 +344,6 @@ pub fn TypeBitMask(comptime types: []const type) type {
         }
     };
 }
-
-pub const FixedArrayListError = error{
-    IndexOutOfBounds,
-    OutOfCapacity,
-};
 
 pub fn assertUnsigned(comptime T: type) void {
     const info = @typeInfo(T);
