@@ -288,7 +288,6 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
                 world: *ECSWorldType,
                 queued_nodes_for_deletion: std.ArrayList(*Node),
-                on_scene_changed: FixedDelegate(fn (usize) void, 4) = .{},
                 current_scene: ?Scene = null,
                 queued_scene_def_id: ?usize = null,
 
@@ -475,7 +474,14 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                                     .nodes = std.ArrayList(*Node).init(self.world.allocator),
                                 };
                                 // Broadcast on scene change before onSceneChanged is called on nodes
-                                self.on_scene_changed.broadcast(.{ def_id });
+                                inline for (0..system_types.len) |sys_i| {
+                                    const T: type = SystemsTypeList.getType(sys_i);
+                                    if (@hasDecl(T, "onSceneChanged")) {
+                                        var system: *T = self.world.getSystemInstance(T);
+                                        system.onSceneChanged(i);
+                                    }
+                                }
+
                                 const SceneDefT = SceneDefTypeList.getType(i);
                                 if (@hasDecl(SceneDefT, "getNodeInterface")) {
                                     const node_interface = SceneDefT.getNodeInterface();
@@ -805,7 +811,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             return null;
         }
 
-        pub fn getSystemInstance(self: *@This(), SystemT: type) ?*SystemT {
+        pub fn getSystemInstance(self: *@This(), SystemT: type) *SystemT {
             const system_index = SystemsTypeList.getIndex(SystemT);
             const system_data = &self.system_data[system_index];
             const system_instance: *SystemT = @alignCast(@ptrCast(system_data.interface_instance));

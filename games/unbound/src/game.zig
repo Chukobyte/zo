@@ -85,17 +85,14 @@ const ButtonUtils = struct {
     }
 
     pub fn setupNavElement(button_object: *GameObject, on_pressed: ?*const fn(Entity) OnClickResponse) !*UIEventSystem.NavigationElement {
-        if (global.world.getSystemInstance(UIEventSystem)) |ui_event_system| {
-            const ui_event_comp = global.world.getComponent(button_object.getEntity(), UIEventComponent).?;
-            const border_thickness: f32 = 2.0;
-            const container_size: Dim2 = .{ .w = ui_event_comp.collider.w + border_thickness, .h = ui_event_comp.collider.h + border_thickness };
-            const border_position: Vec2 = .{ .x = button_object.getLocalPosition().x - 2, .y = button_object.getLocalPosition().y - 2 };
-            var new_game_button_element = try ui_event_system.generateNavElement(border_position, container_size, button_object.getEntity());
-            new_game_button_element.on_pressed = on_pressed;
-            return new_game_button_element;
-        }
-        // TODO: Return error
-        unreachable;
+        var ui_event_system = global.world.getSystemInstance(UIEventSystem);
+        const ui_event_comp = global.world.getComponent(button_object.getEntity(), UIEventComponent).?;
+        const border_thickness: f32 = 2.0;
+        const container_size: Dim2 = .{ .w = ui_event_comp.collider.w + border_thickness, .h = ui_event_comp.collider.h + border_thickness };
+        const border_position: Vec2 = .{ .x = button_object.getLocalPosition().x - 2, .y = button_object.getLocalPosition().y - 2 };
+        var new_game_button_element = try ui_event_system.generateNavElement(border_position, container_size, button_object.getEntity());
+        new_game_button_element.on_pressed = on_pressed;
+        return new_game_button_element;
     }
 };
 

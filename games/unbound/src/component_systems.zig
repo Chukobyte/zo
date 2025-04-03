@@ -402,17 +402,14 @@ pub const UIEventSystem = struct {
     nav_elements: FixedArrayList(NavigationElement, 16) = undefined,
     focued_nav_element: ?*NavigationElement = null,
     border_texture: Texture = undefined,
-    scene_change_handle: SubscriberHandle = undefined,
 
-    pub fn postWorldInit(self: *@This(), _: *World) !void {
+    pub fn init(self: *@This(), _: *World) !void {
         self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 64);
         self.nav_elements = FixedArrayList(NavigationElement, 16).init();
         self.border_texture = try Texture.initWhiteSquareBorder(global.allocator, true, .{ .w = @intFromFloat(border_draw_source.w), .h = @intFromFloat(border_draw_source.h) }, 2);
-        self.scene_change_handle = try global.scene_system.on_scene_changed.subscribe(onSceneChange);
     }
 
     pub fn deinit(self: *@This(), _: *World) void {
-        global.scene_system.on_scene_changed.unsubscribe(self.scene_change_handle);
         self.spatial_hash_map.deinit();
         self.border_texture.deinit();
     }
@@ -582,10 +579,8 @@ pub const UIEventSystem = struct {
         return &.{ Transform2DComponent, UIEventComponent };
     }
 
-    pub fn onSceneChange(_: usize) void {
-        if (global.world.getSystemInstance(@This())) |self| {
-            self.resetNavElements();
-        }
+    pub fn onSceneChanged(self: *@This(), _: usize) void {
+        self.resetNavElements();
     }
 
     fn updateState(self: *@This(), entity: Entity, global_mouse_pos: *const Vec2, transform_comp: *Transform2DComponent, event_comp: *UIEventComponent) !void {

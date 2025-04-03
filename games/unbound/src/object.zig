@@ -258,7 +258,7 @@ pub const GameObject = struct {
 
     fn onMovementUpdate(self: *@This(), context: []const u8) void {
         if (global.world.hasComponent(self.node.entity,UIEventComponent)) {
-            const ui_system: *UIEventSystem = global.world.getSystemInstance(UIEventSystem).?;
+            const ui_system: *UIEventSystem = global.world.getSystemInstance(UIEventSystem);
             ui_system.onUpdatePosition(self.node.entity) catch { log(.critical, "Failed to {s}!  Node = {any}", .{ context, self.node }); };
         }
     }
