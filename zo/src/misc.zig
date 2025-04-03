@@ -126,6 +126,13 @@ pub fn TokenList(capacity: comptime_int) type {
                 }
             }
         }
+
+        pub fn clearTokens(self: *@This()) void {
+            for (0..capacity) |i| {
+                self.items[i] = null;
+            }
+            self.len = 0;
+        }
     };
 }
 
