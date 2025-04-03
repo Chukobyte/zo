@@ -27,6 +27,7 @@ const Node = World.Node;
 const Entity = zo.ecs.Entity;
 const FixedArrayList = zo.misc.FixedArrayList;
 const SpatialHashMap = zo.spatial_hash_map.SpatialHashMap;
+const TokenList = zo.misc.TokenList;
 
 const log = zo.log;
 
@@ -402,6 +403,7 @@ pub const UIEventSystem = struct {
     nav_elements: FixedArrayList(NavigationElement, 16) = undefined,
     focued_nav_element: ?*NavigationElement = null,
     border_texture: Texture = undefined,
+    pause_navigation_elements_tokens: TokenList(4) = .{},
 
     pub fn init(self: *@This(), _: *World) !void {
         self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 64);
@@ -458,7 +460,7 @@ pub const UIEventSystem = struct {
         }
 
         // Process navigation
-        if (self.nav_elements.len == 0) { return; }
+        if (self.nav_elements.len == 0 or self.pause_navigation_elements_tokens.hasTokens()) { return; }
         // Clear nav element when a click is registered and don't process this frame
         if (just_clicked_pressed) {
             self.unfocus();

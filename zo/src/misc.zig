@@ -71,7 +71,7 @@ const Token = struct {};
 
 pub fn TokenList(capacity: comptime_int) type {
     return struct {
-        list: FixedArrayList(Token, capacity),
+        list: FixedArrayList(Token, capacity) = FixedArrayList(Token, capacity).init(),
 
         pub fn hasTokens(self: *const @This()) bool {
             return self.list.len > 0;
