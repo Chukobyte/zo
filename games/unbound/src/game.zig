@@ -452,14 +452,15 @@ pub const NewCharacterEntity = struct {
     }
 
     pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
-        if (input.isKeyJustPressed(.{ .key = .keyboard_return }) and self.is_typing_name) {
-            const text_label_comp = world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
-            try self.setIsTypingName(!self.is_typing_name, text_label_comp); // Toggle
-            InputText.unsubscribeFromInput();
-        }
         if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
             try global.assets.audio.click.play(false);
-            global.scene_system.changeScene(NewGameSceneDefinition);
+            if (self.is_typing_name) {
+                const text_label_comp = world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
+                try self.setIsTypingName(false, text_label_comp);
+                InputText.unsubscribeFromInput();
+            } else {
+                global.scene_system.changeScene(NewGameSceneDefinition);
+            }
         }
     }
 
