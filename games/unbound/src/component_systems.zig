@@ -402,17 +402,17 @@ pub const UIEventSystem = struct {
     nav_elements: FixedArrayList(NavigationElement, 16) = undefined,
     focued_nav_element: ?*NavigationElement = null,
     border_texture: Texture = undefined,
-    scene_change_handle: ?SubscriberHandle = null,
+    scene_change_handle: SubscriberHandle = undefined,
 
-    pub fn init(self: *@This(), _: *World) !void {
+    pub fn postWorldInit(self: *@This(), _: *World) !void {
         self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 64);
         self.nav_elements = FixedArrayList(NavigationElement, 16).init();
         self.border_texture = try Texture.initWhiteSquareBorder(global.allocator, true, .{ .w = @intFromFloat(border_draw_source.w), .h = @intFromFloat(border_draw_source.h) }, 2);
-        // self.scene_change_handle = try global.scene_system.on_scene_changed.subscribe(onSceneChange);
+        self.scene_change_handle = try global.scene_system.on_scene_changed.subscribe(onSceneChange);
     }
 
     pub fn deinit(self: *@This(), _: *World) void {
-        global.scene_system.on_scene_changed.unsubscribe(self.scene_change_handle.?);
+        global.scene_system.on_scene_changed.unsubscribe(self.scene_change_handle);
         self.spatial_hash_map.deinit();
         self.border_texture.deinit();
     }
@@ -423,10 +423,6 @@ pub const UIEventSystem = struct {
 
     pub fn preWorldTick(self: *@This(), world: *World) !void {
         const ComponentIterator = World.ArchetypeComponentIterator(getSignature());
-
-        if (self.scene_change_handle == null) {
-            self.scene_change_handle = try global.scene_system.on_scene_changed.subscribe(onSceneChange);
-        }
 
         const mouse_pos: Vec2i = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
 

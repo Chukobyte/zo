@@ -605,6 +605,17 @@ pub fn ECSWorld(params: ECSWorldParams) type {
             }
         }
 
+        /// For stuff that needs to be initialized after World.init (e.g. referencing Scene System)
+        pub fn postInit(self: *@This()) !void {
+            inline for (0..system_types.len) |i| {
+                const T: type = SystemsTypeList.getType(i);
+                if (@hasDecl(T, "postWorldInit")) {
+                    var system: *T = @alignCast(@ptrCast(self.system_data[i].interface_instance));
+                    try system.postWorldInit(self);
+                }
+            }
+        }
+
         pub fn preTick(self: *@This()) !void {
             inline for (0..system_types.len) |i| {
                 const T: type = SystemsTypeList.getType(i);

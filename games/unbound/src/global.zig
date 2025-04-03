@@ -97,6 +97,7 @@ pub fn init(alloc: std.mem.Allocator) !void {
     world = try World.init(allocator);
     scene_system = SceneSystem.init(&world);
     assets = try AssetManager.init();
+    try world.postInit();
 }
 
 pub fn deinit() void {
