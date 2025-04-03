@@ -17,6 +17,13 @@ pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
             self.len += 1;
         }
 
+        pub fn addOne(self: *@This()) FixedArrayListError!*T {
+            if (self.len >= self.items.len) return FixedArrayListError.OutOfCapacity;
+            const new_item: *T = &self.items[self.items.len];
+            self.items.len += 1;
+            return new_item;
+        }
+
         pub fn pop(self: *@This()) !T {
             if (self.len == 0) return .IndexOutOfBounds;
             self.len -= 1;
@@ -56,6 +63,28 @@ pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
 
         pub inline fn clear(self: *@This()) void {
             self.len = 0;
+        }
+    };
+}
+
+const Token = struct {};
+
+pub fn TokenList(capacity: comptime_int) type {
+    return struct {
+        list: FixedArrayList(Token, capacity),
+
+        pub fn hasTokens(self: *const @This()) bool {
+            return self.list.len > 0;
+        }
+
+        pub fn takeToken(self: *@This()) !*Token {
+            const new_token: *Token = try self.list.addOne();
+            new_token.* = .{};
+            return new_token;
+        }
+
+        pub fn returnToken(self: *@This(), token: *const Token) void {
+            self.list.removeByValue(token);
         }
     };
 }
