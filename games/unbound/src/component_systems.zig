@@ -469,14 +469,16 @@ pub const UIEventSystem = struct {
         const element_just_pressed: bool = input.isKeyJustPressed(.{ .key = .keyboard_return });
         // Process navigation movement
         var nav_dir: ?Vec2i = null;
-        if (input.isKeyJustPressed(.{ .key = .keyboard_left })) {
-            nav_dir = Vec2i.Left;
-        } else if (input.isKeyJustPressed(.{ .key = .keyboard_right })) {
-            nav_dir = Vec2i.Right;
-        } else if (input.isKeyJustPressed(.{ .key = .keyboard_up })) {
-            nav_dir = Vec2i.Up;
-        } else if (input.isKeyJustPressed(.{ .key = .keyboard_down })) {
-            nav_dir = Vec2i.Down;
+        if (!self.pause_navigation_movement_tokens.hasTokens()) {
+            if (input.isKeyJustPressed(.{ .key = .keyboard_left })) {
+                nav_dir = Vec2i.Left;
+            } else if (input.isKeyJustPressed(.{ .key = .keyboard_right })) {
+                nav_dir = Vec2i.Right;
+            } else if (input.isKeyJustPressed(.{ .key = .keyboard_up })) {
+                nav_dir = Vec2i.Up;
+            } else if (input.isKeyJustPressed(.{ .key = .keyboard_down })) {
+                nav_dir = Vec2i.Down;
+            }
         }
 
         // Early out as there has been no navigational movement or confirmation (Return)
@@ -490,8 +492,8 @@ pub const UIEventSystem = struct {
                     on_click_response = on_pressed(nav_element.owner_entity);
                 }
                 try processOnClickResponse(on_click_response);
-            } else if (nav_dir != null and !self.pause_navigation_movement_tokens.hasTokens()) {
-                if (nav_element.getElementFromDir(nav_dir.?)) |new_nav_element| {
+            } else if (nav_dir) |dir| {
+                if (nav_element.getElementFromDir(dir)) |new_nav_element| {
                     self.setFocused(new_nav_element);
                 }
             }
