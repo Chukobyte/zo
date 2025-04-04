@@ -773,13 +773,43 @@ pub const LocationEntity = struct {
             null,
             null
         );
-        // base_pos.x += x_increment;
         self.end_turn_button = try GameObject.initInScene(
             TextButtonClass,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "End Turn", .on_click = onClick, .transform = .{ .position = .{ .x = 270.0, .y = 290.0 } } },
             null,
             null
         );
+
+        var discover_button_element = try ButtonUtils.setupNavElement(self.discover_button, onPressed);
+        var interact_button_element = try ButtonUtils.setupNavElement(self.interact_button, onPressed);
+        var military_button_element = try ButtonUtils.setupNavElement(self.military_button, onPressed);
+        var character_button_element = try ButtonUtils.setupNavElement(self.character_button, onPressed);
+        var travel_button_element = try ButtonUtils.setupNavElement(self.travel_button, onPressed);
+        var end_turn_button_element = try ButtonUtils.setupNavElement(self.end_turn_button, onPressed);
+        discover_button_element.right = interact_button_element;
+        discover_button_element.left = character_button_element;
+        discover_button_element.up = end_turn_button_element;
+        discover_button_element.down = end_turn_button_element;
+        interact_button_element.right = military_button_element;
+        interact_button_element.left = discover_button_element;
+        interact_button_element.up = end_turn_button_element;
+        interact_button_element.down = end_turn_button_element;
+        military_button_element.right = travel_button_element;
+        military_button_element.left = interact_button_element;
+        military_button_element.up = end_turn_button_element;
+        military_button_element.down = end_turn_button_element;
+        travel_button_element.right = character_button_element;
+        travel_button_element.left = military_button_element;
+        travel_button_element.up = end_turn_button_element;
+        travel_button_element.down = end_turn_button_element;
+        character_button_element.right = discover_button_element;
+        character_button_element.left = travel_button_element;
+        character_button_element.up = end_turn_button_element;
+        character_button_element.down = end_turn_button_element;
+        end_turn_button_element.left = interact_button_element;
+        end_turn_button_element.right = travel_button_element;
+        end_turn_button_element.up = military_button_element;
+        end_turn_button_element.down = military_button_element;
     }
 
     pub fn onClick(clicked_entity: Entity) OnUIChangedResponse {
@@ -804,6 +834,10 @@ pub const LocationEntity = struct {
             }
         }
         return .success;
+    }
+
+    pub fn onPressed(entity: Entity) OnUIChangedResponse {
+        return onClick(entity);
     }
 
     fn refreshActionPointsText(self: *@This()) !void {
