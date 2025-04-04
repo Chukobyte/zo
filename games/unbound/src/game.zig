@@ -31,7 +31,8 @@ const TextLabelComponent = component_systems.TextLabelComponent;
 const ColorRectComponent = component_systems.ColorRectComponent;
 const UIEventComponent = component_systems.UIEventComponent;
 const UIEventSystem = component_systems.UIEventSystem;
-const OnClickResponse = component_systems.OnClickResponse;
+const OnUIChangedResponse = component_systems.OnUIChangedResponse;
+const NavigationElement = component_systems.NavigationElement;
 const InputKey = input.InputKey;
 const InputEvent = input.InputEvent;
 const InputAction = input.InputAction;
@@ -58,7 +59,7 @@ const ButtonUtils = struct {
     on_unhover: ?*const fn(Entity) void = null,
     on_click: ?*const fn(Entity) void = null,
 
-    pub fn createConfirmButton(on_click: ?*const fn(Entity) OnClickResponse) !*GameObject {
+    pub fn createConfirmButton(on_click: ?*const fn(Entity) OnUIChangedResponse) !*GameObject {
         return try GameObject.initInScene(
             TextButtonClass,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Confirm", .on_click = on_click, .transform = .{ .position = .{ .x = 500.0, .y = 300.0 } } },
@@ -66,7 +67,7 @@ const ButtonUtils = struct {
             null
         );
     }
-    pub fn createBackButton(on_click: ?*const fn(Entity) OnClickResponse) !*GameObject {
+    pub fn createBackButton(on_click: ?*const fn(Entity) OnUIChangedResponse) !*GameObject {
         return try GameObject.initInScene(
             TextButtonClass,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Back", .on_click = on_click, .transform = .{ .position = .{ .x = 40.0, .y = 300.0 } }, .z_index = 1 },
@@ -75,7 +76,7 @@ const ButtonUtils = struct {
         );
     }
 
-    pub fn createValueChangeButton(symbol: []const u8, position: Vec2, on_click: ?*const fn(Entity) OnClickResponse) !*GameObject {
+    pub fn createValueChangeButton(symbol: []const u8, position: Vec2, on_click: ?*const fn(Entity) OnUIChangedResponse) !*GameObject {
         return try GameObject.initInScene(
             TextButtonClass,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 15.0, .h = 15.0 }, .font = &global.assets.fonts.pixeloid_16, .text = symbol, .on_click = on_click, .transform = .{ .position = position } },
@@ -84,7 +85,7 @@ const ButtonUtils = struct {
         );
     }
 
-    pub fn setupNavElement(button_object: *GameObject, on_pressed: ?*const fn(Entity) OnClickResponse) !*UIEventSystem.NavigationElement {
+    pub fn setupNavElement(button_object: *GameObject, on_pressed: ?*const fn(Entity) OnUIChangedResponse) !*NavigationElement {
         var ui_event_system = global.world.getSystemInstance(UIEventSystem);
         const ui_event_comp = global.world.getComponent(button_object.getEntity(), UIEventComponent).?;
         const border_thickness: f32 = 2.0;
@@ -172,12 +173,12 @@ pub const MainMenuEntity = struct {
         _ = try ButtonUtils.setupNavElement(new_game_button, onPressed);
     }
 
-    pub fn onClick(_: Entity) OnClickResponse {
+    pub fn onClick(_: Entity) OnUIChangedResponse {
         global.scene_system.changeScene(NewGameSceneDefinition);
         return .success;
     }
 
-    pub fn onPressed(entity: Entity) OnClickResponse {
+    pub fn onPressed(entity: Entity) OnUIChangedResponse {
         return onClick(entity);
     }
 };
@@ -228,7 +229,7 @@ pub const NewGameEntity = struct {
         existing_button_element.down = new_button_element;
     }
 
-    pub fn onClick(clicked_entity: Entity) OnClickResponse {
+    pub fn onClick(clicked_entity: Entity) OnUIChangedResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.new_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(NewCharacterSceneDefinition);
@@ -241,7 +242,7 @@ pub const NewGameEntity = struct {
         return .success;
     }
 
-    pub fn onPressed(entity: Entity) OnClickResponse {
+    pub fn onPressed(entity: Entity) OnUIChangedResponse {
         return onClick(entity);
     }
 };
@@ -275,7 +276,7 @@ pub const ExistingCharacterEntity = struct {
         }
     }
 
-    pub fn onClick(clicked_entity: Entity) OnClickResponse {
+    pub fn onClick(clicked_entity: Entity) OnUIChangedResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(NewGameSceneDefinition);
@@ -474,7 +475,7 @@ pub const NewCharacterEntity = struct {
         }
     }
 
-    pub fn onClick(clicked_entity: Entity) OnClickResponse {
+    pub fn onClick(clicked_entity: Entity) OnUIChangedResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.edit_name_button.node.entity == clicked_entity) {
                 const text_label_comp = global.world.getComponent(self.name_object.node.entity, TextLabelComponent).?;
@@ -532,8 +533,13 @@ pub const NewCharacterEntity = struct {
         return .success;
     }
 
-    pub fn onPressed(entity: Entity) OnClickResponse {
+    pub fn onPressed(entity: Entity) OnUIChangedResponse {
         return onClick(entity);
+    }
+
+    pub fn onNavElementDirectionChanged(element: *NavigationElement, dir: Vec2i) OnUIChangedResponse {
+        _ = element; _ = dir;
+        return .success;
     }
 
     fn addToProperty(self: *@This(), value: *u32) void {
@@ -687,7 +693,7 @@ pub const LocationEntity = struct {
         );
     }
 
-    pub fn onClick(clicked_entity: Entity) OnClickResponse {
+    pub fn onClick(clicked_entity: Entity) OnUIChangedResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.discover_button.node.entity == clicked_entity) {
                 if (player_character.action_points.value == 0) { return .invalid; }
@@ -782,7 +788,7 @@ pub const MapEntity = struct {
         }
     }
 
-    pub fn onClick(clicked_entity: Entity) OnClickResponse {
+    pub fn onClick(clicked_entity: Entity) OnUIChangedResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.confirm_button.node.entity == clicked_entity) {
                 self.confirmLocation();
@@ -843,7 +849,7 @@ pub const CharacterViewEntity = struct {
         }
     }
 
-    pub fn onClick(clicked_entity: Entity) OnClickResponse {
+    pub fn onClick(clicked_entity: Entity) OnUIChangedResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.back_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(LocationSceneDefinition);
@@ -974,7 +980,7 @@ pub const MilitaryEntity = struct {
         }
     }
 
-    pub fn onClick(clicked_entity: Entity) OnClickResponse {
+    pub fn onClick(clicked_entity: Entity) OnUIChangedResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.recruit_button.node.entity == clicked_entity) {
                 if (player_character.action_points.value == 0) { return .invalid; }

@@ -28,6 +28,7 @@ const Entity = zo.ecs.Entity;
 const FixedArrayList = zo.misc.FixedArrayList;
 const SpatialHashMap = zo.spatial_hash_map.SpatialHashMap;
 const TokenList = zo.misc.TokenList;
+const FixedDelegate = zo.delegate.FixedDelegate;
 
 const log = zo.log;
 
@@ -339,7 +340,7 @@ pub const ColorRectSystem = struct {
 };
 
 /// Responses from clicking with the left mouse button, also used for 'Return' for confirmations
-pub const OnClickResponse = enum {
+pub const OnUIChangedResponse = enum {
     none,
     success,
     invalid,
@@ -361,9 +362,31 @@ pub const UIEventComponent = struct {
     collider: Rect2,
     on_hover: ?*const fn(Entity) void = null,
     on_unhover: ?*const fn(Entity) void = null,
-    on_click: ?*const fn(Entity) OnClickResponse = null,
+    on_click: ?*const fn(Entity) OnUIChangedResponse = null,
     style: Style = default_style,
     is_mouse_hovering: bool = false,
+};
+
+/// Keyboard navigational element
+pub const NavigationElement = struct {
+    position: Vec2, // World position
+    size: Dim2, // Container size
+    owner_entity: Entity,
+    left: ?*@This() = null,
+    right: ?*@This() = null,
+    up: ?*@This() = null,
+    down: ?*@This() = null,
+    on_focus: ?*const fn(Entity) void = null,
+    on_unfocus: ?*const fn(Entity) void = null,
+    on_pressed: ?*const fn(Entity) OnUIChangedResponse = null,
+
+    pub fn getElementFromDir(self: *@This(), dir: Vec2i) ?*@This() {
+        if (dir.x == -1) { return self.left; }
+        else if (dir.x == 1) { return self.right; }
+        else if (dir.y == -1) { return self.up; }
+            else if (dir.y == 1) { return self.down; }
+        return null;
+    }
 };
 
 pub const UIEventSystem = struct {
@@ -374,28 +397,6 @@ pub const UIEventSystem = struct {
         click
     };
 
-    /// Keyboard navigational element
-    pub const NavigationElement = struct {
-        position: Vec2, // World position
-        size: Dim2, // Container size
-        owner_entity: Entity,
-        left: ?*@This() = null,
-        right: ?*@This() = null,
-        up: ?*@This() = null,
-        down: ?*@This() = null,
-        on_focus: ?*const fn(Entity) void = null,
-        on_unfocus: ?*const fn(Entity) void = null,
-        on_pressed: ?*const fn(Entity) OnClickResponse = null,
-
-        pub fn getElementFromDir(self: *@This(), dir: Vec2i) ?*@This() {
-            if (dir.x == -1) { return self.left; }
-            else if (dir.x == 1) { return self.right; }
-            else if (dir.y == -1) { return self.up; }
-            else if (dir.y == 1) { return self.down; }
-            return null;
-        }
-    };
-
     const border_draw_source: Rect2 = .{ .x = 0.0, .y = 0.0, .w = 16.0, .h = 8.0 };
 
     spatial_hash_map: EntitySpatialHashMap = undefined,
@@ -403,6 +404,7 @@ pub const UIEventSystem = struct {
     nav_elements: FixedArrayList(NavigationElement, 16) = undefined,
     focued_nav_element: ?*NavigationElement = null,
     border_texture: Texture = undefined,
+    on_nav_direction_changed: FixedDelegate(fn (*NavigationElement, Vec2i) void, 4) = .{},
     pause_navigation_movement_tokens: TokenList(4) = .{},
 
     pub fn init(self: *@This(), _: *World) !void {
@@ -450,7 +452,7 @@ pub const UIEventSystem = struct {
                     setStyleColor(.hover, entity, event_comp);
                 }
                 if (just_clicked_pressed) {
-                    var on_click_response: OnClickResponse = .success;
+                    var on_click_response: OnUIChangedResponse = .success;
                     if (event_comp.on_click) |on_click| {
                         on_click_response = on_click(iter.getEntity());
                     }
@@ -487,7 +489,7 @@ pub const UIEventSystem = struct {
         if (self.focued_nav_element) |nav_element| {
             // Pressing element takes precedence over directional movements
             if (element_just_pressed) {
-                var on_click_response: OnClickResponse = .success;
+                var on_click_response: OnUIChangedResponse = .success;
                 if (nav_element.on_pressed) |on_pressed| {
                     on_click_response = on_pressed(nav_element.owner_entity);
                 }
@@ -496,6 +498,9 @@ pub const UIEventSystem = struct {
                 if (nav_element.getElementFromDir(dir)) |new_nav_element| {
                     self.setFocused(new_nav_element);
                 }
+                const on_nav_dir_changed_response: OnUIChangedResponse = .success;
+                self.on_nav_direction_changed.broadcast(.{ self.focued_nav_element.?, dir });
+                try processOnDirChangedResponse(on_nav_dir_changed_response);
             }
         } else {
             // Set focused item to first created navigation element.
@@ -655,10 +660,18 @@ pub const UIEventSystem = struct {
         }
     }
 
-    fn processOnClickResponse(on_click_response: OnClickResponse) !void {
+    fn processOnClickResponse(on_click_response: OnUIChangedResponse) !void {
         switch (on_click_response) {
             .success => try global.assets.audio.click.play(false),
             .invalid => try global.assets.audio.invalid_click.play(false),
+            .none => {},
+        }
+    }
+
+    fn processOnDirChangedResponse(on_dir_changed_response: OnUIChangedResponse) !void {
+        switch (on_dir_changed_response) {
+            .success => {},
+            .invalid => {},
             .none => {},
         }
     }
