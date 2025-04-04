@@ -404,7 +404,7 @@ pub const UIEventSystem = struct {
     nav_elements: FixedArrayList(NavigationElement, 16) = undefined,
     focued_nav_element: ?*NavigationElement = null,
     border_texture: Texture = undefined,
-    on_nav_direction_changed: FixedDelegate(fn (*NavigationElement, Vec2i) void, 4) = .{},
+    on_nav_direction_changed: FixedDelegate(fn (*NavigationElement, Vec2i) OnUIChangedResponse, 4) = .{},
     pause_navigation_movement_tokens: TokenList(4) = .{},
 
     pub fn init(self: *@This(), _: *World) !void {
@@ -498,8 +498,12 @@ pub const UIEventSystem = struct {
                 if (nav_element.getElementFromDir(dir)) |new_nav_element| {
                     self.setFocused(new_nav_element);
                 }
-                const on_nav_dir_changed_response: OnUIChangedResponse = .success;
-                self.on_nav_direction_changed.broadcast(.{ self.focued_nav_element.?, dir });
+                var on_nav_dir_changed_response: OnUIChangedResponse = .success;
+                const ui_responses = try self.on_nav_direction_changed.broadcastWithReturn(.{ self.focued_nav_element.?, dir }, OnUIChangedResponse);
+                // We're only respecting the first ui response for now
+                if (ui_responses.len > 0) {
+                    on_nav_dir_changed_response = ui_responses.items[0];
+                }
                 try processOnDirChangedResponse(on_nav_dir_changed_response);
             }
         } else {

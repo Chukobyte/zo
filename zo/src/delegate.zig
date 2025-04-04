@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const FixedArrayList = @import("misc.zig").FixedArrayList;
+
 pub const SubscriberHandle = u32;
 
 const DelegateError = error {
@@ -81,6 +83,15 @@ pub fn FixedDelegate(comptime FunctionT: type, max_subs: comptime_int) type {
             for (self.subscribers[0..self.count]) |*subscriber| {
                 @call(.auto, subscriber.callback, args);
             }
+        }
+
+        pub fn broadcastWithReturn(self: *@This(), args: anytype, comptime ReturnT: type) !FixedArrayList(ReturnT, max_subs) {
+            var return_values = FixedArrayList(ReturnT, max_subs).init();
+            for (self.subscribers[0..self.count]) |*subscriber| {
+                const value = @call(.auto, subscriber.callback, args);
+                try return_values.append(value);
+            }
+            return return_values;
         }
 
         /// Subscribe to event, use returned 'SubscriberHander' to unsubscribe once finished
