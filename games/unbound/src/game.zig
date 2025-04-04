@@ -554,25 +554,25 @@ pub const NewCharacterEntity = struct {
                 player_character.ethnicity = ethnicity_selections[self.ethnicity_index];
                 self.refreshCharacterDetails();
             } else if (self.add_lead_button.node.entity == clicked_entity) {
-                self.addToProperty(&player_character.lead);
+                if (!self.addToProperty(&player_character.lead)) { return .invalid; }
             } else if (self.sub_lead_button.node.entity == clicked_entity) {
-                self.subFromProperty(&player_character.lead);
+                if (!self.subFromProperty(&player_character.lead)) { return .invalid; }
             } else if (self.add_military_button.node.entity == clicked_entity) {
-                self.addToProperty(&player_character.military);
+                if (!self.addToProperty(&player_character.military)) { return .invalid; }
             } else if (self.sub_military_button.node.entity == clicked_entity) {
-                self.subFromProperty(&player_character.military);
+                if (!self.subFromProperty(&player_character.military)) { return .invalid; }
             } else if (self.add_charisma_button.node.entity == clicked_entity) {
-                self.addToProperty(&player_character.charisma);
+                if (!self.addToProperty(&player_character.charisma)) { return .invalid; }
             } else if (self.sub_charisma_button.node.entity == clicked_entity) {
-                self.subFromProperty(&player_character.charisma);
+                if (!self.subFromProperty(&player_character.charisma)) { return .invalid; }
             } else if (self.add_intelligence_button.node.entity == clicked_entity) {
-                self.addToProperty(&player_character.intelligence);
+                if (!self.addToProperty(&player_character.intelligence)) { return .invalid; }
             } else if (self.sub_intelligence_button.node.entity == clicked_entity) {
-                self.subFromProperty(&player_character.intelligence);
+                if (!self.subFromProperty(&player_character.intelligence)) { return .invalid; }
             } else if (self.add_politics_button.node.entity == clicked_entity) {
-                self.addToProperty(&player_character.politics);
+                if (!self.addToProperty(&player_character.politics)) { return .invalid; }
             } else if (self.sub_politics_button.node.entity == clicked_entity) {
-                self.subFromProperty(&player_character.politics);
+                if (!self.subFromProperty(&player_character.politics)) { return .invalid; }
             } else if (self.location_left_button.node.entity == clicked_entity) {
                 self.location_selector.decrease();
                 player_character.location = self.location_selector.getLocation();
@@ -632,20 +632,22 @@ pub const NewCharacterEntity = struct {
         return null;
     }
 
-    fn addToProperty(self: *@This(), value: *u32) void {
-        if (self.skill_points == 0 or value.* >= 90) { return; }
+    fn addToProperty(self: *@This(), value: *u32) bool {
+        if (self.skill_points == 0 or value.* >= 90) { return false; }
         value.* += 10;
         self.skill_points -= 10;
         self.refreshSkillPoints();
         self.refreshCharacterDetails();
+        return true;
     }
 
-    fn subFromProperty(self: *@This(), value: *u32) void {
-        if (value.* == 0) { return; }
+    fn subFromProperty(self: *@This(), value: *u32) bool {
+        if (value.* == 0) { return false; }
         value.* -= 10;
         self.skill_points += 10;
         self.refreshSkillPoints();
         self.refreshCharacterDetails();
+        return true;
     }
 
     fn refreshSkillPoints(self: *@This()) void {
