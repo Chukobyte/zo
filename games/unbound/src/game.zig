@@ -388,7 +388,6 @@ pub const NewCharacterEntity = struct {
     location_left_button: *GameObject = undefined,
     location_right_button: *GameObject = undefined,
     skill_points_object: *GameObject = undefined,
-
     ethnicity_nav_element: *NavigationElement = undefined,
     lead_nav_element: *NavigationElement = undefined,
     military_nav_element: *NavigationElement = undefined,
@@ -396,8 +395,9 @@ pub const NewCharacterEntity = struct {
     intelligence_nav_element: *NavigationElement = undefined,
     politics_nav_element: *NavigationElement = undefined,
     location_nav_element: *NavigationElement = undefined,
+    on_nav_dir_changed_handle: SubscriberHandle = undefined,
 
-    pub fn onEnterScene(self: *@This(), _: *World, entity: ecs.Entity) !void {
+    pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
         try self.resetPlayerCharacter();
         self.name_object = try GameObject.initInScene(
             TextLabelClass,
@@ -509,6 +509,14 @@ pub const NewCharacterEntity = struct {
             null
         );
         self.refreshSkillPoints();
+
+        var ui_event_system = world.getSystemInstance(UIEventSystem);
+        self.on_nav_dir_changed_handle = try ui_event_system.on_nav_direction_changed.subscribe(onNavElementDirectionChanged);
+    }
+
+    pub fn onExitScene(self: *@This(), world: *World, _: Entity) void {
+        var ui_event_system = world.getSystemInstance(UIEventSystem);
+        ui_event_system.on_nav_direction_changed.unsubscribe(self.on_nav_dir_changed_handle);
     }
 
     pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
@@ -588,7 +596,10 @@ pub const NewCharacterEntity = struct {
 
     pub fn onNavElementDirectionChanged(element: *NavigationElement, dir: Vec2i) OnUIChangedResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
-            if (element == self.lead_nav_element) {
+            if (element == self.ethnicity_nav_element) {
+                if (dir.equals(&Vec2i.Left)) { return onClick(self.ethnicity_left_button.node.entity); }
+                else if (dir.equals(&Vec2i.Right)) { return onClick(self.ethnicity_right_button.node.entity); }
+            } else if (element == self.lead_nav_element) {
                 if (dir.equals(&Vec2i.Left)) { return onClick(self.sub_lead_button.node.entity); }
                 else if (dir.equals(&Vec2i.Right)) { return onClick(self.add_lead_button.node.entity); }
             } else if (element == self.military_nav_element) {
