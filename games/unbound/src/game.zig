@@ -389,6 +389,13 @@ pub const NewCharacterEntity = struct {
     location_right_button: *GameObject = undefined,
     skill_points_object: *GameObject = undefined,
 
+    lead_nav_element: *NavigationElement = undefined,
+    military_nav_element: *NavigationElement = undefined,
+    charisma_nav_element: *NavigationElement = undefined,
+    intelligence_nav_element: *NavigationElement = undefined,
+    politics_nav_element: *NavigationElement = undefined,
+    location_nav_element: *NavigationElement = undefined,
+
     pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
         try self.resetPlayerCharacter();
         self.name_object = try GameObject.initInScene(
@@ -538,7 +545,27 @@ pub const NewCharacterEntity = struct {
     }
 
     pub fn onNavElementDirectionChanged(element: *NavigationElement, dir: Vec2i) OnUIChangedResponse {
-        _ = element; _ = dir;
+        if (global.world.findEntityScriptInstance(@This())) |self| {
+            if (element == self.lead_nav_element) {
+                if (dir.equals(&Vec2i.Left)) { return onClick(self.sub_lead_button.node.entity); }
+                else if (dir.equals(&Vec2i.Right)) { return onClick(self.add_lead_button.node.entity); }
+            } else if (element == self.military_nav_element) {
+                if (dir.equals(&Vec2i.Left)) { return onClick(self.sub_military_button.node.entity); }
+                else if (dir.equals(&Vec2i.Right)) { return onClick(self.add_military_button.node.entity); }
+            } else if (element == self.charisma_nav_element) {
+                if (dir.equals(&Vec2i.Left)) { return onClick(self.sub_charisma_button.node.entity); }
+                else if (dir.equals(&Vec2i.Right)) { return onClick(self.add_charisma_button.node.entity); }
+            } else if (element == self.intelligence_nav_element) {
+                if (dir.equals(&Vec2i.Left)) { return onClick(self.sub_intelligence_button.node.entity); }
+                else if (dir.equals(&Vec2i.Right)) { return onClick(self.add_intelligence_button.node.entity); }
+            } else if (element == self.politics_nav_element) {
+                if (dir.equals(&Vec2i.Left)) { return onClick(self.sub_politics_button.node.entity); }
+                else if (dir.equals(&Vec2i.Right)) { return onClick(self.add_politics_button.node.entity); }
+            } else if (element == self.location_nav_element) {
+                if (dir.equals(&Vec2i.Left)) { return onClick(self.location_left_button.node.entity); }
+                else if (dir.equals(&Vec2i.Right)) { return onClick(self.location_right_button.node.entity); }
+            }
+        }
         return .success;
     }
 
