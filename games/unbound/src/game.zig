@@ -1097,6 +1097,22 @@ pub const MilitaryEntity = struct {
             null
         );
         self.back_button = try ButtonUtils.createBackButton(onClick);
+
+        var recruit_button_element = try ButtonUtils.setupNavElement(self.recruit_button, onPressed);
+        var battle_button_element = try ButtonUtils.setupNavElement(self.battle_button, onPressed);
+        var back_button_element = try ButtonUtils.setupNavElement(self.back_button, onPressed);
+        recruit_button_element.right = battle_button_element;
+        recruit_button_element.left = back_button_element;
+        recruit_button_element.down = back_button_element;
+        recruit_button_element.up = back_button_element;
+        battle_button_element.left = recruit_button_element;
+        battle_button_element.right = back_button_element;
+        battle_button_element.down = back_button_element;
+        battle_button_element.up = back_button_element;
+        back_button_element.up = recruit_button_element;
+        back_button_element.down = recruit_button_element;
+        back_button_element.right = recruit_button_element;
+        back_button_element.left = battle_button_element;
     }
 
     pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
@@ -1123,6 +1139,10 @@ pub const MilitaryEntity = struct {
             }
         }
         return .success;
+    }
+
+    pub fn onPressed(entity: Entity) OnUIChangedResponse {
+        return onClick(entity);
     }
 
     fn refreshTroopCount(self: *@This()) !void {
