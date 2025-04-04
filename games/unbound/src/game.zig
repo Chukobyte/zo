@@ -90,7 +90,7 @@ const ButtonUtils = struct {
         const ui_event_comp = global.world.getComponent(button_object.getEntity(), UIEventComponent).?;
         const border_thickness: f32 = 2.0;
         const container_size: Dim2 = .{ .w = ui_event_comp.collider.w + border_thickness, .h = ui_event_comp.collider.h + border_thickness };
-        const border_position: Vec2 = .{ .x = button_object.getLocalPosition().x - 2, .y = button_object.getLocalPosition().y - 2 };
+        const border_position: Vec2 = .{ .x = button_object.getLocalPosition().x - border_thickness, .y = button_object.getLocalPosition().y - border_thickness };
         var new_game_button_element = try ui_event_system.generateNavElement(border_position, container_size, button_object.getEntity());
         new_game_button_element.on_pressed = on_pressed;
         return new_game_button_element;
@@ -389,6 +389,7 @@ pub const NewCharacterEntity = struct {
     location_right_button: *GameObject = undefined,
     skill_points_object: *GameObject = undefined,
 
+    ethnicity_nav_element: *NavigationElement = undefined,
     lead_nav_element: *NavigationElement = undefined,
     military_nav_element: *NavigationElement = undefined,
     charisma_nav_element: *NavigationElement = undefined,
@@ -396,7 +397,7 @@ pub const NewCharacterEntity = struct {
     politics_nav_element: *NavigationElement = undefined,
     location_nav_element: *NavigationElement = undefined,
 
-    pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
+    pub fn onEnterScene(self: *@This(), _: *World, entity: ecs.Entity) !void {
         try self.resetPlayerCharacter();
         self.name_object = try GameObject.initInScene(
             TextLabelClass,
@@ -421,18 +422,59 @@ pub const NewCharacterEntity = struct {
         var edit_name_button_element = try ButtonUtils.setupNavElement(self.edit_name_button, onPressed);
         var confirm_button_element = try ButtonUtils.setupNavElement(self.confirm_button, onPressed);
         var back_button_element = try ButtonUtils.setupNavElement(self.back_button, onPressed);
+
+        const Local = struct {
+            pub fn setupValueChangedNavElement(owner_entity: Entity, pos: Vec2) !*NavigationElement {
+                var ui_event_system = global.world.getSystemInstance(UIEventSystem);
+                const border_thickness: f32 = 2.0;
+                const container_size: Dim2 = .{ .w = 325 + border_thickness, .h = 26 + border_thickness };
+                const border_position = pos.sub(&.{ .x = border_thickness, .y = border_thickness });
+                const new_value_changed_element = try ui_event_system.generateNavElement(border_position, container_size, owner_entity);
+                return new_value_changed_element;
+            }
+        };
+        var base_value_changed_pos: Vec2 = .{ .x = 175.0, .y = 130.0 };
+        const base_value_changed_y_increment: f32 = 24.0;
+        self.ethnicity_nav_element = try Local.setupValueChangedNavElement(entity, base_value_changed_pos);
+        base_value_changed_pos.y += base_value_changed_y_increment;
+        self.lead_nav_element = try Local.setupValueChangedNavElement(entity, base_value_changed_pos);
+        base_value_changed_pos.y += base_value_changed_y_increment;
+        self.military_nav_element = try Local.setupValueChangedNavElement(entity, base_value_changed_pos);
+        base_value_changed_pos.y += base_value_changed_y_increment;
+        self.charisma_nav_element = try Local.setupValueChangedNavElement(entity, base_value_changed_pos);
+        base_value_changed_pos.y += base_value_changed_y_increment;
+        self.intelligence_nav_element = try Local.setupValueChangedNavElement(entity, base_value_changed_pos);
+        base_value_changed_pos.y += base_value_changed_y_increment;
+        self.politics_nav_element = try Local.setupValueChangedNavElement(entity, base_value_changed_pos);
+        base_value_changed_pos.y += base_value_changed_y_increment;
+        self.location_nav_element = try Local.setupValueChangedNavElement(entity, base_value_changed_pos);
+
         edit_name_button_element.up = back_button_element;
-        edit_name_button_element.down = back_button_element;
+        edit_name_button_element.down = self.ethnicity_nav_element;
         edit_name_button_element.left = back_button_element;
         edit_name_button_element.right = confirm_button_element;
         confirm_button_element.right = back_button_element;
         confirm_button_element.left = back_button_element;
-        confirm_button_element.up = edit_name_button_element;
+        confirm_button_element.up = self.location_nav_element;
         confirm_button_element.down = edit_name_button_element;
         back_button_element.right = confirm_button_element;
         back_button_element.left = confirm_button_element;
-        back_button_element.up = edit_name_button_element;
+        back_button_element.up = self.location_nav_element;
         back_button_element.down = edit_name_button_element;
+        self.ethnicity_nav_element.up = edit_name_button_element;
+        self.ethnicity_nav_element.down = self.lead_nav_element;
+        self.lead_nav_element.up = self.ethnicity_nav_element;
+        self.lead_nav_element.down = self.military_nav_element;
+        self.military_nav_element.up = self.lead_nav_element;
+        self.military_nav_element.down = self.charisma_nav_element;
+        self.charisma_nav_element.up = self.military_nav_element;
+        self.charisma_nav_element.down = self.intelligence_nav_element;
+        self.intelligence_nav_element.up = self.charisma_nav_element;
+        self.intelligence_nav_element.down = self.politics_nav_element;
+        self.politics_nav_element.up = self.intelligence_nav_element;
+        self.politics_nav_element.down = self.location_nav_element;
+        self.location_nav_element.up = self.politics_nav_element;
+        self.location_nav_element.down = back_button_element;
 
         const base_left_x: f32 = 200.0;
         const base_right_x: f32 = 460.0;
