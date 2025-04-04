@@ -596,30 +596,39 @@ pub const NewCharacterEntity = struct {
 
     pub fn onNavElementDirectionChanged(element: *NavigationElement, dir: Vec2i) OnUIChangedResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
-            if (element == self.ethnicity_nav_element) {
-                if (dir.equals(&Vec2i.Left)) { return onClick(self.ethnicity_left_button.node.entity); }
-                else if (dir.equals(&Vec2i.Right)) { return onClick(self.ethnicity_right_button.node.entity); }
-            } else if (element == self.lead_nav_element) {
-                if (dir.equals(&Vec2i.Left)) { return onClick(self.sub_lead_button.node.entity); }
-                else if (dir.equals(&Vec2i.Right)) { return onClick(self.add_lead_button.node.entity); }
-            } else if (element == self.military_nav_element) {
-                if (dir.equals(&Vec2i.Left)) { return onClick(self.sub_military_button.node.entity); }
-                else if (dir.equals(&Vec2i.Right)) { return onClick(self.add_military_button.node.entity); }
-            } else if (element == self.charisma_nav_element) {
-                if (dir.equals(&Vec2i.Left)) { return onClick(self.sub_charisma_button.node.entity); }
-                else if (dir.equals(&Vec2i.Right)) { return onClick(self.add_charisma_button.node.entity); }
-            } else if (element == self.intelligence_nav_element) {
-                if (dir.equals(&Vec2i.Left)) { return onClick(self.sub_intelligence_button.node.entity); }
-                else if (dir.equals(&Vec2i.Right)) { return onClick(self.add_intelligence_button.node.entity); }
-            } else if (element == self.politics_nav_element) {
-                if (dir.equals(&Vec2i.Left)) { return onClick(self.sub_politics_button.node.entity); }
-                else if (dir.equals(&Vec2i.Right)) { return onClick(self.add_politics_button.node.entity); }
-            } else if (element == self.location_nav_element) {
-                if (dir.equals(&Vec2i.Left)) { return onClick(self.location_left_button.node.entity); }
-                else if (dir.equals(&Vec2i.Right)) { return onClick(self.location_right_button.node.entity); }
+            if (self.getButtonFromElementDirectionChanged(element, dir)) |button| {
+                const ui_event_system = global.world.getSystemInstance(UIEventSystem);
+                ui_event_system.triggerUIClick(button.node.entity);
+                return onClick(button.node.entity);
             }
         }
         return .success;
+    }
+
+    fn getButtonFromElementDirectionChanged(self: *@This(), element: *NavigationElement, dir: Vec2i) ?*GameObject {
+        if (element == self.ethnicity_nav_element) {
+            if (dir.equals(&Vec2i.Left)) { return self.ethnicity_left_button; }
+            else if (dir.equals(&Vec2i.Right)) { return self.ethnicity_right_button; }
+        } else if (element == self.lead_nav_element) {
+            if (dir.equals(&Vec2i.Left)) { return self.sub_lead_button; }
+            else if (dir.equals(&Vec2i.Right)) { return self.add_lead_button; }
+        } else if (element == self.military_nav_element) {
+            if (dir.equals(&Vec2i.Left)) { return self.sub_military_button; }
+            else if (dir.equals(&Vec2i.Right)) { return self.add_military_button; }
+        } else if (element == self.charisma_nav_element) {
+            if (dir.equals(&Vec2i.Left)) { return self.sub_charisma_button; }
+            else if (dir.equals(&Vec2i.Right)) { return self.add_charisma_button; }
+        } else if (element == self.intelligence_nav_element) {
+            if (dir.equals(&Vec2i.Left)) { return self.sub_intelligence_button; }
+            else if (dir.equals(&Vec2i.Right)) { return self.add_intelligence_button; }
+        } else if (element == self.politics_nav_element) {
+            if (dir.equals(&Vec2i.Left)) { return self.sub_politics_button; }
+            else if (dir.equals(&Vec2i.Right)) { return self.add_politics_button; }
+        } else if (element == self.location_nav_element) {
+            if (dir.equals(&Vec2i.Left)) { return self.location_left_button; }
+            else if (dir.equals(&Vec2i.Right)) { return self.location_right_button; }
+        }
+        return null;
     }
 
     fn addToProperty(self: *@This(), value: *u32) void {

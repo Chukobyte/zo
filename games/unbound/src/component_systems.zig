@@ -365,6 +365,7 @@ pub const UIEventComponent = struct {
     on_click: ?*const fn(Entity) OnUIChangedResponse = null,
     style: Style = default_style,
     is_mouse_hovering: bool = false,
+    state_dirty: bool = false,
 };
 
 /// Keyboard navigational element
@@ -442,7 +443,7 @@ pub const UIEventSystem = struct {
             const entity = iter.getEntity();
             const transform_comp = iter.getComponent(Transform2DComponent);
             const event_comp = iter.getComponent(UIEventComponent);
-            if (has_moved) {
+            if (has_moved or event_comp.state_dirty) {
                 try self.updateState(entity, &global_mouse_pos, transform_comp, event_comp);
             }
             if (event_comp.is_mouse_hovering) {
@@ -596,6 +597,14 @@ pub const UIEventSystem = struct {
         self.resetNavElements();
     }
 
+    pub fn triggerUIClick(_: *@This(), entity: Entity) void {
+        if (global.world.getComponent(entity, UIEventComponent)) |ui_event_comp| {
+            setStyleColor(.click, entity, ui_event_comp);
+            ui_event_comp.is_mouse_hovering = true;
+            ui_event_comp.state_dirty = true;
+        }
+    }
+
     fn updateState(self: *@This(), entity: Entity, global_mouse_pos: *const Vec2, transform_comp: *Transform2DComponent, event_comp: *UIEventComponent) !void {
         // Update spatial hash
         // TODO: Fix so it relies on global position
@@ -623,6 +632,7 @@ pub const UIEventSystem = struct {
                 }
             }
         }
+        event_comp.state_dirty = false;
     }
 
     fn setStyleColor(comptime style_type: StyleType, entity: Entity, event_comp: *UIEventComponent) void {
