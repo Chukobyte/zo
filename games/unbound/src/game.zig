@@ -598,8 +598,9 @@ pub const NewCharacterEntity = struct {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.getButtonFromElementDirectionChanged(element, dir)) |button| {
                 const ui_event_system = global.world.getSystemInstance(UIEventSystem);
-                ui_event_system.triggerUIClick(button.node.entity);
-                return onClick(button.node.entity);
+                const click_response = onClick(button.node.entity);
+                ui_event_system.triggerUIClick(button.node.entity, click_response);
+                return .none;
             }
         }
         return .success;

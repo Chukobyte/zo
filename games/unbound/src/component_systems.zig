@@ -496,6 +496,7 @@ pub const UIEventSystem = struct {
                 }
                 try processOnClickResponse(on_click_response);
             } else if (nav_dir) |dir| {
+                // TODO: This is a work in progress how the nav response is dealt with
                 var on_nav_dir_changed_response: OnUIChangedResponse = .none;
                 if (nav_element.getElementFromDir(dir)) |new_nav_element| {
                     self.setFocused(new_nav_element);
@@ -504,8 +505,8 @@ pub const UIEventSystem = struct {
                 const ui_responses = try self.on_nav_direction_changed.broadcastWithReturn(.{ self.focued_nav_element.?, dir }, OnUIChangedResponse);
                 // We're only respecting the first ui response for now
                 if (ui_responses.len > 0) {
-                    // TODO: Need something in place to let the system know to handle ui responses
-                    // on_nav_dir_changed_response = ui_responses.items[0];
+                    // TODO: Need something in place to let the system know to handle ui responses, for now just overriding with first response
+                    on_nav_dir_changed_response = ui_responses.items[0];
                 }
                 try processOnDirChangedResponse(on_nav_dir_changed_response);
             }
@@ -600,11 +601,12 @@ pub const UIEventSystem = struct {
         self.resetNavElements();
     }
 
-    pub fn triggerUIClick(_: *@This(), entity: Entity) void {
+    pub fn triggerUIClick(_: *@This(), entity: Entity, click_response: OnUIChangedResponse) void {
         if (global.world.getComponent(entity, UIEventComponent)) |ui_event_comp| {
             setStyleColor(.click, entity, ui_event_comp);
             ui_event_comp.is_mouse_hovering = true;
             ui_event_comp.state_dirty = true;
+            processOnClickResponse(click_response) catch { log(.warn, "Sound failed to play when triggering click!", .{}); };
         }
     }
 
