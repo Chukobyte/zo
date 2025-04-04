@@ -496,20 +496,23 @@ pub const UIEventSystem = struct {
                 }
                 try processOnClickResponse(on_click_response);
             } else if (nav_dir) |dir| {
+                var on_nav_dir_changed_response: OnUIChangedResponse = .none;
                 if (nav_element.getElementFromDir(dir)) |new_nav_element| {
                     self.setFocused(new_nav_element);
+                    on_nav_dir_changed_response = .success;
                 }
-                var on_nav_dir_changed_response: OnUIChangedResponse = .success;
                 const ui_responses = try self.on_nav_direction_changed.broadcastWithReturn(.{ self.focued_nav_element.?, dir }, OnUIChangedResponse);
                 // We're only respecting the first ui response for now
                 if (ui_responses.len > 0) {
-                    on_nav_dir_changed_response = ui_responses.items[0];
+                    // TODO: Need something in place to let the system know to handle ui responses
+                    // on_nav_dir_changed_response = ui_responses.items[0];
                 }
                 try processOnDirChangedResponse(on_nav_dir_changed_response);
             }
         } else {
             // Set focused item to first created navigation element.
             self.setFocused(&self.nav_elements.items[0]);
+            try processOnDirChangedResponse(.success);
         }
     }
 
@@ -684,7 +687,7 @@ pub const UIEventSystem = struct {
 
     fn processOnDirChangedResponse(on_dir_changed_response: OnUIChangedResponse) !void {
         switch (on_dir_changed_response) {
-            .success => {},
+            .success => try global.assets.audio.selection_changed.play(false),
             .invalid => {},
             .none => {},
         }

@@ -58,6 +58,7 @@ pub const AssetManager = struct {
     audio: struct {
         click: AudioSource,
         invalid_click: AudioSource,
+        selection_changed: AudioSource,
     },
 
 
@@ -73,6 +74,7 @@ pub const AssetManager = struct {
             .audio = .{
                 .click = try AudioSource.initWavFromMemory2(static_assets.click_audio),
                 .invalid_click = try AudioSource.initWavFromMemory2(static_assets.invalid_click_audio),
+                .selection_changed = try AudioSource.initWavFromMemory2(static_assets.selection_changed_audio),
             },
         };
         // TODO: Temp manual adjustments, fix later...
