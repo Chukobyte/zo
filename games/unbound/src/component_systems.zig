@@ -406,8 +406,6 @@ pub const UIEventSystem = struct {
     focused_nav_element: ?*NavigationElement = null,
     border_texture: Texture = undefined,
     on_nav_direction_changed: FixedDelegate(fn (*NavigationElement, Vec2i) OnUIChangedResponse, 4) = .{},
-    on_nav_confirm: FixedDelegate(fn (?*NavigationElement) OnUIChangedResponse, 4) = .{},
-    on_nav_back: FixedDelegate(fn (?*NavigationElement) OnUIChangedResponse, 4) = .{},
     pause_navigation_movement_tokens: TokenList(4) = .{},
 
     pub fn init(self: *@This(), _: *World) !void {
@@ -474,7 +472,6 @@ pub const UIEventSystem = struct {
 
         // Process confirm and back first
         const confirm_just_pressed: bool = input.isKeyJustPressed(.{ .key = .keyboard_return });
-        const back_just_pressed: bool = input.isKeyJustPressed(.{ .key = .keyboard_escape });
         if (confirm_just_pressed) {
             var on_click_response: OnUIChangedResponse = .success;
             if (self.focused_nav_element) |nav_element| {
@@ -482,19 +479,7 @@ pub const UIEventSystem = struct {
                     on_click_response = on_pressed(nav_element.owner_entity);
                 }
             }
-            // Delegate gets final say for now
-            const ui_responses = try self.on_nav_confirm.broadcastWithReturn(.{ self.focused_nav_element }, OnUIChangedResponse);
-            if (ui_responses.len > 0) {
-                on_click_response = ui_responses.items[0];
-            }
             try processOnClickResponse(on_click_response);
-        } else if (back_just_pressed) {
-            var back_response: OnUIChangedResponse = .success;
-            const ui_responses = try self.on_nav_back.broadcastWithReturn(.{ self.focused_nav_element }, OnUIChangedResponse);
-            if (ui_responses.len > 0) {
-                back_response = ui_responses.items[0];
-            }
-            try processOnBackResponse(back_response);
         }
 
         // Process navigation movement
@@ -700,14 +685,6 @@ pub const UIEventSystem = struct {
     }
 
     fn processOnClickResponse(on_click_response: OnUIChangedResponse) !void {
-        switch (on_click_response) {
-            .success => try global.assets.audio.click.play(false),
-            .invalid => try global.assets.audio.invalid_click.play(false),
-            .none => {},
-        }
-    }
-
-    fn processOnBackResponse(on_click_response: OnUIChangedResponse) !void {
         switch (on_click_response) {
             .success => try global.assets.audio.click.play(false),
             .invalid => try global.assets.audio.invalid_click.play(false),
