@@ -403,9 +403,11 @@ pub const UIEventSystem = struct {
     spatial_hash_map: EntitySpatialHashMap = undefined,
     prev_mouse_pos: Vec2i = Vec2i.Zero,
     nav_elements: FixedArrayList(NavigationElement, 16) = undefined,
-    focued_nav_element: ?*NavigationElement = null,
+    focused_nav_element: ?*NavigationElement = null,
     border_texture: Texture = undefined,
     on_nav_direction_changed: FixedDelegate(fn (*NavigationElement, Vec2i) OnUIChangedResponse, 4) = .{},
+    on_nav_confirm: FixedDelegate(fn (?*NavigationElement) OnUIChangedResponse, 4) = .{},
+    on_nav_back: FixedDelegate(fn (?*NavigationElement) OnUIChangedResponse, 4) = .{},
     pause_navigation_movement_tokens: TokenList(4) = .{},
 
     pub fn init(self: *@This(), _: *World) !void {
@@ -469,7 +471,32 @@ pub const UIEventSystem = struct {
             self.unfocus();
             return;
         }
-        const element_just_pressed: bool = input.isKeyJustPressed(.{ .key = .keyboard_return });
+
+        // Process confirm and back first
+        const confirm_just_pressed: bool = input.isKeyJustPressed(.{ .key = .keyboard_return });
+        const back_just_pressed: bool = input.isKeyJustPressed(.{ .key = .keyboard_escape });
+        if (confirm_just_pressed) {
+            var on_click_response: OnUIChangedResponse = .success;
+            if (self.focused_nav_element) |nav_element| {
+                if (nav_element.on_pressed) |on_pressed| {
+                    on_click_response = on_pressed(nav_element.owner_entity);
+                }
+            }
+            // Delegate gets final say for now
+            const ui_responses = try self.on_nav_confirm.broadcastWithReturn(.{ self.focused_nav_element }, OnUIChangedResponse);
+            if (ui_responses.len > 0) {
+                on_click_response = ui_responses.items[0];
+            }
+            try processOnClickResponse(on_click_response);
+        } else if (back_just_pressed) {
+            var back_response: OnUIChangedResponse = .success;
+            const ui_responses = try self.on_nav_back.broadcastWithReturn(.{ self.focused_nav_element }, OnUIChangedResponse);
+            if (ui_responses.len > 0) {
+                back_response = ui_responses.items[0];
+            }
+            try processOnBackResponse(back_response);
+        }
+
         // Process navigation movement
         var nav_dir: ?Vec2i = null;
         if (!self.pause_navigation_movement_tokens.hasTokens()) {
@@ -485,24 +512,17 @@ pub const UIEventSystem = struct {
         }
 
         // Early out as there has been no navigational movement or confirmation (Return)
-        if (!element_just_pressed and nav_dir == null) { return; }
+        if (!confirm_just_pressed and nav_dir == null) { return; }
 
-        if (self.focued_nav_element) |nav_element| {
-            // Pressing element takes precedence over directional movements
-            if (element_just_pressed) {
-                var on_click_response: OnUIChangedResponse = .success;
-                if (nav_element.on_pressed) |on_pressed| {
-                    on_click_response = on_pressed(nav_element.owner_entity);
-                }
-                try processOnClickResponse(on_click_response);
-            } else if (nav_dir) |dir| {
+        if (self.focused_nav_element) |nav_element| {
+            if (nav_dir) |dir| {
                 // TODO: This is a work in progress how the nav response is dealt with
                 var on_nav_dir_changed_response: OnUIChangedResponse = .none;
                 if (nav_element.getElementFromDir(dir)) |new_nav_element| {
                     self.setFocused(new_nav_element);
                     on_nav_dir_changed_response = .success;
                 }
-                const ui_responses = try self.on_nav_direction_changed.broadcastWithReturn(.{ self.focued_nav_element.?, dir }, OnUIChangedResponse);
+                const ui_responses = try self.on_nav_direction_changed.broadcastWithReturn(.{ self.focused_nav_element.?, dir }, OnUIChangedResponse);
                 // We're only respecting the first ui response for now
                 if (ui_responses.len > 0) {
                     // TODO: Need something in place to let the system know to handle ui responses, for now just overriding with first response
@@ -519,7 +539,7 @@ pub const UIEventSystem = struct {
 
     pub fn postWorldTick(self: *@This(), _: *World) !void {
         // Draw border as 9 slice rect
-        if (self.focued_nav_element) |nav_element| {
+        if (self.focused_nav_element) |nav_element| {
             const texture_size: Dim2 = .{ .w = @floatFromInt(self.border_texture.width), .h = @floatFromInt(self.border_texture.height) };
             const border_color: LinearColor = .{ .r = 0.0, .g = 0.8, .b = 0.8 };
             const border: Rect2 = .{ .x = 1.0, .y = 1.0, .w = 14.0, .h = 6.0 };
@@ -589,7 +609,7 @@ pub const UIEventSystem = struct {
     }
 
     pub fn resetNavElements(self: *@This()) void {
-        self.focued_nav_element = null;
+        self.focused_nav_element = null;
         self.nav_elements.clear();
     }
 
@@ -664,22 +684,30 @@ pub const UIEventSystem = struct {
 
     fn setFocused(self: *@This(), nav_element: *NavigationElement) void {
         self.unfocus();
-        self.focued_nav_element = nav_element;
-        if (self.focued_nav_element.?.on_focus) |on_focus| {
+        self.focused_nav_element = nav_element;
+        if (self.focused_nav_element.?.on_focus) |on_focus| {
             on_focus(nav_element.owner_entity);
         }
     }
 
     fn unfocus(self: *@This()) void {
-        if (self.focued_nav_element) |focused_element| {
+        if (self.focused_nav_element) |focused_element| {
             if (focused_element.on_unfocus) |on_unfocus| {
                 on_unfocus(focused_element.owner_entity);
-                self.focued_nav_element = null;
+                self.focused_nav_element = null;
             }
         }
     }
 
     fn processOnClickResponse(on_click_response: OnUIChangedResponse) !void {
+        switch (on_click_response) {
+            .success => try global.assets.audio.click.play(false),
+            .invalid => try global.assets.audio.invalid_click.play(false),
+            .none => {},
+        }
+    }
+
+    fn processOnBackResponse(on_click_response: OnUIChangedResponse) !void {
         switch (on_click_response) {
             .success => try global.assets.audio.click.play(false),
             .invalid => try global.assets.audio.invalid_click.play(false),

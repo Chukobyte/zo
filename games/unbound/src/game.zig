@@ -903,9 +903,11 @@ pub const MapEntity = struct {
             try text_label_comp.?.class.label.text.setRaw(new_location.name);
         }
 
-        if (input.isKeyJustPressed(.{ .key = .keyboard_return })) {
+        // TODO: Replace once ui inputs are routed through
+        if (input.isKeyJustPressed(.{ .key = .keyboard_space })) {
             self.confirmLocation();
             global.scene_system.changeScene(LocationSceneDefinition);
+            log(.debug, "Change scene from enter.", .{});
         }
 
         if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
@@ -966,6 +968,7 @@ pub const CharacterViewEntity = struct {
             null
         );
         self.back_button = try ButtonUtils.createBackButton(onClick);
+        _ = try ButtonUtils.setupNavElement(self.back_button, onPressed);
     }
 
     pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
@@ -982,6 +985,10 @@ pub const CharacterViewEntity = struct {
             }
         }
         return .success;
+    }
+
+    pub fn onPressed(entity: Entity) OnUIChangedResponse {
+        return onClick(entity);
     }
 };
 
