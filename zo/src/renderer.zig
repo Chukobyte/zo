@@ -519,7 +519,7 @@ const SpriteRenderer = struct {
         \\out vec4 frag_color_mod;
         \\out float frag_use_nearest;
         \\
-        \\uniform mat4 models[100];
+        \\uniform mat4 models[200];
         \\uniform mat4 projection;
         \\
         \\void main() {{
@@ -556,7 +556,7 @@ const SpriteRenderer = struct {
         \\}}
         ;
 
-    const max_sprite_count = 16;
+    const max_sprite_count = 200;
     const number_of_vertices = 6;
     const verts_stride = 10;
     const vertex_buffer_size: comptime_int = verts_stride * number_of_vertices * max_sprite_count;
@@ -775,7 +775,7 @@ const FontRenderer = struct {
 
 pub const DrawCommand = union(enum) {
     pub const BatchDrawSpritesParams = struct {
-        params: FixedArrayList(DrawSpriteParams, 16) = FixedArrayList(DrawSpriteParams, 16).init(),
+        params: FixedArrayList(DrawSpriteParams, SpriteRenderer.max_sprite_count) = FixedArrayList(DrawSpriteParams, SpriteRenderer.max_sprite_count).init(),
     };
 
     sprite: DrawSpriteParams,
@@ -831,6 +831,7 @@ pub fn queueSpriteDraw(p: *const DrawSpriteParams) !void {
 }
 
 pub fn queueSpriteDraws(params: []const DrawSpriteParams) !void {
+    if (params.len > SpriteRenderer.max_sprite_count) { log(.critical, "Reached max sprite when queueing {d} draw calls, aborting!", .{ params.len }); return; }
     var draw_sprites: DrawCommand.BatchDrawSpritesParams = .{};
     for (params) |p| {
         try draw_sprites.params.append(p);

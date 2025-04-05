@@ -19,7 +19,11 @@ const Vec2 = math.Vec2;
 const Vec2i = math.Vec2i;
 const Rect2 = math.Rect2;
 const Dim2 = math.Dim2;
+const Dim2i = math.Dim2i;
 const Dim2u = math.Dim2u;
+const Transform2D = math.Transform2D;
+const LinearColor = math.LinearColor;
+const Texture = renderer.Texture;
 const String = zo.string.HeapString;
 const Entity = ecs.Entity;
 const World = global.World;
@@ -665,13 +669,13 @@ pub const NewCharacterEntity = struct {
     fn setIsTypingName(self: *@This(), is_typing_name: bool, text_label_comp: *TextLabelComponent) !void {
         self.is_typing_name = is_typing_name;
         if (is_typing_name) {
-            text_label_comp.color = math.LinearColor.Red;
+            text_label_comp.color = LinearColor.Red;
             if (global.world.getComponent(self.edit_name_button.class.text_button.text_box.node.entity, TextLabelComponent)) |button_text_label_comp| {
                 try button_text_label_comp.class.text_box.setText(button_text_label_comp.font, "Done", 1.0);
             }
             try InputText.subscribeToInput(self.name_object);
         } else {
-            text_label_comp.color = math.LinearColor.White;
+            text_label_comp.color = LinearColor.White;
             InputText.unsubscribeFromInput();
             if (global.world.getComponent(self.edit_name_button.class.text_button.text_box.node.entity, TextLabelComponent)) |button_text_label_comp| {
                 try button_text_label_comp.class.text_box.setText(button_text_label_comp.font, "Edit", 1.0);
@@ -1196,6 +1200,37 @@ pub const BattleEntity = struct {
         if (self.timer.hasTimedOut()) {
             global.scene_system.changeScene(MilitarySceneDefinition);
         }
+
+        // Temp grid drawing
+        const Local = struct {
+            var texture : Texture = undefined;
+            var initialized = false;
+        };
+        if (!Local.initialized) {
+            Local.initialized = true;
+            Local.texture = try Texture.initWhiteSquare(global.allocator, true, .{ .w = 1, .h = 1 });
+        }
+        const base_pos: Vec2 = .{ .x = 10, .y = 10 };
+        const grid_size: Dim2i = .{ .w = 15, .h = 10 };
+        const cell_size: Dim2i = .{ .w = 32, .h = 32 };
+        const grid_color: LinearColor = .{ .r = 1.0, .g = 1.0, .b = 1.0, .a = 0.5 };
+        const draw_source: Rect2 = .{ .x = 0, .y = 0, .w = 1.0, .h = 1.0 };
+        const z_index: i32 = 11;
+        var param_list = zo.misc.FixedArrayList(renderer.DrawSpriteParams, grid_size.w * grid_size.h).init();
+        for (0..grid_size.h) |y| {
+        for (0..grid_size.w) |x| {
+            const cell_pos: Vec2 = .{ .x = @floatFromInt(x * cell_size.w), .y = @floatFromInt(y * cell_size.h) };
+            const transform: Transform2D = .{ .position = base_pos.add(&cell_pos) };
+            try param_list.append(.{
+                .texture = &Local.texture,
+                .source_rect = draw_source,
+                .global_matrix = transform.toMat4(),
+                .dest_size = .{ .w = @floatFromInt(cell_size.w), .h = @floatFromInt(cell_size.h) },
+                .modulate = grid_color,
+                .z_index = z_index,
+            });
+        }}
+        try renderer.queueSpriteDraws(param_list.asSlice());
     }
 };
 
