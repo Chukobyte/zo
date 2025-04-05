@@ -406,6 +406,13 @@ pub fn getKeyStrength(params: InputQueryParams) f32 {
     return state.key_state[params.device_index][@intFromEnum(params.key)].strength;
 }
 
+/// Resets 'is_just_pressed' and 'is_just_released' flags
+pub fn resetKeyState(params: InputQueryParams) void {
+    var key_state = &state.key_state[params.device_index][@intFromEnum(params.key)];
+    key_state.is_just_pressed = false;
+    key_state.is_just_released = false;
+}
+
 pub inline fn getMousePosition() Vec2i {
     return state.mouse.position;
 }

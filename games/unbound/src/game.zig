@@ -830,6 +830,8 @@ pub const LocationEntity = struct {
             } else if (self.travel_button.node.entity == clicked_entity) {
                 if (player_character.action_points.value == 0) { return .invalid; }
                 global.scene_system.changeScene(MapSceneDefinition);
+                // Resetting key state so return doesn't trigger completion in the next menu, need a cleaner approach
+                input.resetKeyState(.{ .key = .keyboard_return });
             } else if (self.character_button.node.entity == clicked_entity) {
                 global.scene_system.changeScene(CharacterViewSceneDefinition);
             } else if (self.end_turn_button.node.entity == clicked_entity) {
@@ -903,11 +905,9 @@ pub const MapEntity = struct {
             try text_label_comp.?.class.label.text.setRaw(new_location.name);
         }
 
-        // TODO: Replace once ui inputs are routed through
-        if (input.isKeyJustPressed(.{ .key = .keyboard_space })) {
+        if (input.isKeyJustPressed(.{ .key = .keyboard_return })) {
             self.confirmLocation();
             global.scene_system.changeScene(LocationSceneDefinition);
-            log(.debug, "Change scene from enter.", .{});
         }
 
         if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
