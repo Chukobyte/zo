@@ -1179,10 +1179,11 @@ pub const BattleEntity = struct {
     timer: Timer = .{ .duration = 5.0 },
 
     pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
-        const map_texuture_size: Dim2 = .{ .w = @floatFromInt(global.assets.textures.map.width), .h = @floatFromInt(global.assets.textures.map.height) };
+        const map_texture: *Texture = &global.assets.textures.battle_map;
+        const map_texuture_size: Dim2 = .{ .w = @floatFromInt(map_texture.width), .h = @floatFromInt(map_texture.height) };
         _ = try GameObject.initInScene(
             SpriteClass,
-            .{ .texture = &global.assets.textures.map, .draw_source = .{ .x = 0.0, .y = 0.0, .w = map_texuture_size.w, .h = map_texuture_size.h } },
+            .{ .texture = map_texture, .draw_source = .{ .x = 0.0, .y = 0.0, .w = map_texuture_size.w, .h = map_texuture_size.h } },
             null,
             null
         );
@@ -1202,40 +1203,40 @@ pub const BattleEntity = struct {
         }
 
         // Temp grid drawing
-        const GridBatcher = struct {
-            const draw_source: Rect2 = .{ .x = 0, .y = 0, .w = 1.0, .h = 1.0 };
-            var texture : Texture = undefined;
-            var initialized = false;
-
-
-            pub fn queueDraw(base_pos: Vec2, comptime grid_size: Dim2i, comptime cell_size: Dim2i, grid_color: LinearColor, z_index: i32) !void {
-                if (!initialized) {
-                    initialized = true;
-                    texture = try Texture.initWhiteSquare(global.allocator, true, .{ .w = 1, .h = 1 });
-                }
-                var param_list = zo.misc.FixedArrayList(renderer.DrawSpriteParams, grid_size.w * grid_size.h).init();
-                for (0..grid_size.h) |y| {
-                    for (0..grid_size.w) |x| {
-                        const cell_pos: Vec2 = .{ .x = @floatFromInt(x * cell_size.w), .y = @floatFromInt(y * cell_size.h) };
-                        const transform: Transform2D = .{ .position = base_pos.add(&cell_pos) };
-                        try param_list.append(.{
-                            .texture = &texture,
-                            .source_rect = draw_source,
-                            .global_matrix = transform.toMat4(),
-                            .dest_size = .{ .w = @floatFromInt(cell_size.w), .h = @floatFromInt(cell_size.h) },
-                            .modulate = grid_color,
-                            .z_index = z_index,
-                        });
-                    }}
-                try renderer.queueSpriteDraws(param_list.asSlice());
-            }
-        };
-        const base_pos: Vec2 = .{ .x = 10, .y = 10 };
-        const grid_size: Dim2i = .{ .w = 15, .h = 10 };
-        const cell_size: Dim2i = .{ .w = 32, .h = 32 };
-        const grid_color: LinearColor = .{ .r = 1.0, .g = 1.0, .b = 1.0, .a = 0.5 };
-        const z_index: i32 = 11;
-        try GridBatcher.queueDraw(base_pos, grid_size, cell_size, grid_color, z_index);
+        // const GridBatcher = struct {
+        //     const draw_source: Rect2 = .{ .x = 0, .y = 0, .w = 1.0, .h = 1.0 };
+        //     var texture : Texture = undefined;
+        //     var initialized = false;
+        //
+        //
+        //     pub fn queueDraw(base_pos: Vec2, comptime grid_size: Dim2i, comptime cell_size: Dim2i, grid_color: LinearColor, z_index: i32) !void {
+        //         if (!initialized) {
+        //             initialized = true;
+        //             texture = try Texture.initWhiteSquare(global.allocator, true, .{ .w = 1, .h = 1 });
+        //         }
+        //         var param_list = zo.misc.FixedArrayList(renderer.DrawSpriteParams, grid_size.w * grid_size.h).init();
+        //         for (0..grid_size.h) |y| {
+        //             for (0..grid_size.w) |x| {
+        //                 const cell_pos: Vec2 = .{ .x = @floatFromInt(x * cell_size.w), .y = @floatFromInt(y * cell_size.h) };
+        //                 const transform: Transform2D = .{ .position = base_pos.add(&cell_pos) };
+        //                 try param_list.append(.{
+        //                     .texture = &texture,
+        //                     .source_rect = draw_source,
+        //                     .global_matrix = transform.toMat4(),
+        //                     .dest_size = .{ .w = @floatFromInt(cell_size.w), .h = @floatFromInt(cell_size.h) },
+        //                     .modulate = grid_color,
+        //                     .z_index = z_index,
+        //                 });
+        //             }}
+        //         try renderer.queueSpriteDraws(param_list.asSlice());
+        //     }
+        // };
+        // const base_pos: Vec2 = .{ .x = 10, .y = 10 };
+        // const grid_size: Dim2i = .{ .w = 15, .h = 10 };
+        // const cell_size: Dim2i = .{ .w = 32, .h = 32 };
+        // const grid_color: LinearColor = .{ .r = 1.0, .g = 1.0, .b = 1.0, .a = 0.5 };
+        // const z_index: i32 = 11;
+        // try GridBatcher.queueDraw(base_pos, grid_size, cell_size, grid_color, z_index);
     }
 };
 

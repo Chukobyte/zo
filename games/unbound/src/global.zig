@@ -48,6 +48,7 @@ pub const AssetManager = struct {
 
     textures: struct {
         map: Texture,
+        battle_map: Texture,
     },
 
     fonts: struct {
@@ -66,6 +67,7 @@ pub const AssetManager = struct {
         var asset_manager = @This(){
             .textures = .{
                 .map = try Texture.initFromMemory2(allocator, static_assets.map_texture, true),
+                .battle_map = try Texture.initFromMemory2(allocator, static_assets.battle_map_texture, true),
             },
             .fonts = .{
                 .pixeloid_16 = try Font.initFromMemory2(static_assets.default_font, 16, true),
@@ -85,6 +87,7 @@ pub const AssetManager = struct {
 
     pub fn deinit(self: *@This()) void {
         _ = self;
+        // TODO: Finish...
     }
 };
 
