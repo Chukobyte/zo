@@ -44,7 +44,7 @@ pub const SceneSystem = World.SceneSystem(.{ .definitions = &.{
     game.DiscoverSceneDefinition, game.InteractSceneDefinition, game.MilitarySceneDefinition, game.BattleSceneDefinition, game.EndTurnMapSceneDefinition,
 } });
 
-pub const AssetManager = struct {
+pub const GameAssets = struct {
 
     textures: struct {
         map: Texture,
@@ -95,13 +95,13 @@ pub var allocator: std.mem.Allocator = std.heap.page_allocator;
 
 pub var world: World = undefined;
 pub var scene_system: SceneSystem = undefined;
-pub var assets: AssetManager = undefined;
+pub var assets: GameAssets = undefined;
 
 pub fn init(alloc: std.mem.Allocator) !void {
     allocator = alloc;
     world = try World.init(allocator);
     scene_system = SceneSystem.init(&world);
-    assets = try AssetManager.init();
+    assets = try GameAssets.init();
     try world.postInit();
 }
 
