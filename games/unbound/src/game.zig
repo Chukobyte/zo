@@ -1203,6 +1203,20 @@ pub const BattleEntity = struct {
             null,
             null
         );
+        const soldiers_texture: *Texture = &global.assets.textures.british_soldiers;
+        const soldiers_texuture_size: Dim2 = .{ .w = @floatFromInt(soldiers_texture.width), .h = @floatFromInt(soldiers_texture.height) };
+        _ = try GameObject.initInScene(
+            SpriteClass,
+            .{ .texture = soldiers_texture, .draw_source = .{ .x = 0.0, .y = 0.0, .w = soldiers_texuture_size.w, .h = soldiers_texuture_size.h }, .transform = .{ .position = .{ .x = 128.0, .y = 128.0 } } },
+            null,
+            null
+        );
+        _ = try GameObject.initInScene(
+            SpriteClass,
+            .{ .texture = soldiers_texture, .draw_source = .{ .x = 0.0, .y = 0.0, .w = soldiers_texuture_size.w, .h = soldiers_texuture_size.h }, .transform = .{ .position = .{ .x = 512.0, .y = 128.0 } } },
+            null,
+            null
+        );
         self.selector_object = try GameObject.initInScene(
             ColorRectClass,
             .{ .size = .{ .w = 32, .h = 32 }, .color = .{ .r = 1.0, .g = 0.0, .b = 0.0, .a = 0.5 }, .z_index = 5 },

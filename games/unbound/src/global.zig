@@ -49,6 +49,7 @@ pub const GameAssets = struct {
     textures: struct {
         map: Texture,
         battle_map: Texture,
+        british_soldiers: Texture,
     },
 
     fonts: struct {
@@ -68,6 +69,7 @@ pub const GameAssets = struct {
             .textures = .{
                 .map = try Texture.initFromMemory2(allocator, static_assets.map_texture, true),
                 .battle_map = try Texture.initFromMemory2(allocator, static_assets.battle_map_texture, true),
+                .british_soldiers = try Texture.initFromMemory2(allocator, static_assets.british_soldiers_texture, true),
             },
             .fonts = .{
                 .pixeloid_16 = try Font.initFromMemory2(static_assets.default_font, 16, true),
