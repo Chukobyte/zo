@@ -423,6 +423,10 @@ pub const UIEventSystem = struct {
         self.onUpdatePosition(entity) catch { log(.critical, "Failed to update position on registered for entity = {d}", .{ entity }); };
     }
 
+    pub fn onEntityUnregistered(self: *@This(), _: *World, entity: Entity) void {
+        self.spatial_hash_map.removeObject(entity);
+    }
+
     pub fn preWorldTick(self: *@This(), world: *World) !void {
         const ComponentIterator = World.ArchetypeComponentIterator(getSignature());
 

@@ -874,6 +874,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
         pub fn setComponentEnabled(self: *@This(), entity: Entity, comptime T: type, enabled: bool) void {
             const entity_data: *EntityData = &self.entity_data.items[entity];
             entity_data.component_signature.setEnabled(T, enabled);
+            self.refreshArchetypeState(entity) catch { log(.critical, "Failed to refresh archetype state after entity {d} set {any} enabled to {any}", .{ entity, T, enabled }); };
         }
 
         pub fn isComponentEnabled(self: *@This(), entity: Entity, comptime T: type) bool {
@@ -908,7 +909,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
             inline for (0..archetype_count) |i| {
                 const arch_data = &self.archetype_data[i];
-                const match_signature = FlagUtils(usize).containsFlags(entity_data.component_signature.mask, arch_data.signature);
+                const match_signature = FlagUtils(usize).containsFlags(entity_data.component_signature.enabled_mask, arch_data.signature);
                 if (match_signature and !entity_data.is_in_archetype_map[i]) {
                     entity_data.is_in_archetype_map[i] = true;
                     arch_data.entities.append(entity) catch { unreachable; };

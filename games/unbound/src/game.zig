@@ -1255,12 +1255,12 @@ pub const BattleEntity = struct {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.attack_button_object.node.entity == clicked_entity) {
                 // TODO: Add attacking
-            } else if (self.end_turn_button_object.node.entity == clicked_entity) {
+            } else if (self.end_turn_button_object.getEntity() == clicked_entity) {
                 // Temp to end the battle for now
                 global.scene_system.changeScene(MilitarySceneDefinition);
-            } else if (self.left_soldiers.node.entity == clicked_entity) {
+            } else if (self.left_soldiers.getEntity() == clicked_entity) {
                 log(.debug, "Left soldier clicked!", .{});
-            } else if (self.right_soldiers.node.entity == clicked_entity) {
+            } else if (self.right_soldiers.getEntity() == clicked_entity) {
                 log(.debug, "Right soldier clicked!", .{});
             }
         }

@@ -219,6 +219,31 @@ pub const GameObject = struct {
         return global.scene_system.isNodeValid(self.node);
     }
 
+    pub fn setVisible(self: *@This(), visible: bool) void {
+        switch (self.class) {
+            .sprite => {
+                global.world.setComponentEnabled(self.getEntity(), SpriteComponent, visible);
+            },
+            .text_label => {
+                global.world.setComponentEnabled(self.getEntity(), TextLabelComponent, visible);
+            },
+            .text_box => {
+                global.world.setComponentEnabled(self.getEntity(), TextLabelComponent, visible);
+                if (global.world.hasComponent(self.getEntity(), ColorRectComponent)) {
+                    global.world.setComponentEnabled(self.getEntity(), ColorRectComponent, visible);
+                }
+            },
+            .text_button => {
+                global.world.setComponentEnabled(self.getEntity(), UIEventComponent, visible);
+                global.world.setComponentEnabled(self.getEntity(), ColorRectComponent, visible);
+                self.class.text_button.text_box.setVisible(visible);
+            },
+            .color_rect => {
+                global.world.setComponentEnabled(self.getEntity(), ColorRectComponent, visible);
+            },
+        }
+    }
+
     fn init(node: *Node, comptime ClassT: type, params: GameObjectParams(ClassT)) !*@This() {
         var game_object: *@This() = try GameObjectSystem.instance.?.initObject(node.entity);
         game_object.node = node;
