@@ -241,6 +241,7 @@ pub const RegisterInputParams = struct {
 };
 
 pub const RegisteredInputDelegate = Delegate(fn(*const InputEvent) void);
+pub const MouseMoveDelegate = Delegate(fn (Vec2i) void);
 
 pub const InputQueryParams = struct {
     key: InputKey,
@@ -341,16 +342,22 @@ const InputState = struct {
 };
 
 pub var registered_input_delegate: RegisteredInputDelegate = undefined;
+pub var mouse_move_delegate: MouseMoveDelegate = undefined;
 var state: InputState = .{};
 
 pub fn init(allocator: std.mem.Allocator) !void {
     registered_input_delegate = RegisteredInputDelegate.init(allocator);
+    mouse_move_delegate = MouseMoveDelegate.init(allocator);
 }
 
-pub fn deinit() void {}
+pub fn deinit() void {
+    registered_input_delegate.deinit();
+    mouse_move_delegate.deinit();
+}
 
 pub fn registerMouseMoveEvent(new_position: Vec2i) void {
     state.mouse.position = new_position;
+    mouse_move_delegate.broadcast(.{ new_position });
 }
 
 pub fn registerInputEvent(event_params: RegisterInputParams) void {

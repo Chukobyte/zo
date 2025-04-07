@@ -12,7 +12,9 @@ const Transform2D = math.Transform2D;
 const Vec2 = math.Vec2;
 const Rect2 = math.Rect2;
 const Mat4 = math.Mat4;
+const Dim2 = math.Dim2;
 const Dim2u = math.Dim2u;
+const LinearColor = math.LinearColor;
 const Font = renderer.Font;
 const Texture = renderer.Texture;
 const String = zo.string.HeapString;
@@ -36,6 +38,8 @@ pub const SpriteClass = struct {};
 pub const TextLabelClass = struct {};
 
 pub const TextBoxClass = struct {};
+
+pub const ColorRectClass = struct {};
 
 pub const TextButtonClass = struct {
     const TextAlignmentH = enum {
@@ -91,6 +95,7 @@ const GameObjectClass = union(enum) {
     text_label: TextLabelClass,
     text_box: TextBoxClass,
     text_button: TextButtonClass,
+    color_rect: ColorRectClass,
 };
 
 fn GameObjectParams(ClassT: type) type {
@@ -127,6 +132,12 @@ fn GameObjectParams(ClassT: type) type {
             alignment_v: TextButtonClass.TextAlignmentV = .center,
             /// If additional padding adjustments are needed
             alignment_padding: Vec2 = Vec2.Zero,
+            transform: Transform2D = Transform2D.Identity,
+            z_index: i32 = 0,
+        },
+        ColorRectClass => return struct {
+            size: Dim2,
+            color: LinearColor = LinearColor.White,
             transform: Transform2D = Transform2D.Identity,
             z_index: i32 = 0,
         },
@@ -249,6 +260,10 @@ pub const GameObject = struct {
                 );
                 game_object.class = .{ .text_button = .{ .text_box = text_box, .alignment_h = params.alignment_h, .alignment_v = params.alignment_v, .alignment_padding = params.alignment_padding } };
                 game_object.class.text_button.refreshTextAlignment();
+            },
+            ColorRectClass => {
+                try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
+                try global.world.setComponent(node.entity, ColorRectComponent, &.{ .size = params.size, .color = params.color });
             },
             else => @compileError("Must use Game Object Class type!"),
         }

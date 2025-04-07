@@ -158,9 +158,14 @@ pub fn SpatialHashMap(comptime ObjectT: type) type {
             }
         }
 
-        inline fn toGridPos(self: *@This(), x: f32, y: f32) Vec2i {
+        pub inline fn toGridPos(self: *@This(), x: f32, y: f32) Vec2i {
             const cell_size: i32 = @intCast(self.cell_size);
             return .{ .x = @divFloor(@as(i32, @intFromFloat(x)),  cell_size), .y = @divFloor(@as(i32, @intFromFloat(y)), cell_size) };
+        }
+
+        pub inline fn toGridPos2(self: *@This(), pos: Vec2i) Vec2i {
+            const cell_size: i32 = @intCast(self.cell_size);
+            return .{ .x = @divFloor(pos.x,  cell_size), .y = @divFloor(pos.y, cell_size) };
         }
 
         fn addObjectToCell(self: *@This(), grid_pos: Vec2i, object: ObjectT) !?*Cell {

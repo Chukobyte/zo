@@ -48,6 +48,7 @@ const SpriteClass = object.SpriteClass;
 const TextLabelClass = object.TextLabelClass;
 const TextBoxClass = object.TextBoxClass;
 const TextButtonClass = object.TextButtonClass;
+const SpatialHashMap = zo.spatial_hash_map.SpatialHashMap;
 
 const log = zo.log;
 
@@ -142,7 +143,7 @@ pub const InitSceneDefinition = struct {
 };
 
 pub const InitEntity = struct {
-    pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
+    pub fn onEnterScene(_: *@This(), _: *World, _: Entity) !void {
         _ = try GameObjectSystem.init(global.allocator);
         player_character.name = String.init(global.allocator);
         move_left_input_handle = try input.addAction(.{ .keys = &.{ .keyboard_left, .keyboard_a } } );
@@ -161,7 +162,7 @@ pub const MainMenuSceneDefinition = struct {
 };
 
 pub const MainMenuEntity = struct {
-    pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
+    pub fn onEnterScene(_: *@This(), _: *World, _: Entity) !void {
         _ = try GameObject.initInScene(
             TextLabelClass,
             .{ .font = &global.assets.fonts.pixeloid_32, .text = "Unbound", .transform = .{ .position = .{ .x = 225.0, .y = 100.0 } }, },
@@ -205,7 +206,7 @@ pub const NewGameEntity = struct {
     new_button: *GameObject = undefined,
     existing_button: *GameObject = undefined,
 
-    pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
+    pub fn onEnterScene(self: *@This(), _: *World, _: Entity) !void {
         _ = try GameObject.initInScene(
             TextLabelClass,
             .{ .font = &global.assets.fonts.pixeloid_16, .text = "Select character", .transform = .{ .position = .{ .x = 210.0, .y = 180.0 } }, },
@@ -401,7 +402,7 @@ pub const NewCharacterEntity = struct {
     location_nav_element: *NavigationElement = undefined,
     on_nav_dir_changed_handle: SubscriberHandle = undefined,
 
-    pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
+    pub fn onEnterScene(self: *@This(), world: *World, entity: Entity) !void {
         try self.resetPlayerCharacter();
         self.name_object = try GameObject.initInScene(
             TextLabelClass,
@@ -523,7 +524,7 @@ pub const NewCharacterEntity = struct {
         ui_event_system.on_nav_direction_changed.unsubscribe(self.on_nav_dir_changed_handle);
     }
 
-    pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
+    pub fn update(self: *@This(), world: *World, _: Entity, _: f32) !void {
         if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
             try global.assets.audio.click.play(false);
             if (self.is_typing_name) {
@@ -716,7 +717,7 @@ pub const LocationEntity = struct {
     character_button: *GameObject = undefined,
     end_turn_button: *GameObject = undefined,
 
-    pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
+    pub fn onEnterScene(self: *@This(), _: *World, _: Entity) !void {
         _ = try GameObject.initInScene(
             TextLabelClass,
             .{ .text = player_character.location.?.name, .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 150.0, .y = 100.0 } }, },
@@ -870,7 +871,7 @@ pub const MapEntity = struct {
     back_button: *GameObject = undefined,
     location_selector: LocationSelector = .{},
 
-    pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
+    pub fn onEnterScene(self: *@This(), world: *World, entity: Entity) !void {
         _ = world; _ = entity;
         const map_texuture_size: Dim2 = .{ .w = @floatFromInt(global.assets.textures.map.width), .h = @floatFromInt(global.assets.textures.map.height) };
         _ = try GameObject.initInScene(
@@ -898,11 +899,11 @@ pub const MapEntity = struct {
         self.confirm_button = try ButtonUtils.createConfirmButton(onClick);
     }
 
-    pub fn onExitScene(self: *@This(), world: *World, entity: ecs.Entity) void {
+    pub fn onExitScene(self: *@This(), world: *World, entity: Entity) void {
         _ = self; _ = world; _ = entity;
     }
 
-    pub fn update(self: *@This(), world: *World, _: ecs.Entity, _: f32) !void {
+    pub fn update(self: *@This(), world: *World, _: Entity, _: f32) !void {
         if (self.checkForLocationChange()) |new_location| {
             self.selected_location_cursor.setLocalPosition(new_location.map_position);
             var text_label_comp = world.getComponent(self.selected_location_name.node.entity, TextLabelComponent);
@@ -962,7 +963,7 @@ pub const CharacterViewEntity = struct {
     details_object: *GameObject = undefined,
     back_button: *GameObject = undefined,
 
-    pub fn onEnterScene(self: *@This(), world: *World, entity: ecs.Entity) !void {
+    pub fn onEnterScene(self: *@This(), world: *World, entity: Entity) !void {
         _ = world; _ = entity;
 
         self.details_object = try GameObject.initInScene(
@@ -975,7 +976,7 @@ pub const CharacterViewEntity = struct {
         _ = try ButtonUtils.setupNavElement(self.back_button, onPressed);
     }
 
-    pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
+    pub fn update(_: *@This(), _: *World, _: Entity, _: f32) !void {
         if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
             try global.assets.audio.click.play(false);
             global.scene_system.changeScene(LocationSceneDefinition);
@@ -1019,7 +1020,7 @@ pub const DiscoverSceneDefinition = struct {
 pub const DiscoverEntity = struct {
     timer: Timer = .{ .duration = 5.0 },
 
-    pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
+    pub fn onEnterScene(_: *@This(), _: *World, _: Entity) !void {
         const event_text = "Random events will be implemented here in the future!";
         _ = try GameObject.initInScene(
             TextBoxClass,
@@ -1029,7 +1030,7 @@ pub const DiscoverEntity = struct {
         );
     }
 
-    pub fn update(self: *@This(), _: *World, _: ecs.Entity, delta_time_seconds: f32) !void {
+    pub fn update(self: *@This(), _: *World, _: Entity, delta_time_seconds: f32) !void {
         self.timer.update(delta_time_seconds);
         if (self.timer.hasTimedOut()) {
             global.scene_system.changeScene(LocationSceneDefinition);
@@ -1046,7 +1047,7 @@ pub const InteractSceneDefinition = struct {
 pub const InteractEntity = struct {
     timer: Timer = .{ .duration = 5.0 },
 
-    pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
+    pub fn onEnterScene(_: *@This(), _: *World, _: Entity) !void {
         const event_text = "Here you will be able to interact with people you've met!";
         _ = try GameObject.initInScene(
             TextBoxClass,
@@ -1056,7 +1057,7 @@ pub const InteractEntity = struct {
         );
     }
 
-    pub fn update(self: *@This(), _: *World, _: ecs.Entity, delta_time_seconds: f32) !void {
+    pub fn update(self: *@This(), _: *World, _: Entity, delta_time_seconds: f32) !void {
         self.timer.update(delta_time_seconds);
         if (self.timer.hasTimedOut()) {
             global.scene_system.changeScene(LocationSceneDefinition);
@@ -1077,7 +1078,7 @@ pub const MilitaryEntity = struct {
     battle_button: *GameObject = undefined,
     back_button: *GameObject = undefined,
 
-    pub fn onEnterScene(self: *@This(), _: *World, _: ecs.Entity) !void {
+    pub fn onEnterScene(self: *@This(), _: *World, _: Entity) !void {
         self.troop_text = try GameObject.initInScene(
             TextLabelClass,
             .{ .font = &global.assets.fonts.pixeloid_16, .transform = .{ .position = .{ .x = 210.0, .y = 180.0 } }, },
@@ -1126,7 +1127,7 @@ pub const MilitaryEntity = struct {
         back_button_element.left = battle_button_element;
     }
 
-    pub fn update(_: *@This(), _: *World, _: ecs.Entity, _: f32) !void {
+    pub fn update(_: *@This(), _: *World, _: Entity, _: f32) !void {
         if (input.isKeyJustPressed(.{ .key = .keyboard_escape })) {
             try global.assets.audio.click.play(false);
             global.scene_system.changeScene(LocationSceneDefinition);
@@ -1177,8 +1178,14 @@ pub const BattleSceneDefinition = struct {
 
 pub const BattleEntity = struct {
     timer: Timer = .{ .duration = 5.0 },
+    selector_texture: Texture = undefined,
+    spatial_hash: SpatialHashMap(Entity) = undefined,
+    on_mouse_move_handle: ?SubscriberHandle = null,
 
-    pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
+    pub fn onEnterScene(self: *@This(), _: *World, _: Entity) !void {
+        self.selector_texture = try Texture.initWhiteSquare(global.allocator, true, .{ .w = 1, .h = 1 });
+        self.spatial_hash = try SpatialHashMap(Entity).init(global.allocator, 32);
+        self.on_mouse_move_handle = try input.mouse_move_delegate.subscribe(onMouseMove);
         const map_texture: *Texture = &global.assets.textures.battle_map;
         const map_texuture_size: Dim2 = .{ .w = @floatFromInt(map_texture.width), .h = @floatFromInt(map_texture.height) };
         _ = try GameObject.initInScene(
@@ -1196,7 +1203,21 @@ pub const BattleEntity = struct {
         );
     }
 
-    pub fn update(self: *@This(), _: *World, _: ecs.Entity, delta_time_seconds: f32) !void {
+    pub fn onExitScene(self: *@This(), _: *World, _: Entity) void {
+        self.spatial_hash.deinit();
+        if (self.on_mouse_move_handle) |handle| {
+            input.mouse_move_delegate.unsubscribe(handle);
+        }
+    }
+
+    pub fn onMouseMove(_: Vec2i) void {
+        // if (global.world.getEntityScriptInstance(@This(), 0)) |self| {
+        //     const global_mouse_pos = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
+        //     const grid_pos = self.spatial_hash.toGridPos2(global_mouse_pos);
+        // }
+    }
+
+    pub fn update(self: *@This(), _: *World, _: Entity, delta_time_seconds: f32) !void {
         self.timer.update(delta_time_seconds);
         if (self.timer.hasTimedOut()) {
             global.scene_system.changeScene(MilitarySceneDefinition);
@@ -1249,7 +1270,7 @@ pub const EndTurnMapSceneDefinition = struct {
 pub const EndTurnMapEntity = struct {
     timer: Timer = .{ .duration = 5.0 },
 
-    pub fn onEnterScene(_: *@This(), _: *World, _: ecs.Entity) !void {
+    pub fn onEnterScene(_: *@This(), _: *World, _: Entity) !void {
         const map_texuture_size: Dim2 = .{ .w = @floatFromInt(global.assets.textures.map.width), .h = @floatFromInt(global.assets.textures.map.height) };
         _ = try GameObject.initInScene(
             SpriteClass,
@@ -1266,7 +1287,7 @@ pub const EndTurnMapEntity = struct {
         );
     }
 
-    pub fn update(self: *@This(), _: *World, _: ecs.Entity, delta_time_seconds: f32) !void {
+    pub fn update(self: *@This(), _: *World, _: Entity, delta_time_seconds: f32) !void {
         self.timer.update(delta_time_seconds);
         if (self.timer.hasTimedOut()) {
             game_date.incrementMonth();
