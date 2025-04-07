@@ -48,6 +48,7 @@ const SpriteClass = object.SpriteClass;
 const TextLabelClass = object.TextLabelClass;
 const TextBoxClass = object.TextBoxClass;
 const TextButtonClass = object.TextButtonClass;
+const ColorRectClass = object.ColorRectClass;
 const SpatialHashMap = zo.spatial_hash_map.SpatialHashMap;
 
 const log = zo.log;
@@ -1177,8 +1178,9 @@ pub const BattleSceneDefinition = struct {
 };
 
 pub const BattleEntity = struct {
-    timer: Timer = .{ .duration = 5.0 },
+    timer: Timer = .{ .duration = 50.0 },
     selector_texture: Texture = undefined,
+    selector_object: *GameObject = undefined,
     spatial_hash: SpatialHashMap(Entity) = undefined,
     on_mouse_move_handle: ?SubscriberHandle = null,
 
@@ -1201,6 +1203,13 @@ pub const BattleEntity = struct {
             null,
             null
         );
+        self.selector_object = try GameObject.initInScene(
+            ColorRectClass,
+            .{ .size = .{ .w = 32, .h = 32 }, .color = .{ .r = 1.0, .g = 0.0, .b = 0.0, .a = 0.5 }, .z_index = 5 },
+            null,
+            null
+        );
+        onMouseMove(input.getMousePosition());
     }
 
     pub fn onExitScene(self: *@This(), _: *World, _: Entity) void {
@@ -1211,10 +1220,15 @@ pub const BattleEntity = struct {
     }
 
     pub fn onMouseMove(_: Vec2i) void {
-        // if (global.world.getEntityScriptInstance(@This(), 0)) |self| {
-        //     const global_mouse_pos = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
-        //     const grid_pos = self.spatial_hash.toGridPos2(global_mouse_pos);
-        // }
+        if (global.world.findEntityScriptInstance(@This())) |self| {
+            const global_mouse_pos = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
+            var grid_pos = self.spatial_hash.toGridPos2(global_mouse_pos);
+            grid_pos = grid_pos.mult(&.{ .x = 32, .y = 32 });
+            var final_map_pos = grid_pos.cast(f32);
+            final_map_pos.x += 1.0;
+            final_map_pos.y += 1.0;
+            self.selector_object.setGlobalPosition(final_map_pos);
+        }
     }
 
     pub fn update(self: *@This(), _: *World, _: Entity, delta_time_seconds: f32) !void {

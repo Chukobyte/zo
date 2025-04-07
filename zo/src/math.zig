@@ -45,6 +45,13 @@ pub fn Vector2(comptime T: type) type {
                 .y = a.y * b.y,
             };
         }
+
+        pub inline fn cast(self: *const @This(), comptime ToT: type) Vector2(ToT) {
+            return Vector2(ToT){
+                .x = convertType(T, ToT, self.x),
+                .y = convertType(T, ToT, self.y),
+            };
+        }
     };
 }
 
@@ -97,6 +104,14 @@ pub fn Vector3(comptime T: type) type {
                 .x = a.x * b.x,
                 .y = a.y * b.y,
                 .z = a.z * b.z,
+            };
+        }
+
+        pub inline fn cast(self: *const @This(), comptime ToT: type) Vector3(ToT) {
+            return Vector3(ToT){
+                .x = convertType(T, ToT, self.x),
+                .y = convertType(T, ToT, self.y),
+                .z = convertType(T, ToT, self.z)
             };
         }
     };
@@ -166,6 +181,13 @@ pub fn Vector4(comptime T: type) type {
                 .y = a.y / b.y,
                 .z = a.z / b.z,
                 .w = a.w / b.w,
+            };
+        }
+
+        pub inline fn cast(self: *const @This(), comptime ToT: type) Vector4(ToT) {
+            return Vector4(ToT){
+                .x = convertType(T, ToT, self.x),
+                .y = convertType(T, ToT, self.y),
             };
         }
     };
@@ -530,6 +552,15 @@ pub fn Rectangle2(comptime T: type) type {
                 self.y + self.h < point.y
             );
         }
+
+        pub inline fn cast(self: *const @This(), comptime ToT: type) Rectangle2(ToT) {
+            return Rectangle2(ToT){
+                .x = convertType(T, ToT, self.x),
+                .y = convertType(T, ToT, self.y),
+                .w = convertType(T, ToT, self.w),
+                .h = convertType(T, ToT, self.h)
+            };
+        }
     };
 }
 
@@ -576,6 +607,13 @@ pub fn Dimensions2(comptime T: type) type {
 
         pub inline fn toVec2(self: *const @This()) Vector2(T) {
             return .{ .x = self.w, .y = self.h };
+        }
+
+        pub inline fn cast(self: *const @This(), comptime ToT: type) Dimensions2(ToT) {
+            return Dimensions2(ToT){
+                .w = convertType(T, ToT, self.w),
+                .h = convertType(T, ToT, self.h)
+            };
         }
     };
 }
@@ -633,4 +671,20 @@ pub fn ortho(left: f32, right: f32, bottom: f32, top: f32, nearZ: f32, farZ: f32
             .{ -(right + left) / (right - left), -(top + bottom) / (top - bottom), -(farZ + nearZ) / (farZ - nearZ), 1.0 },
         },
     };
+}
+
+inline fn convertType(comptime FromT: type, comptime ToT: type, value: FromT) ToT {
+    const FromInfo = @typeInfo(FromT);
+    const ToInfo = @typeInfo(ToT);
+    if (FromInfo == .int and ToInfo == .float) {
+        return @floatFromInt(value);
+    } else if (FromInfo == .float and ToInfo == .int) {
+        return @intFromFloat(value);
+    } else if (FromInfo == .int and ToInfo == .int) {
+        return @intCast(value);
+    } else if (FromInfo == .float and ToInfo == .float) {
+        return @floatCast(value);
+    } else {
+        @compileError("Unsupported cast from " ++ @typeName(FromT) ++ " to " ++ @typeName(ToT));
+    }
 }
