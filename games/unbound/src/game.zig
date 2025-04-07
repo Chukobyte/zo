@@ -1181,12 +1181,14 @@ pub const BattleEntity = struct {
     // timer: Timer = .{ .duration = 50.0 },
     selector_texture: Texture = undefined,
     selector_object: *GameObject = undefined,
+    left_soldiers: *GameObject = undefined,
+    right_soldiers: *GameObject = undefined,
     attack_button_object: *GameObject = undefined,
     end_turn_button_object: *GameObject = undefined,
     spatial_hash: SpatialHashMap(Entity) = undefined,
     on_mouse_move_handle: ?SubscriberHandle = null,
 
-    pub fn onEnterScene(self: *@This(), _: *World, _: Entity) !void {
+    pub fn onEnterScene(self: *@This(), world: *World, _: Entity) !void {
         self.selector_texture = try Texture.initWhiteSquare(global.allocator, true, .{ .w = 1, .h = 1 });
         self.spatial_hash = try SpatialHashMap(Entity).init(global.allocator, 32);
         self.on_mouse_move_handle = try input.mouse_move_delegate.subscribe(onMouseMove);
@@ -1207,18 +1209,20 @@ pub const BattleEntity = struct {
         // );
         const soldiers_texture: *Texture = &global.assets.textures.british_soldiers;
         const soldiers_texuture_size: Dim2 = .{ .w = @floatFromInt(soldiers_texture.width), .h = @floatFromInt(soldiers_texture.height) };
-        _ = try GameObject.initInScene(
+        self.left_soldiers = try GameObject.initInScene(
             SpriteClass,
             .{ .texture = soldiers_texture, .draw_source = .{ .x = 0.0, .y = 0.0, .w = soldiers_texuture_size.w, .h = soldiers_texuture_size.h }, .transform = .{ .position = .{ .x = 128.0, .y = 128.0 } } },
             null,
             null
         );
-        _ = try GameObject.initInScene(
+        try world.setComponent(self.left_soldiers.node.entity, UIEventComponent, &.{ .collider = .{ .x = 0.0, .y = 0.0, .w = 32.0, .h = 32.0 }, .on_click = onClick });
+        self.right_soldiers = try GameObject.initInScene(
             SpriteClass,
             .{ .texture = soldiers_texture, .draw_source = .{ .x = 0.0, .y = 0.0, .w = soldiers_texuture_size.w, .h = soldiers_texuture_size.h }, .transform = .{ .position = .{ .x = 512.0, .y = 128.0 } } },
             null,
             null
         );
+        try world.setComponent(self.right_soldiers.node.entity, UIEventComponent, &.{ .collider = .{ .x = 0.0, .y = 0.0, .w = 32.0, .h = 32.0 }, .on_click = onClick });
         self.attack_button_object = try GameObject.initInScene(
             TextButtonClass,
             .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Attack", .on_click = onClick, .transform = .{ .position = .{ .x = 65.0, .y = 310.0 } }, .z_index = 5 },
@@ -1254,6 +1258,10 @@ pub const BattleEntity = struct {
             } else if (self.end_turn_button_object.node.entity == clicked_entity) {
                 // Temp to end the battle for now
                 global.scene_system.changeScene(MilitarySceneDefinition);
+            } else if (self.left_soldiers.node.entity == clicked_entity) {
+                log(.debug, "Left soldier clicked!", .{});
+            } else if (self.right_soldiers.node.entity == clicked_entity) {
+                log(.debug, "Right soldier clicked!", .{});
             }
         }
         return .success;
