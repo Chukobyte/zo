@@ -1178,9 +1178,11 @@ pub const BattleSceneDefinition = struct {
 };
 
 pub const BattleEntity = struct {
-    timer: Timer = .{ .duration = 50.0 },
+    // timer: Timer = .{ .duration = 50.0 },
     selector_texture: Texture = undefined,
     selector_object: *GameObject = undefined,
+    attack_button_object: *GameObject = undefined,
+    end_turn_button_object: *GameObject = undefined,
     spatial_hash: SpatialHashMap(Entity) = undefined,
     on_mouse_move_handle: ?SubscriberHandle = null,
 
@@ -1196,13 +1198,13 @@ pub const BattleEntity = struct {
             null,
             null
         );
-        const event_text = "A battle has taken place...you've won and lost 0 troops!";
-        _ = try GameObject.initInScene(
-            TextBoxClass,
-            .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 400, .h = 60 }, .text = event_text, .line_spacing = 5.0, .use_background = true, .transform = .{ .position = .{ .x = 120.0, .y = 290.0 } }, .z_index = 1 },
-            null,
-            null
-        );
+        // const event_text = "A battle has taken place...you've won and lost 0 troops!";
+        // _ = try GameObject.initInScene(
+        //     TextBoxClass,
+        //     .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 400, .h = 60 }, .text = event_text, .line_spacing = 5.0, .use_background = true, .transform = .{ .position = .{ .x = 120.0, .y = 290.0 } }, .z_index = 1 },
+        //     null,
+        //     null
+        // );
         const soldiers_texture: *Texture = &global.assets.textures.british_soldiers;
         const soldiers_texuture_size: Dim2 = .{ .w = @floatFromInt(soldiers_texture.width), .h = @floatFromInt(soldiers_texture.height) };
         _ = try GameObject.initInScene(
@@ -1214,6 +1216,18 @@ pub const BattleEntity = struct {
         _ = try GameObject.initInScene(
             SpriteClass,
             .{ .texture = soldiers_texture, .draw_source = .{ .x = 0.0, .y = 0.0, .w = soldiers_texuture_size.w, .h = soldiers_texuture_size.h }, .transform = .{ .position = .{ .x = 512.0, .y = 128.0 } } },
+            null,
+            null
+        );
+        self.attack_button_object = try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Attack", .on_click = onClick, .transform = .{ .position = .{ .x = 65.0, .y = 310.0 } }, .z_index = 5 },
+            null,
+            null
+        );
+        self.end_turn_button_object = try GameObject.initInScene(
+            TextButtonClass,
+            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "End Turn", .on_click = onClick, .transform = .{ .position = .{ .x = 185.0, .y = 310.0 } }, .z_index = 5 },
             null,
             null
         );
@@ -1233,10 +1247,27 @@ pub const BattleEntity = struct {
         }
     }
 
+    pub fn onClick(clicked_entity: Entity) OnUIChangedResponse {
+        if (global.world.findEntityScriptInstance(@This())) |self| {
+            if (self.attack_button_object.node.entity == clicked_entity) {
+                // TODO: Add attacking
+            } else if (self.end_turn_button_object.node.entity == clicked_entity) {
+                // Temp to end the battle for now
+                global.scene_system.changeScene(MilitarySceneDefinition);
+            }
+        }
+        return .success;
+    }
+
+    pub fn onPressed(entity: Entity) OnUIChangedResponse {
+        return onClick(entity);
+    }
+
     pub fn onMouseMove(_: Vec2i) void {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             const global_mouse_pos = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
             var grid_pos = self.spatial_hash.toGridPos2(global_mouse_pos);
+            if (grid_pos.y > 8) { return; }
             grid_pos = grid_pos.mult(&.{ .x = 32, .y = 32 });
             var final_map_pos = grid_pos.cast(f32);
             final_map_pos.x += 1.0;
@@ -1245,48 +1276,48 @@ pub const BattleEntity = struct {
         }
     }
 
-    pub fn update(self: *@This(), _: *World, _: Entity, delta_time_seconds: f32) !void {
-        self.timer.update(delta_time_seconds);
-        if (self.timer.hasTimedOut()) {
-            global.scene_system.changeScene(MilitarySceneDefinition);
-        }
-
-        // Temp grid drawing
-        // const GridBatcher = struct {
-        //     const draw_source: Rect2 = .{ .x = 0, .y = 0, .w = 1.0, .h = 1.0 };
-        //     var texture : Texture = undefined;
-        //     var initialized = false;
-        //
-        //
-        //     pub fn queueDraw(base_pos: Vec2, comptime grid_size: Dim2i, comptime cell_size: Dim2i, grid_color: LinearColor, z_index: i32) !void {
-        //         if (!initialized) {
-        //             initialized = true;
-        //             texture = try Texture.initWhiteSquare(global.allocator, true, .{ .w = 1, .h = 1 });
-        //         }
-        //         var param_list = zo.misc.FixedArrayList(renderer.DrawSpriteParams, grid_size.w * grid_size.h).init();
-        //         for (0..grid_size.h) |y| {
-        //             for (0..grid_size.w) |x| {
-        //                 const cell_pos: Vec2 = .{ .x = @floatFromInt(x * cell_size.w), .y = @floatFromInt(y * cell_size.h) };
-        //                 const transform: Transform2D = .{ .position = base_pos.add(&cell_pos) };
-        //                 try param_list.append(.{
-        //                     .texture = &texture,
-        //                     .source_rect = draw_source,
-        //                     .global_matrix = transform.toMat4(),
-        //                     .dest_size = .{ .w = @floatFromInt(cell_size.w), .h = @floatFromInt(cell_size.h) },
-        //                     .modulate = grid_color,
-        //                     .z_index = z_index,
-        //                 });
-        //             }}
-        //         try renderer.queueSpriteDraws(param_list.asSlice());
-        //     }
-        // };
-        // const base_pos: Vec2 = .{ .x = 10, .y = 10 };
-        // const grid_size: Dim2i = .{ .w = 15, .h = 10 };
-        // const cell_size: Dim2i = .{ .w = 32, .h = 32 };
-        // const grid_color: LinearColor = .{ .r = 1.0, .g = 1.0, .b = 1.0, .a = 0.5 };
-        // const z_index: i32 = 11;
-        // try GridBatcher.queueDraw(base_pos, grid_size, cell_size, grid_color, z_index);
-    }
+    // pub fn update(self: *@This(), _: *World, _: Entity, delta_time_seconds: f32) !void {
+    //     self.timer.update(delta_time_seconds);
+    //     if (self.timer.hasTimedOut()) {
+    //         global.scene_system.changeScene(MilitarySceneDefinition);
+    //     }
+    //
+    //     // Temp grid drawing
+    //     // const GridBatcher = struct {
+    //     //     const draw_source: Rect2 = .{ .x = 0, .y = 0, .w = 1.0, .h = 1.0 };
+    //     //     var texture : Texture = undefined;
+    //     //     var initialized = false;
+    //     //
+    //     //
+    //     //     pub fn queueDraw(base_pos: Vec2, comptime grid_size: Dim2i, comptime cell_size: Dim2i, grid_color: LinearColor, z_index: i32) !void {
+    //     //         if (!initialized) {
+    //     //             initialized = true;
+    //     //             texture = try Texture.initWhiteSquare(global.allocator, true, .{ .w = 1, .h = 1 });
+    //     //         }
+    //     //         var param_list = zo.misc.FixedArrayList(renderer.DrawSpriteParams, grid_size.w * grid_size.h).init();
+    //     //         for (0..grid_size.h) |y| {
+    //     //             for (0..grid_size.w) |x| {
+    //     //                 const cell_pos: Vec2 = .{ .x = @floatFromInt(x * cell_size.w), .y = @floatFromInt(y * cell_size.h) };
+    //     //                 const transform: Transform2D = .{ .position = base_pos.add(&cell_pos) };
+    //     //                 try param_list.append(.{
+    //     //                     .texture = &texture,
+    //     //                     .source_rect = draw_source,
+    //     //                     .global_matrix = transform.toMat4(),
+    //     //                     .dest_size = .{ .w = @floatFromInt(cell_size.w), .h = @floatFromInt(cell_size.h) },
+    //     //                     .modulate = grid_color,
+    //     //                     .z_index = z_index,
+    //     //                 });
+    //     //             }}
+    //     //         try renderer.queueSpriteDraws(param_list.asSlice());
+    //     //     }
+    //     // };
+    //     // const base_pos: Vec2 = .{ .x = 10, .y = 10 };
+    //     // const grid_size: Dim2i = .{ .w = 15, .h = 10 };
+    //     // const cell_size: Dim2i = .{ .w = 32, .h = 32 };
+    //     // const grid_color: LinearColor = .{ .r = 1.0, .g = 1.0, .b = 1.0, .a = 0.5 };
+    //     // const z_index: i32 = 11;
+    //     // try GridBatcher.queueDraw(base_pos, grid_size, cell_size, grid_color, z_index);
+    // }
 };
 
 pub const EndTurnMapSceneDefinition = struct {
