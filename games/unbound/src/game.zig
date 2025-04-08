@@ -1288,6 +1288,25 @@ pub const BattleEntity = struct {
         }
     }
 
+    pub fn update(self: *@This(), world: *World, _: Entity, _: f32) !void {
+        // Checking for empty clicks (no entity clicked).  May want to move this type logic to the UIEventSystem.
+        if (input.isKeyJustPressed(.{ .key = .mouse_button_left })) {
+            const ui_event_system = world.getSystemInstance(UIEventSystem);
+            var remove_actions_options = false;
+            if (ui_event_system.entity_clicked_this_frame) |entity_clicked_this_frame| {
+                if (entity_clicked_this_frame != self.left_soldiers.getEntity()) {
+                    remove_actions_options = true;
+                }
+            } else {
+                remove_actions_options = true;
+            }
+            if (remove_actions_options) {
+                self.attack_button_object.setVisible(false);
+                self.end_turn_button_object.setVisible(false);
+            }
+        }
+    }
+
     // pub fn update(self: *@This(), _: *World, _: Entity, delta_time_seconds: f32) !void {
     //     self.timer.update(delta_time_seconds);
     //     if (self.timer.hasTimedOut()) {

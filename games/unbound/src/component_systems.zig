@@ -405,6 +405,7 @@ pub const UIEventSystem = struct {
     border_texture: Texture = undefined,
     on_nav_direction_changed: FixedDelegate(fn (*NavigationElement, Vec2i) OnUIChangedResponse, 4) = .{},
     pause_navigation_movement_tokens: TokenList(4) = .{},
+    entity_clicked_this_frame: ?Entity = null,
 
     pub fn init(self: *@This(), _: *World) !void {
         self.spatial_hash_map = try EntitySpatialHashMap.init(global.allocator, 64);
@@ -441,6 +442,7 @@ pub const UIEventSystem = struct {
         const just_clicked_pressed: bool = input.isKeyJustPressed(.{ .key = .mouse_button_left });
         // TODO: We can use the spatial hash cell based on the global mouse position instead of iterating over every entity
         var comp_iter = ComponentIterator.init(world);
+        self.entity_clicked_this_frame = null;
         while (comp_iter.next()) |iter| {
             const entity = iter.getEntity();
             const transform_comp = iter.getComponent(Transform2DComponent);
@@ -457,9 +459,10 @@ pub const UIEventSystem = struct {
                 if (just_clicked_pressed) {
                     var on_click_response: OnUIChangedResponse = .success;
                     if (event_comp.on_click) |on_click| {
-                        on_click_response = on_click(iter.getEntity());
+                        on_click_response = on_click(entity);
                     }
                     try processOnClickResponse(on_click_response);
+                    self.entity_clicked_this_frame = entity;
                 }
             }
         }
