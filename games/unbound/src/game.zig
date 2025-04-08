@@ -1179,7 +1179,6 @@ pub const BattleSceneDefinition = struct {
 
 pub const BattleEntity = struct {
     // timer: Timer = .{ .duration = 50.0 },
-    selector_texture: Texture = undefined,
     selector_object: *GameObject = undefined,
     left_soldiers: *GameObject = undefined,
     right_soldiers: *GameObject = undefined,
@@ -1189,7 +1188,6 @@ pub const BattleEntity = struct {
     on_mouse_move_handle: ?SubscriberHandle = null,
 
     pub fn onEnterScene(self: *@This(), world: *World, _: Entity) !void {
-        self.selector_texture = try Texture.initWhiteSquare(global.allocator, true, .{ .w = 1, .h = 1 });
         self.spatial_hash = try SpatialHashMap(Entity).init(global.allocator, 32);
         self.on_mouse_move_handle = try input.mouse_move_delegate.subscribe(onMouseMove);
         const map_texture: *Texture = &global.assets.textures.battle_map;
