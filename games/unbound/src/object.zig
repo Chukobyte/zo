@@ -148,6 +148,7 @@ fn GameObjectParams(ClassT: type) type {
 pub const GameObject = struct {
     node: *Node,
     class: GameObjectClass,
+    is_visible: bool,
 
     /// Initializes game object and add to scene
     pub fn initInScene(comptime ClassT: type, params: GameObjectParams(ClassT), parent: ?*Node, entity_interface: ?type) !*@This() {
@@ -220,6 +221,7 @@ pub const GameObject = struct {
     }
 
     pub fn setVisible(self: *@This(), visible: bool) void {
+        if (self.is_visible == visible) { return; }
         switch (self.class) {
             .sprite => {
                 global.world.setComponentEnabled(self.getEntity(), SpriteComponent, visible);
@@ -242,6 +244,7 @@ pub const GameObject = struct {
                 global.world.setComponentEnabled(self.getEntity(), ColorRectComponent, visible);
             },
         }
+        self.is_visible = visible;
     }
 
     fn init(node: *Node, comptime ClassT: type, params: GameObjectParams(ClassT)) !*@This() {
@@ -292,6 +295,7 @@ pub const GameObject = struct {
             },
             else => @compileError("Must use Game Object Class type!"),
         }
+        game_object.is_visible = true;
         game_object.onMovementUpdate("init");
         return game_object;
     }

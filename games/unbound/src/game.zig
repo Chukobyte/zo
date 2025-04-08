@@ -1235,6 +1235,8 @@ pub const BattleEntity = struct {
             null,
             null
         );
+        self.attack_button_object.setVisible(false);
+        self.end_turn_button_object.setVisible(false);
         self.selector_object = try GameObject.initInScene(
             ColorRectClass,
             .{ .size = .{ .w = 32, .h = 32 }, .color = .{ .r = 1.0, .g = 0.0, .b = 0.0, .a = 0.5 }, .z_index = 5 },
@@ -1259,6 +1261,8 @@ pub const BattleEntity = struct {
                 // Temp to end the battle for now
                 global.scene_system.changeScene(MilitarySceneDefinition);
             } else if (self.left_soldiers.getEntity() == clicked_entity) {
+                self.attack_button_object.setVisible(true);
+                self.end_turn_button_object.setVisible(true);
                 log(.debug, "Left soldier clicked!", .{});
             } else if (self.right_soldiers.getEntity() == clicked_entity) {
                 log(.debug, "Right soldier clicked!", .{});

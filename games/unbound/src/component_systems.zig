@@ -106,6 +106,13 @@ pub const TextLabelComponent = struct {
             words.deinit();
         }
 
+        pub fn deinit(self: *@This()) void {
+            switch (self.class) {
+                .label => self.class.label.text.deinit(),
+                .text_box => self.class.text_box.text.deinit(),
+            }
+        }
+
         fn getWords(self: *@This(), font: *const Font, text: []const u8, scale: f32, space_width: ?*f32) !std.ArrayList(Word) {
             var words = std.ArrayList(Word).init(self.text.allocator);
             var current_word: Word = .{ .text = String.init(self.text.allocator) };
@@ -282,15 +289,6 @@ pub const TextRenderingSystem = struct {
                         }
                     },
                 }
-            }
-        }
-    }
-
-    pub fn onEntityUnregistered(_: *@This(), world: *World, entity: Entity) void {
-        if (world.getComponent(entity, TextLabelComponent)) | text_label_comp| {
-            switch (text_label_comp.class) {
-                .label => text_label_comp.class.label.text.deinit(),
-                .text_box => text_label_comp.class.text_box.text.deinit(),
             }
         }
     }

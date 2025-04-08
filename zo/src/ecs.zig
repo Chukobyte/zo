@@ -873,6 +873,7 @@ pub fn ECSWorld(params: ECSWorldParams) type {
 
         pub fn setComponentEnabled(self: *@This(), entity: Entity, comptime T: type, enabled: bool) void {
             const entity_data: *EntityData = &self.entity_data.items[entity];
+            if (entity_data.component_signature.isEnabled(T) == enabled) { return; }
             entity_data.component_signature.setEnabled(T, enabled);
             self.refreshArchetypeState(entity) catch { log(.critical, "Failed to refresh archetype state after entity {d} set {any} enabled to {any}", .{ entity, T, enabled }); };
         }
@@ -921,11 +922,11 @@ pub fn ECSWorld(params: ECSWorldParams) type {
                         inline for (0..archetype_list_data[i].num_of_components) |comp_i| {
                             // Map component pointers with order
                             const entity_comp_index = arch_data.sorted_components_by_index[sort_comp_i][comp_i];
-                            // TODO: Figure out why we need to check this, as the data shouldn be consistent
-                            if (entity_data.components[entity_comp_index]) |comp| {
-                                arch_data.sorted_components.items[entity][sort_comp_i][comp_i] = comp;
-                            }
-                            // arch_data.sorted_components.items[entity][sort_comp_i][comp_i] = entity_data.components[entity_comp_index];
+                            // TODO: Figure out why we need to check this, seems like it's fixed remove after testing.
+                            // if (entity_data.components[entity_comp_index]) |comp| {
+                            //     arch_data.sorted_components.items[entity][sort_comp_i][comp_i] = comp;
+                            // }
+                            arch_data.sorted_components.items[entity][sort_comp_i][comp_i] = entity_data.components[entity_comp_index].?;
                             if (comp_i + 1 >= arch_data.num_of_components)  {
                                 break;
                             }
