@@ -102,7 +102,7 @@ fn GameObjectParams(ClassT: type) type {
     switch (ClassT) {
         SpriteClass => return struct {
             texture: *Texture,
-            draw_source: Rect2,
+            draw_source: ?Rect2 = null,
             transform: Transform2D = Transform2D.Identity,
             z_index: i32 = 0,
         },
@@ -254,7 +254,8 @@ pub const GameObject = struct {
         switch (ClassT) {
             SpriteClass => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
-                try global.world.setComponent(node.entity, SpriteComponent, &.{ .texture = params.texture, .draw_source = params.draw_source });
+                const draw_source: Rect2 = params.draw_source orelse .{ .x = 0.0, .y = 0.0, .w = @floatFromInt(params.texture.width), .h = @floatFromInt(params.texture.height) };
+                try global.world.setComponent(node.entity, SpriteComponent, &.{ .texture = params.texture, .draw_source = draw_source });
                 game_object.class = .{ .sprite = .{ } };
             },
             TextLabelClass => {

@@ -371,6 +371,7 @@ pub const NavigationElement = struct {
     position: Vec2, // World position
     size: Dim2, // Container size
     owner_entity: Entity,
+    use_builtin_selector: bool = true,
     left: ?*@This() = null,
     right: ?*@This() = null,
     up: ?*@This() = null,
@@ -530,6 +531,7 @@ pub const UIEventSystem = struct {
     pub fn postWorldTick(self: *@This(), _: *World) !void {
         // Draw border as 9 slice rect
         if (self.focused_nav_element) |nav_element| {
+            if (!nav_element.use_builtin_selector) { return; }
             const texture_size: Dim2 = .{ .w = @floatFromInt(self.border_texture.width), .h = @floatFromInt(self.border_texture.height) };
             const border_color: LinearColor = .{ .r = 0.0, .g = 0.8, .b = 0.8 };
             const border: Rect2 = .{ .x = 1.0, .y = 1.0, .w = 14.0, .h = 6.0 };

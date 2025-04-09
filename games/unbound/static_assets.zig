@@ -9,6 +9,7 @@ pub const default_font = StaticAsset.create(@embedFile("assets/fonts/pixeloid_sa
 pub const map_texture = StaticAsset.create(@embedFile("assets/images/map_mockup.png"));
 pub const battle_map_texture = StaticAsset.create(@embedFile("assets/images/battle_map.png"));
 pub const british_soldiers_texture = StaticAsset.create(@embedFile("assets/images/british_soldiers.png"));
+pub const action_box_texture = StaticAsset.create(@embedFile("assets/images/action_box.png"));
 
 // Audio
 pub const click_audio = StaticAsset.create(@embedFile("assets/audio/click.wav"));
