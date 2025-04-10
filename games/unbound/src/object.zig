@@ -326,8 +326,9 @@ pub const GameObject = struct {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
                 const draw_source: Rect2 = .{ .x = 0.0, .y = 0.0, .w = texture_size.w, .h = texture_size.h };
                 try global.world.setComponent(node.entity, SpriteComponent, &.{ .texture = texture, .draw_source = draw_source });
-                try global.world.setComponent(node.entity, ColorRectComponent, &.{ .size = .{ .w = texture_size.w - 1, .h = texture_size.h - 1 }, .color = LinearColor.White, .offset = .{ .x = 1.0, .y = 1.0 } });
-                try global.world.setComponent(node.entity, UIEventComponent, &.{ .collider = draw_source, .on_hover = params.on_hover, .on_unhover = params.on_unhover, .on_click = params.on_click });
+                const style: UIEventComponent.Style = .{ .hover = LinearColor.fromColor(.{ .r = 255, .g = 255, .b = 210 }), .unhover = LinearColor.fromColor(.{ .r = 255, .g = 255, .b = 170 }), .click = LinearColor.fromColor(.{ .r = 255, .g = 255, .b = 240 }) };
+                try global.world.setComponent(node.entity, UIEventComponent, &.{ .collider = draw_source, .on_hover = params.on_hover, .on_unhover = params.on_unhover, .on_click = params.on_click, .style = style });
+                try global.world.setComponent(node.entity, ColorRectComponent, &.{ .size = .{ .w = texture_size.w - 1, .h = texture_size.h - 1 }, .color = style.unhover.?, .offset = .{ .x = 1.0, .y = 1.0 } });
                 // Create TextBox
                 _ = try GameObject.initInScene(
                     TextBoxClass,

@@ -601,6 +601,15 @@ pub const LinearColor = struct {
     pub const Red = @This(){ .r = 1.0, .g = 0.0, .b = 0.0 };
     pub const Green = @This(){ .r = 0.0, .g = 1.0, .b = 0.0 };
     pub const Blue = @This(){ .r = 0.0, .g = 0.0, .b = 1.0 };
+
+    pub fn fromColor(color: Color) @This() {
+        return @This(){
+            .r = convertType(u32, f32, color.r) / 255.0,
+            .g = convertType(u32, f32, color.g) / 255.0,
+            .b = convertType(u32, f32, color.b) / 255.0,
+            .a = convertType(u32, f32, color.a) / 255.0,
+        };
+    }
 };
 
 pub fn Dimensions2(comptime T: type) type {
