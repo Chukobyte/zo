@@ -1185,6 +1185,8 @@ pub const BattleEntity = struct {
     right_soldiers: *GameObject = undefined,
     attack_button_object: *GameObject = undefined,
     end_turn_button_object: *GameObject = undefined,
+    attack_action_object: *GameObject = undefined,
+    finish_action_object: *GameObject = undefined,
     spatial_hash: SpatialHashMap(Entity) = undefined,
     on_mouse_move_handle: ?SubscriberHandle = null,
 
@@ -1233,18 +1235,24 @@ pub const BattleEntity = struct {
         self.attack_button_object.setVisible(false);
         self.end_turn_button_object.setVisible(false);
 
-        _ = try GameObject.initInScene(
+        self.attack_action_object = try GameObject.initInScene(
             ActionButtonClass,
             .{ .font = &global.assets.fonts.pixeloid_24, .text = "Attack", .transform = .{ .position = .{ .x = 65.0, .y = 305.0 } } },
             null,
             null
         );
-        _ = try GameObject.initInScene(
+        self.finish_action_object = try GameObject.initInScene(
             ActionButtonClass,
             .{ .font = &global.assets.fonts.pixeloid_24, .text = "Finish", .transform = .{ .position = .{ .x = 185.0, .y = 305.0 } } },
             null,
             null
         );
+        var attack_nav_element = try ButtonUtils.setupNavElement(self.attack_action_object, onPressed);
+        var finish_nav_element = try ButtonUtils.setupNavElement(self.finish_action_object, onPressed);
+        attack_nav_element.right = finish_nav_element;
+        attack_nav_element.left = finish_nav_element;
+        finish_nav_element.right = attack_nav_element;
+        finish_nav_element.left = attack_nav_element;
 
         self.selector_object = try GameObject.initInScene(
             ColorRectClass,
@@ -1264,9 +1272,9 @@ pub const BattleEntity = struct {
 
     pub fn onClick(clicked_entity: Entity) OnUIChangedResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
-            if (self.attack_button_object.node.entity == clicked_entity) {
+            if (self.attack_action_object.node.entity == clicked_entity) {
                 // TODO: Add attacking
-            } else if (self.end_turn_button_object.getEntity() == clicked_entity) {
+            } else if (self.finish_action_object.getEntity() == clicked_entity) {
                 // Temp to end the battle for now
                 global.scene_system.changeScene(MilitarySceneDefinition);
             } else if (self.left_soldiers.getEntity() == clicked_entity) {
