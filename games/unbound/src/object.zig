@@ -37,39 +37,38 @@ pub const SpriteClass = struct {};
 
 pub const TextLabelClass = struct {};
 
-pub const TextBoxClass = struct {};
-
-pub const ColorRectClass = struct {};
-
-pub const TextButtonClass = struct {
+pub const TextBoxClass = struct {
     const TextAlignmentH = enum {
+        none,
         left,
         center,
         right
     };
     const TextAlignmentV = enum {
+        none,
         top,
         center,
         bottom
     };
 
-    text_box: *GameObject = undefined,
+    internal_object: *GameObject,
     alignment_h: TextAlignmentH = .left,
     alignment_v: TextAlignmentV = .top,
     alignment_padding: Vec2 = Vec2.Zero,
 
     /// Updates the text_box local position based on alignment
     pub fn refreshTextAlignment(self: *@This()) void {
-        if (global.world.getComponent(self.text_box.node.entity, TextLabelComponent)) |text_label_comp| {
+        if (global.world.getComponent(self.internal_object.getEntity(), TextLabelComponent)) |text_label_comp| {
             const text_scale: f32 = 1.0; // TODO: Calculate from transform
             const text_box = &text_label_comp.class.text_box;
-            if (text_box.text.lineCount() == 0) { return; }
+            if (text_box.text.lineCount() == 0 or (self.alignment_h == .none and self.alignment_v == .none)) { return; }
             // Horizontal alignment
             const line_text: []const u8 = text_box.text.getLine(0) catch "";
             const text_width: f32 = text_label_comp.font.getTextWidth(line_text) * text_scale;
             const container_width: f32 = @floatFromInt(text_box.size.w);
             const space_from_left: f32 = if (container_width > text_width) container_width - text_width else container_width;
             const left_padding: f32 = switch (self.alignment_h) {
+                .none => self.internal_object.getLocalPosition().x,
                 .left => 0.0,
                 .center => space_from_left / 2.0,
                 .right => space_from_left,
@@ -79,15 +78,22 @@ pub const TextButtonClass = struct {
             const text_height: f32 = text_label_comp.font.text_height * text_scale;
             const space_from_top: f32 = if (container_height > text_height) container_height - text_height else container_height;
             const top_padding: f32 = switch (self.alignment_v) {
+                .none => self.internal_object.getLocalPosition().y,
                 .top => 0.0,
                 .center => space_from_top / 2.0,
                 .bottom => space_from_top,
             };
             // Update position
             const local_text_pos: Vec2 = .{ .x = left_padding + self.alignment_padding.x, .y = top_padding + self.alignment_padding.y };
-            self.text_box.setLocalPosition(local_text_pos);
+            self.internal_object.setLocalPosition(local_text_pos);
         }
     }
+};
+
+pub const ColorRectClass = struct {};
+
+pub const TextButtonClass = struct {
+    text_box: *GameObject,
 };
 
 const GameObjectClass = union(enum) {
@@ -119,6 +125,10 @@ fn GameObjectParams(ClassT: type) type {
             color: LinearColor = LinearColor.White,
             line_spacing: f32 = 0.0,
             use_background: bool = false,
+            alignment_h: TextBoxClass.TextAlignmentH = .none,
+            alignment_v: TextBoxClass.TextAlignmentV = .none,
+            /// If additional padding adjustments are needed
+            alignment_padding: Vec2 = Vec2.Zero,
             transform: Transform2D = Transform2D.Identity,
             z_index: i32 = 0,
         },
@@ -129,8 +139,8 @@ fn GameObjectParams(ClassT: type) type {
             on_hover: ?*const fn(Entity) void = null,
             on_unhover: ?*const fn(Entity) void = null,
             on_click: ?*const fn(Entity) OnUIChangedResponse = null,
-            alignment_h: TextButtonClass.TextAlignmentH = .center,
-            alignment_v: TextButtonClass.TextAlignmentV = .center,
+            alignment_h: TextBoxClass.TextAlignmentH = .center,
+            alignment_v: TextBoxClass.TextAlignmentV = .center,
             /// If additional padding adjustments are needed
             alignment_padding: Vec2 = Vec2.Zero,
             transform: Transform2D = Transform2D.Identity,
@@ -272,24 +282,25 @@ pub const GameObject = struct {
                     const transform_comp = global.world.getComponent(node.entity, Transform2DComponent).?;
                     const text_label_comp = global.world.getComponent(node.entity, TextLabelComponent).?;
                     try text_label_comp.class.text_box.setText(params.font, text, transform_comp.global.scale.x);
-                    game_object.class = .{ .text_box = .{ } };
                 }
                 if (params.use_background) {
                     try global.world.setComponent(node.entity, ColorRectComponent, &.{ .size = .{ .w = @floatFromInt(params.size.w), .h = @floatFromInt(params.size.h) }, .color = .{ .r = 0.4, .g = 0.4, .b = 0.4 } });
                 }
+                game_object.class = .{ .text_box = .{ .internal_object = game_object, .alignment_h = params.alignment_h, .alignment_v = params.alignment_v, .alignment_padding = params.alignment_padding } };
+                game_object.class.text_box.refreshTextAlignment();
             },
             TextButtonClass => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
                 try global.world.setComponent(node.entity, UIEventComponent, &.{ .collider = params.collision, .on_hover = params.on_hover, .on_unhover = params.on_unhover, .on_click = params.on_click });
                 try global.world.setComponent(node.entity, ColorRectComponent, &.{ .size = .{ .w = params.collision.w, .h = params.collision.h }, .color = .{ .r = 0.4, .g = 0.4, .b = 0.4 } });
+                // Create child text box
                 const text_box = try initInScene(
                     TextBoxClass,
-                    .{ .font = params.font, .size = .{ .w = @intFromFloat(params.collision.w), .h = @intFromFloat(params.collision.h) }, .text = params.text, .z_index = params.z_index + 1 },
+                    .{ .font = params.font, .size = .{ .w = @intFromFloat(params.collision.w), .h = @intFromFloat(params.collision.h) }, .text = params.text, .alignment_h = params.alignment_h, .alignment_v = params.alignment_v, .alignment_padding = params.alignment_padding, .z_index = params.z_index + 1 },
                     node,
                     null
                 );
-                game_object.class = .{ .text_button = .{ .text_box = text_box, .alignment_h = params.alignment_h, .alignment_v = params.alignment_v, .alignment_padding = params.alignment_padding } };
-                game_object.class.text_button.refreshTextAlignment();
+                game_object.class = .{ .text_button = .{ .text_box = text_box } };
             },
             ColorRectClass => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });

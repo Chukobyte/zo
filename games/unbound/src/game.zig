@@ -683,7 +683,8 @@ pub const NewCharacterEntity = struct {
                 try button_text_label_comp.class.text_box.setText(button_text_label_comp.font, "Edit", 1.0);
             }
         }
-        self.edit_name_button.class.text_button.refreshTextAlignment();
+        // TODO: This is reaching in pretty deep, can be cleaner
+        self.edit_name_button.class.text_button.text_box.class.text_box.refreshTextAlignment();
     }
 
     /// Resets the player character to default values
