@@ -90,11 +90,13 @@ pub const TextBoxClass = struct {
     }
 };
 
-pub const ColorRectClass = struct {};
-
 pub const TextButtonClass = struct {
     text_box: *GameObject,
 };
+
+pub const ColorRectClass = struct {};
+
+pub const ActionButtonClass = struct {};
 
 const GameObjectClass = union(enum) {
     sprite: SpriteClass,
@@ -102,6 +104,7 @@ const GameObjectClass = union(enum) {
     text_box: TextBoxClass,
     text_button: TextButtonClass,
     color_rect: ColorRectClass,
+    action_button: ActionButtonClass,
 };
 
 fn GameObjectParams(ClassT: type) type {
@@ -149,6 +152,12 @@ fn GameObjectParams(ClassT: type) type {
         ColorRectClass => return struct {
             size: Dim2,
             color: LinearColor = LinearColor.White,
+            transform: Transform2D = Transform2D.Identity,
+            z_index: i32 = 0,
+        },
+        ActionButtonClass => return struct {
+            font: *Font,
+            text: ?[]const u8 = null,
             transform: Transform2D = Transform2D.Identity,
             z_index: i32 = 0,
         },
@@ -254,6 +263,7 @@ pub const GameObject = struct {
             .color_rect => {
                 global.world.setComponentEnabled(self.getEntity(), ColorRectComponent, visible);
             },
+            .action_button => {},
         }
         self.is_visible = visible;
     }
@@ -305,6 +315,21 @@ pub const GameObject = struct {
             ColorRectClass => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
                 try global.world.setComponent(node.entity, ColorRectComponent, &.{ .size = params.size, .color = params.color });
+                game_object.class = .{ .color_rect = .{ } };
+            },
+            ActionButtonClass => {
+                const texture = &global.assets.textures.action_box;
+                const texture_size: Dim2 = .{ .w = @floatFromInt(texture.width), .h = @floatFromInt(texture.height) };
+                try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
+                const draw_source: Rect2 = .{ .x = 0.0, .y = 0.0, .w = texture_size.w, .h = texture_size.h };
+                try global.world.setComponent(node.entity, SpriteComponent, &.{ .texture = texture, .draw_source = draw_source });
+                _ = try GameObject.initInScene(
+                    TextBoxClass,
+                    .{ .font = &global.assets.fonts.pixeloid_24, .size = texture_size.cast(u32), .text = params.text, .color = LinearColor.Black, .alignment_h = .center, .alignment_v = .center, .z_index = params.z_index + 1 },
+                    node,
+                    null
+                );
+                game_object.class = .{ .action_button = .{ } };
             },
             else => @compileError("Must use Game Object Class type!"),
         }

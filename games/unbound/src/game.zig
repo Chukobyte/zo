@@ -49,6 +49,7 @@ const TextLabelClass = object.TextLabelClass;
 const TextBoxClass = object.TextBoxClass;
 const TextButtonClass = object.TextButtonClass;
 const ColorRectClass = object.ColorRectClass;
+const ActionButtonClass = object.ActionButtonClass;
 const SpatialHashMap = zo.spatial_hash_map.SpatialHashMap;
 
 const log = zo.log;
@@ -1232,28 +1233,16 @@ pub const BattleEntity = struct {
         self.attack_button_object.setVisible(false);
         self.end_turn_button_object.setVisible(false);
 
-        const attack_action_object = try GameObject.initInScene(
-            SpriteClass,
-            .{ .texture = &global.assets.textures.action_box, .transform = .{ .position = .{ .x = 65.0, .y = 305.0 } } },
+        _ = try GameObject.initInScene(
+            ActionButtonClass,
+            .{ .font = &global.assets.fonts.pixeloid_24, .text = "Attack", .transform = .{ .position = .{ .x = 65.0, .y = 305.0 } } },
             null,
             null
         );
         _ = try GameObject.initInScene(
-            TextBoxClass,
-            .{ .font = &global.assets.fonts.pixeloid_24, .size = .{ .w = 112, .h = 48 }, .text = "Attack", .color = LinearColor.Black, .alignment_h = .center, .alignment_v = .center, .z_index = 2 },
-            attack_action_object.node,
-            null
-        );
-        const end_turn_action_object = try GameObject.initInScene(
-            SpriteClass,
-            .{ .texture = &global.assets.textures.action_box, .transform = .{ .position = .{ .x = 185.0, .y = 305.0 } } },
+            ActionButtonClass,
+            .{ .font = &global.assets.fonts.pixeloid_24, .text = "Finish", .transform = .{ .position = .{ .x = 185.0, .y = 305.0 } } },
             null,
-            null
-        );
-        _ = try GameObject.initInScene(
-            TextBoxClass,
-            .{ .font = &global.assets.fonts.pixeloid_24, .size = .{ .w = 112, .h = 48 }, .text = "Finish", .color = LinearColor.Black, .alignment_h = .center, .alignment_v = .center, .z_index = 2 },
-            end_turn_action_object.node,
             null
         );
 
