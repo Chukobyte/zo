@@ -116,6 +116,7 @@ fn GameObjectParams(ClassT: type) type {
             font: *Font,
             size: Dim2u,
             text: ?[]const u8 = null,
+            color: LinearColor = LinearColor.White,
             line_spacing: f32 = 0.0,
             use_background: bool = false,
             transform: Transform2D = Transform2D.Identity,
@@ -266,7 +267,7 @@ pub const GameObject = struct {
             },
             TextBoxClass => {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
-                try global.world.setComponent(node.entity, TextLabelComponent, &.{ .class = .{ .text_box = .{ .text = MultiLineString.init(global.allocator), .size = params.size, .line_spacing = params.line_spacing } }, .font = params.font });
+                try global.world.setComponent(node.entity, TextLabelComponent, &.{ .class = .{ .text_box = .{ .text = MultiLineString.init(global.allocator), .size = params.size, .line_spacing = params.line_spacing } }, .font = params.font, .color = params.color });
                 if (params.text) |text| {
                     const transform_comp = global.world.getComponent(node.entity, Transform2DComponent).?;
                     const text_label_comp = global.world.getComponent(node.entity, TextLabelComponent).?;

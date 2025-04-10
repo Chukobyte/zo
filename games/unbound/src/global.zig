@@ -55,6 +55,7 @@ pub const GameAssets = struct {
 
     fonts: struct {
         pixeloid_16: Font,
+        pixeloid_24: Font,
         pixeloid_32: Font,
     },
 
@@ -75,6 +76,7 @@ pub const GameAssets = struct {
             },
             .fonts = .{
                 .pixeloid_16 = try Font.initFromMemory2(static_assets.default_font, 16, true),
+                .pixeloid_24 = try Font.initFromMemory2(static_assets.default_font, 24, true),
                 .pixeloid_32 = try Font.initFromMemory2(static_assets.default_font, 32, true),
             },
             .audio = .{
