@@ -1232,7 +1232,7 @@ pub const BattleEntity = struct {
         self.attack_button_object.setVisible(false);
         self.end_turn_button_object.setVisible(false);
 
-        const action_box_object = try GameObject.initInScene(
+        const attack_action_object = try GameObject.initInScene(
             SpriteClass,
             .{ .texture = &global.assets.textures.action_box, .transform = .{ .position = .{ .x = 65.0, .y = 305.0 } } },
             null,
@@ -1240,8 +1240,20 @@ pub const BattleEntity = struct {
         );
         _ = try GameObject.initInScene(
             TextBoxClass,
-            .{ .font = &global.assets.fonts.pixeloid_24, .size = .{ .w = 112, .h = 48 }, .text = "Attack", .color = LinearColor.Black, .transform = .{ .position = .{ .x = 10.0, .y = 10.0 } }, .z_index = 2 },
-            action_box_object.node,
+            .{ .font = &global.assets.fonts.pixeloid_24, .size = .{ .w = 112, .h = 48 }, .text = "Attack", .color = LinearColor.Black, .alignment_h = .center, .alignment_v = .center, .z_index = 2 },
+            attack_action_object.node,
+            null
+        );
+        const end_turn_action_object = try GameObject.initInScene(
+            SpriteClass,
+            .{ .texture = &global.assets.textures.action_box, .transform = .{ .position = .{ .x = 185.0, .y = 305.0 } } },
+            null,
+            null
+        );
+        _ = try GameObject.initInScene(
+            TextBoxClass,
+            .{ .font = &global.assets.fonts.pixeloid_24, .size = .{ .w = 112, .h = 48 }, .text = "Finish", .color = LinearColor.Black, .alignment_h = .center, .alignment_v = .center, .z_index = 2 },
+            end_turn_action_object.node,
             null
         );
 
