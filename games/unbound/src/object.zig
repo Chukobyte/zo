@@ -158,6 +158,9 @@ fn GameObjectParams(ClassT: type) type {
         ActionButtonClass => return struct {
             font: *Font,
             text: ?[]const u8 = null,
+            on_hover: ?*const fn(Entity) void = null,
+            on_unhover: ?*const fn(Entity) void = null,
+            on_click: ?*const fn(Entity) OnUIChangedResponse = null,
             transform: Transform2D = Transform2D.Identity,
             z_index: i32 = 0,
         },
@@ -323,6 +326,9 @@ pub const GameObject = struct {
                 try global.world.setComponent(node.entity, Transform2DComponent, &.{ .local = params.transform, .z_index = params.z_index });
                 const draw_source: Rect2 = .{ .x = 0.0, .y = 0.0, .w = texture_size.w, .h = texture_size.h };
                 try global.world.setComponent(node.entity, SpriteComponent, &.{ .texture = texture, .draw_source = draw_source });
+                try global.world.setComponent(node.entity, ColorRectComponent, &.{ .size = .{ .w = texture_size.w - 1, .h = texture_size.h - 1 }, .color = LinearColor.White, .offset = .{ .x = 1.0, .y = 1.0 } });
+                try global.world.setComponent(node.entity, UIEventComponent, &.{ .collider = draw_source, .on_hover = params.on_hover, .on_unhover = params.on_unhover, .on_click = params.on_click });
+                // Create TextBox
                 _ = try GameObject.initInScene(
                     TextBoxClass,
                     .{ .font = &global.assets.fonts.pixeloid_24, .size = texture_size.cast(u32), .text = params.text, .color = LinearColor.Black, .alignment_h = .center, .alignment_v = .center, .z_index = params.z_index + 1 },

@@ -279,6 +279,13 @@ pub fn Matrix4(comptime T: type) type {
             self.mul2(&transMat);
         }
 
+        /// Adds offset to translation
+        pub fn translateOffset(self: *@This(), v: Vec3) void {
+            self.data[3][0] += v.x;
+            self.data[3][1] += v.y;
+            self.data[3][2] += v.z;
+        }
+
         /// Rotation along the Z axis.
         pub fn rotateZ(self: *@This(), angle_rad: f32) void {
             const c = std.math.cos(angle_rad);

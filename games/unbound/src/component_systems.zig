@@ -168,6 +168,7 @@ pub const TextLabelComponent = struct {
 pub const ColorRectComponent = struct {
     size: Dim2,
     color: LinearColor,
+    offset: Vec2 = Vec2.Zero,
 };
 
 pub const NodeMatrixInterface = struct {
@@ -318,15 +319,17 @@ pub const ColorRectSystem = struct {
                 global.scene_system.updateNodeGlobalMatrix(NodeMatrixInterface, node);
                 const transform_comp = iter.getComponent(Transform2DComponent);
                 const color_rect = iter.getComponent(ColorRectComponent);
+                var draw_matrix = transform_comp.global_matrix;
+                draw_matrix.translateOffset(.{ .x = color_rect.offset.x, .y = color_rect.offset.y, .z = 0.0 });
                 try renderer.queueSpriteDraw(&.{
                     .texture = &self.texture,
                     .source_rect = draw_source,
-                    .global_matrix = transform_comp.global_matrix,
+                    .global_matrix = draw_matrix,
                     .dest_size = color_rect.size,
                     .modulate = color_rect.color,
                     .flip_h = false,
                     .flip_v = false,
-                    .z_index =  transform_comp.z_index - 1,
+                    .z_index =  transform_comp.z_index,
                 });
             }
         }
