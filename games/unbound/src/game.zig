@@ -1237,13 +1237,13 @@ pub const BattleEntity = struct {
 
         self.attack_action_object = try GameObject.initInScene(
             ActionButtonClass,
-            .{ .font = &global.assets.fonts.pixeloid_24, .text = "Attack", .transform = .{ .position = .{ .x = 65.0, .y = 305.0 } } },
+            .{ .font = &global.assets.fonts.pixeloid_24, .text = "Attack", .on_click = onClick, .transform = .{ .position = .{ .x = 65.0, .y = 305.0 } } },
             null,
             null
         );
         self.finish_action_object = try GameObject.initInScene(
             ActionButtonClass,
-            .{ .font = &global.assets.fonts.pixeloid_24, .text = "Finish", .transform = .{ .position = .{ .x = 185.0, .y = 305.0 } } },
+            .{ .font = &global.assets.fonts.pixeloid_24, .text = "Finish", .on_click = onClick, .transform = .{ .position = .{ .x = 185.0, .y = 305.0 } } },
             null,
             null
         );
