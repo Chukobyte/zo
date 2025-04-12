@@ -176,9 +176,6 @@ pub fn DynamicString(stack_buffer_size: comptime_int, comptime auto_free_heap: b
 
         /// Will free heap if no longer being used
         pub fn freeHeap(self: *@This()) void {
-            if (self.mode == .heap) {
-                return;
-            }
             if (self.heap_buffer) |buffer| {
                 self.allocator.free(buffer);
                 self.heap_buffer = null;
