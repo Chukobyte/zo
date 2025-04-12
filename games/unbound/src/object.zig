@@ -96,7 +96,9 @@ pub const TextButtonClass = struct {
 
 pub const ColorRectClass = struct {};
 
-pub const ActionButtonClass = struct {};
+pub const ActionButtonClass = struct {
+    text_box: *GameObject,
+};
 
 const GameObjectClass = union(enum) {
     sprite: SpriteClass,
@@ -266,7 +268,12 @@ pub const GameObject = struct {
             .color_rect => {
                 global.world.setComponentEnabled(self.getEntity(), ColorRectComponent, visible);
             },
-            .action_button => {},
+            .action_button => {
+                global.world.setComponentEnabled(self.getEntity(), SpriteComponent, visible);
+                global.world.setComponentEnabled(self.getEntity(), UIEventComponent, visible);
+                global.world.setComponentEnabled(self.getEntity(), ColorRectComponent, visible);
+                self.class.action_button.text_box.setVisible(visible);
+            },
         }
         self.is_visible = visible;
     }
@@ -330,13 +337,13 @@ pub const GameObject = struct {
                 try global.world.setComponent(node.entity, UIEventComponent, &.{ .collider = draw_source, .on_hover = params.on_hover, .on_unhover = params.on_unhover, .on_click = params.on_click, .style = style });
                 try global.world.setComponent(node.entity, ColorRectComponent, &.{ .size = .{ .w = texture_size.w - 1, .h = texture_size.h - 1 }, .color = style.unhover.?, .offset = .{ .x = 1.0, .y = 1.0 } });
                 // Create TextBox
-                _ = try GameObject.initInScene(
+                const text_box = try GameObject.initInScene(
                     TextBoxClass,
                     .{ .font = &global.assets.fonts.pixeloid_24, .size = texture_size.cast(u32), .text = params.text, .color = LinearColor.Black, .alignment_h = .center, .alignment_v = .center, .z_index = params.z_index + 1 },
                     node,
                     null
                 );
-                game_object.class = .{ .action_button = .{ } };
+                game_object.class = .{ .action_button = .{ .text_box = text_box } };
             },
             else => @compileError("Must use Game Object Class type!"),
         }

@@ -1254,6 +1254,9 @@ pub const BattleEntity = struct {
         finish_nav_element.right = attack_nav_element;
         finish_nav_element.left = attack_nav_element;
 
+        // self.attack_action_object.setVisible(false);
+        // self.finish_action_object.setVisible(false);
+
         self.selector_object = try GameObject.initInScene(
             ColorRectClass,
             .{ .size = .{ .w = 32, .h = 32 }, .color = .{ .r = 1.0, .g = 0.0, .b = 0.0, .a = 0.5 }, .z_index = 5 },
