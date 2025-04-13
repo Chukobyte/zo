@@ -374,6 +374,7 @@ pub const NavigationElement = struct {
     position: Vec2, // World position
     size: Dim2, // Container size
     owner_entity: Entity,
+    is_active: bool,
     use_builtin_selector: bool = true,
     left: ?*@This() = null,
     right: ?*@This() = null,
@@ -472,7 +473,16 @@ pub const UIEventSystem = struct {
         }
 
         // Process navigation
-        if (self.nav_elements.len == 0) { return; }
+        // Checking if we should process if there is at least one valid nav element
+        var process_navigation = false;
+        for (0..self.nav_elements.len) |i| {
+            const nav_element = &self.nav_elements.items[i];
+            if (nav_element.is_active) {
+                process_navigation = true;
+                break;
+            }
+        }
+        if (!process_navigation) { return; }
         // Clear nav element when a click is registered and don't process this frame
         if (just_clicked_pressed) {
             self.unfocus();
@@ -513,8 +523,10 @@ pub const UIEventSystem = struct {
                 // TODO: This is a work in progress how the nav response is dealt with
                 var on_nav_dir_changed_response: OnUIChangedResponse = .none;
                 if (nav_element.getElementFromDir(dir)) |new_nav_element| {
-                    self.setFocused(new_nav_element);
-                    on_nav_dir_changed_response = .success;
+                    if (new_nav_element.is_active) {
+                        self.setFocused(new_nav_element);
+                        on_nav_dir_changed_response = .success;
+                    }
                 }
                 const ui_responses = try self.on_nav_direction_changed.broadcastWithReturn(.{ self.focused_nav_element.?, dir }, OnUIChangedResponse);
                 // We're only respecting the first ui response for now
@@ -525,9 +537,15 @@ pub const UIEventSystem = struct {
                 try processOnDirChangedResponse(on_nav_dir_changed_response);
             }
         } else {
-            // Set focused item to first created navigation element.
-            self.setFocused(&self.nav_elements.items[0]);
-            try processOnDirChangedResponse(.success);
+            // Set focused item to first valid nav element
+            for (0..self.nav_elements.len) |i| {
+                const nav_element = &self.nav_elements.items[i];
+                if (nav_element.is_active) {
+                    self.setFocused(nav_element);
+                    try processOnDirChangedResponse(.success);
+                    break;
+                }
+            }
         }
     }
 
@@ -599,13 +617,34 @@ pub const UIEventSystem = struct {
 
     pub fn generateNavElement(self: *@This(), position: Vec2, size: Dim2, owner_entity: Entity) !*NavigationElement {
         const index: usize = self.nav_elements.len;
-        try self.nav_elements.append(.{ .position = position, .size = size, .owner_entity = owner_entity });
+        try self.nav_elements.append(.{ .position = position, .size = size, .owner_entity = owner_entity, .is_active = true });
         return &self.nav_elements.items[index];
     }
 
     pub fn resetNavElements(self: *@This()) void {
         self.focused_nav_element = null;
         self.nav_elements.clear();
+    }
+
+    /// Finds the first nav element that matches the entity
+    pub fn findNavElement(self: *@This(), entity: Entity) ?*NavigationElement {
+        for (0..self.nav_elements.len) |i| {
+            const nav_element = &self.nav_elements.items[i];
+            if (nav_element.owner_entity == entity) {
+                return nav_element;
+            }
+        }
+        return null;
+    }
+
+    pub fn setNavElementActive(self: *@This(), entity: Entity, is_active: bool) void {
+        if (self.findNavElement(entity)) |nav_element| {
+            nav_element.is_active = is_active;
+            // Remove focused nav element if it's set to inactive
+            if (!is_active and self.focused_nav_element != null and nav_element == self.focused_nav_element.?){
+                self.focused_nav_element = null;
+            }
+        }
     }
 
     pub fn getSignature() []const type {

@@ -264,6 +264,8 @@ pub const GameObject = struct {
                 global.world.setComponentEnabled(self.getEntity(), UIEventComponent, visible);
                 global.world.setComponentEnabled(self.getEntity(), ColorRectComponent, visible);
                 self.class.text_button.text_box.setVisible(visible);
+                const ui_system: *UIEventSystem = global.world.getSystemInstance(UIEventSystem);
+                ui_system.setNavElementActive(self.getEntity(), visible);
             },
             .color_rect => {
                 global.world.setComponentEnabled(self.getEntity(), ColorRectComponent, visible);
@@ -273,6 +275,8 @@ pub const GameObject = struct {
                 global.world.setComponentEnabled(self.getEntity(), UIEventComponent, visible);
                 global.world.setComponentEnabled(self.getEntity(), ColorRectComponent, visible);
                 self.class.action_button.text_box.setVisible(visible);
+                const ui_system: *UIEventSystem = global.world.getSystemInstance(UIEventSystem);
+                ui_system.setNavElementActive(self.getEntity(), visible);
             },
         }
         self.is_visible = visible;

@@ -1183,8 +1183,6 @@ pub const BattleEntity = struct {
     selector_object: *GameObject = undefined,
     left_soldiers: *GameObject = undefined,
     right_soldiers: *GameObject = undefined,
-    attack_button_object: *GameObject = undefined,
-    end_turn_button_object: *GameObject = undefined,
     attack_action_object: *GameObject = undefined,
     finish_action_object: *GameObject = undefined,
     spatial_hash: SpatialHashMap(Entity) = undefined,
@@ -1220,20 +1218,6 @@ pub const BattleEntity = struct {
             null
         );
         try world.setComponent(self.right_soldiers.node.entity, UIEventComponent, &.{ .collider = .{ .x = 0.0, .y = 0.0, .w = 32.0, .h = 32.0 }, .on_click = onClick });
-        self.attack_button_object = try GameObject.initInScene(
-            TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "Attack", .on_click = onClick, .transform = .{ .position = .{ .x = 65.0, .y = 310.0 } }, .z_index = 5 },
-            null,
-            null
-        );
-        self.end_turn_button_object = try GameObject.initInScene(
-            TextButtonClass,
-            .{ .collision = .{ .x = 0.0, .y = 0.0, .w = 100.0, .h = 25.0 }, .font = &global.assets.fonts.pixeloid_16, .text = "End Turn", .on_click = onClick, .transform = .{ .position = .{ .x = 185.0, .y = 310.0 } }, .z_index = 5 },
-            null,
-            null
-        );
-        self.attack_button_object.setVisible(false);
-        self.end_turn_button_object.setVisible(false);
 
         self.attack_action_object = try GameObject.initInScene(
             ActionButtonClass,
@@ -1254,8 +1238,8 @@ pub const BattleEntity = struct {
         finish_nav_element.right = attack_nav_element;
         finish_nav_element.left = attack_nav_element;
 
-        // self.attack_action_object.setVisible(false);
-        // self.finish_action_object.setVisible(false);
+        self.attack_action_object.setVisible(false);
+        self.finish_action_object.setVisible(false);
 
         self.selector_object = try GameObject.initInScene(
             ColorRectClass,
@@ -1281,8 +1265,8 @@ pub const BattleEntity = struct {
                 // Temp to end the battle for now
                 global.scene_system.changeScene(MilitarySceneDefinition);
             } else if (self.left_soldiers.getEntity() == clicked_entity) {
-                self.attack_button_object.setVisible(true);
-                self.end_turn_button_object.setVisible(true);
+                self.attack_action_object.setVisible(true);
+                self.finish_action_object.setVisible(true);
                 log(.debug, "Left soldier clicked!", .{});
             } else if (self.right_soldiers.getEntity() == clicked_entity) {
                 log(.debug, "Right soldier clicked!", .{});
@@ -1320,8 +1304,8 @@ pub const BattleEntity = struct {
                 remove_actions_options = true;
             }
             if (remove_actions_options) {
-                self.attack_button_object.setVisible(false);
-                self.end_turn_button_object.setVisible(false);
+                self.attack_action_object.setVisible(false);
+                self.finish_action_object.setVisible(false);
             }
         }
     }
