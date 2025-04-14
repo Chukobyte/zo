@@ -51,6 +51,7 @@ const TextButtonClass = object.TextButtonClass;
 const ColorRectClass = object.ColorRectClass;
 const ActionButtonClass = object.ActionButtonClass;
 const SpatialHashMap = zo.spatial_hash_map.SpatialHashMap;
+const FixedArrayList = zo.misc.FixedArrayList;
 
 const log = zo.log;
 
@@ -1178,13 +1179,59 @@ pub const BattleSceneDefinition = struct {
     }
 };
 
+const BattleInstance = struct {
+
+    const Leader = struct {
+        troop_objects: FixedArrayList(*GameObject, 4) = FixedArrayList(*GameObject, 4).init(),
+    };
+
+    world: *World,
+    left_leader: Leader = .{},
+    right_leader: Leader = .{},
+
+    pub fn init(world: *World, on_click: *const fn(Entity) OnUIChangedResponse) !@This() {
+        var instance = @This(){ .world = world };
+        // Left
+        const left_troop = try GameObject.initInScene(
+            SpriteClass,
+            .{ .texture = &global.assets.textures.british_soldiers, .transform = .{ .position = .{ .x = 128.0, .y = 128.0 } } },
+            null,
+            null
+        );
+        try world.setComponent(left_troop.node.entity, UIEventComponent, &.{ .collider = .{ .x = 0.0, .y = 0.0, .w = 32.0, .h = 32.0 }, .on_click = on_click });
+        try instance.left_leader.troop_objects.append(left_troop);
+        // Right
+        const right_troop = try GameObject.initInScene(
+            SpriteClass,
+            .{ .texture = &global.assets.textures.british_soldiers, .transform = .{ .position = .{ .x = 512.0, .y = 128.0 } } },
+            null,
+            null
+        );
+        try world.setComponent(right_troop.node.entity, UIEventComponent, &.{ .collider = .{ .x = 0.0, .y = 0.0, .w = 32.0, .h = 32.0 }, .on_click = on_click });
+        try instance.right_leader.troop_objects.append(right_troop);
+        return instance;
+    }
+
+    pub fn isEntityTroop(self: *const @This(), entity: Entity) bool {
+        for (0..self.left_leader.troop_objects.len) |i| {
+            if (self.left_leader.troop_objects.items[i].node.entity == entity) {
+                return true;
+            }
+        }
+        for (0..self.right_leader.troop_objects.len) |i| {
+            if (self.right_leader.troop_objects.items[i].node.entity == entity) {
+                return true;
+            }
+        }
+        return false;
+    }
+};
+
 pub const BattleEntity = struct {
-    // timer: Timer = .{ .duration = 50.0 },
     selector_object: *GameObject = undefined,
-    left_soldiers: *GameObject = undefined,
-    right_soldiers: *GameObject = undefined,
     attack_action_object: *GameObject = undefined,
     finish_action_object: *GameObject = undefined,
+    battle_instance: BattleInstance = undefined,
     spatial_hash: SpatialHashMap(Entity) = undefined,
     on_mouse_move_handle: ?SubscriberHandle = null,
 
@@ -1197,27 +1244,8 @@ pub const BattleEntity = struct {
             null,
             null
         );
-        // const event_text = "A battle has taken place...you've won and lost 0 troops!";
-        // _ = try GameObject.initInScene(
-        //     TextBoxClass,
-        //     .{ .font = &global.assets.fonts.pixeloid_16, .size = .{ .w = 400, .h = 60 }, .text = event_text, .line_spacing = 5.0, .use_background = true, .transform = .{ .position = .{ .x = 120.0, .y = 290.0 } }, .z_index = 1 },
-        //     null,
-        //     null
-        // );
-        self.left_soldiers = try GameObject.initInScene(
-            SpriteClass,
-            .{ .texture = &global.assets.textures.british_soldiers, .transform = .{ .position = .{ .x = 128.0, .y = 128.0 } } },
-            null,
-            null
-        );
-        try world.setComponent(self.left_soldiers.node.entity, UIEventComponent, &.{ .collider = .{ .x = 0.0, .y = 0.0, .w = 32.0, .h = 32.0 }, .on_click = onClick });
-        self.right_soldiers = try GameObject.initInScene(
-            SpriteClass,
-            .{ .texture = &global.assets.textures.british_soldiers, .transform = .{ .position = .{ .x = 512.0, .y = 128.0 } } },
-            null,
-            null
-        );
-        try world.setComponent(self.right_soldiers.node.entity, UIEventComponent, &.{ .collider = .{ .x = 0.0, .y = 0.0, .w = 32.0, .h = 32.0 }, .on_click = onClick });
+
+        self.battle_instance = try BattleInstance.init(world, onClick);
 
         self.attack_action_object = try GameObject.initInScene(
             ActionButtonClass,
@@ -1264,12 +1292,9 @@ pub const BattleEntity = struct {
             } else if (self.finish_action_object.getEntity() == clicked_entity) {
                 // Temp to end the battle for now
                 global.scene_system.changeScene(MilitarySceneDefinition);
-            } else if (self.left_soldiers.getEntity() == clicked_entity) {
+            } else if (self.battle_instance.isEntityTroop(clicked_entity)) {
                 self.attack_action_object.setVisible(true);
                 self.finish_action_object.setVisible(true);
-                log(.debug, "Left soldier clicked!", .{});
-            } else if (self.right_soldiers.getEntity() == clicked_entity) {
-                log(.debug, "Right soldier clicked!", .{});
             }
         }
         return .success;
@@ -1297,7 +1322,7 @@ pub const BattleEntity = struct {
             const ui_event_system = world.getSystemInstance(UIEventSystem);
             var remove_actions_options = false;
             if (ui_event_system.entity_clicked_this_frame) |entity_clicked_this_frame| {
-                if (entity_clicked_this_frame != self.left_soldiers.getEntity()) {
+                if (!self.battle_instance.isEntityTroop(entity_clicked_this_frame)) {
                     remove_actions_options = true;
                 }
             } else {
