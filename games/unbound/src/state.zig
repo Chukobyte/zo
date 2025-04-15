@@ -95,9 +95,12 @@ pub const EthnicityProfile = struct {
     }
 };
 
-const Troop = struct {
+pub const Troop = struct {
     active: u32 = 0,
     injured: u32 = 0,
+    move: u32 = 3,
+    attack: u32 = 2,
+    defense: u32 = 1,
 };
 
 pub const Character = struct {

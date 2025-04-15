@@ -1183,33 +1183,66 @@ const BattleInstance = struct {
 
     const Leader = struct {
         troop_objects: FixedArrayList(*GameObject, 4) = FixedArrayList(*GameObject, 4).init(),
+
+        // TODO: Troop properties, create a battle troop object to store these
+
+        has_moved: bool = false,
+        has_attacked: bool = false,
+        troop: state.Troop = .{ .active = 3000 }, // TODO: Get stats from characters
     };
 
     world: *World,
+    cell_size: usize,
     left_leader: Leader = .{},
     right_leader: Leader = .{},
 
-    pub fn init(world: *World, on_click: *const fn(Entity) OnUIChangedResponse) !@This() {
-        var instance = @This(){ .world = world };
+    pub fn init(world: *World, cell_size: usize, on_click: *const fn(Entity) OnUIChangedResponse) !@This() {
+        var instance = @This(){ .world = world, .cell_size = cell_size };
         // Left
         const left_troop = try GameObject.initInScene(
             SpriteClass,
-            .{ .texture = &global.assets.textures.british_soldiers, .transform = .{ .position = .{ .x = 128.0, .y = 128.0 } } },
+            .{ .texture = &global.assets.textures.british_soldiers },
             null,
             null
         );
         try world.setComponent(left_troop.node.entity, UIEventComponent, &.{ .collider = .{ .x = 0.0, .y = 0.0, .w = 32.0, .h = 32.0 }, .on_click = on_click });
+        instance.moveTroop(left_troop, .{ .x = 4, .y = 4 });
         try instance.left_leader.troop_objects.append(left_troop);
         // Right
         const right_troop = try GameObject.initInScene(
             SpriteClass,
-            .{ .texture = &global.assets.textures.british_soldiers, .transform = .{ .position = .{ .x = 512.0, .y = 128.0 } } },
+            .{ .texture = &global.assets.textures.british_soldiers },
             null,
             null
         );
         try world.setComponent(right_troop.node.entity, UIEventComponent, &.{ .collider = .{ .x = 0.0, .y = 0.0, .w = 32.0, .h = 32.0 }, .on_click = on_click });
+        instance.moveTroop(right_troop, .{ .x = 15, .y = 4 });
         try instance.right_leader.troop_objects.append(right_troop);
         return instance;
+    }
+
+    pub fn moveTroop(self: *@This(), troop: *GameObject, position: Vec2i) void {
+        const cell_size: i32 = @intCast(self.cell_size);
+        const world_pos: Vec2 = position.mult(&.{ .x = cell_size, .y = cell_size }).cast(f32);
+        troop.setGlobalPosition(world_pos);
+    }
+
+    pub fn goToNextTurn(_: *const @This()) void {
+
+    }
+
+    pub fn getEntityLeader(self: *@This(), entity: Entity) ?*Leader {
+        for (0..self.left_leader.troop_objects.len) |i| {
+            if (self.left_leader.troop_objects.items[i].node.entity == entity) {
+                return &self.left_leader;
+            }
+        }
+        for (0..self.right_leader.troop_objects.len) |i| {
+            if (self.right_leader.troop_objects.items[i].node.entity == entity) {
+                return &self.right_leader;
+            }
+        }
+        return null;
     }
 
     pub fn isEntityTroop(self: *const @This(), entity: Entity) bool {
@@ -1245,7 +1278,7 @@ pub const BattleEntity = struct {
             null
         );
 
-        self.battle_instance = try BattleInstance.init(world, onClick);
+        self.battle_instance = try BattleInstance.init(world, self.spatial_hash.cell_size, onClick);
 
         self.attack_action_object = try GameObject.initInScene(
             ActionButtonClass,
@@ -1292,7 +1325,8 @@ pub const BattleEntity = struct {
             } else if (self.finish_action_object.getEntity() == clicked_entity) {
                 // Temp to end the battle for now
                 global.scene_system.changeScene(MilitarySceneDefinition);
-            } else if (self.battle_instance.isEntityTroop(clicked_entity)) {
+            } else if (self.battle_instance.getEntityLeader(clicked_entity)) |leader| {
+                _ = leader;
                 self.attack_action_object.setVisible(true);
                 self.finish_action_object.setVisible(true);
             }
@@ -1309,7 +1343,8 @@ pub const BattleEntity = struct {
             const global_mouse_pos = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
             var grid_pos: Vec2i = self.spatial_hash.toGridPos2(global_mouse_pos);
             if (grid_pos.y > 8) { return; }
-            grid_pos = grid_pos.mult(&.{ .x = 32, .y = 32 });
+            const cell_size: i32 = @intCast(self.spatial_hash.cell_size);
+            grid_pos = grid_pos.mult(&.{ .x = cell_size, .y = cell_size });
             const position_padding: Vec2 = .{ .x = 1.0, .y = 1.0 };
             const final_map_pos = grid_pos.cast(f32).add(&position_padding);
             self.selector_object.setGlobalPosition(final_map_pos);
@@ -1334,6 +1369,49 @@ pub const BattleEntity = struct {
             }
         }
     }
+
+    // pub fn update(self: *@This(), _: *World, _: Entity, delta_time_seconds: f32) !void {
+    //     self.timer.update(delta_time_seconds);
+    //     if (self.timer.hasTimedOut()) {
+    //         global.scene_system.changeScene(MilitarySceneDefinition);
+    //     }
+    //
+    //     // Temp grid drawing
+    //     // const GridBatcher = struct {
+    //     //     const draw_source: Rect2 = .{ .x = 0, .y = 0, .w = 1.0, .h = 1.0 };
+    //     //     var texture : Texture = undefined;
+    //     //     var initialized = false;
+    //     //
+    //     //
+    //     //     pub fn queueDraw(base_pos: Vec2, comptime grid_size: Dim2i, comptime cell_size: Dim2i, grid_color: LinearColor, z_index: i32) !void {
+    //     //         if (!initialized) {
+    //     //             initialized = true;
+    //     //             texture = try Texture.initWhiteSquare(global.allocator, true, .{ .w = 1, .h = 1 });
+    //     //         }
+    //     //         var param_list = zo.misc.FixedArrayList(renderer.DrawSpriteParams, grid_size.w * grid_size.h).init();
+    //     //         for (0..grid_size.h) |y| {
+    //     //             for (0..grid_size.w) |x| {
+    //     //                 const cell_pos: Vec2 = .{ .x = @floatFromInt(x * cell_size.w), .y = @floatFromInt(y * cell_size.h) };
+    //     //                 const transform: Transform2D = .{ .position = base_pos.add(&cell_pos) };
+    //     //                 try param_list.append(.{
+    //     //                     .texture = &texture,
+    //     //                     .source_rect = draw_source,
+    //     //                     .global_matrix = transform.toMat4(),
+    //     //                     .dest_size = .{ .w = @floatFromInt(cell_size.w), .h = @floatFromInt(cell_size.h) },
+    //     //                     .modulate = grid_color,
+    //     //                     .z_index = z_index,
+    //     //                 });
+    //     //             }}
+    //     //         try renderer.queueSpriteDraws(param_list.asSlice());
+    //     //     }
+    //     // };
+    //     // const base_pos: Vec2 = .{ .x = 10, .y = 10 };
+    //     // const grid_size: Dim2i = .{ .w = 15, .h = 10 };
+    //     // const cell_size: Dim2i = .{ .w = 32, .h = 32 };
+    //     // const grid_color: LinearColor = .{ .r = 1.0, .g = 1.0, .b = 1.0, .a = 0.5 };
+    //     // const z_index: i32 = 11;
+    //     // try GridBatcher.queueDraw(base_pos, grid_size, cell_size, grid_color, z_index);
+    // }
 };
 
 pub const EndTurnMapSceneDefinition = struct {

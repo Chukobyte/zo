@@ -300,17 +300,7 @@ pub const TextRenderingSystem = struct {
 };
 
 pub const ColorRectSystem = struct {
-    texture: Texture = undefined,
-
-    pub fn init(self: *@This(), _: *World) !void {
-        self.texture = try Texture.initWhiteSquare(global.allocator, true, .{ .w = 1, .h = 1 });
-    }
-
-    pub fn deinit(self: *@This(), _: *World) void {
-        self.texture.deinit();
-    }
-
-    pub fn postWorldTick(self: *@This(), world: *World) !void {
+    pub fn postWorldTick(_: *@This(), world: *World) !void {
         const draw_source: Rect2 = .{ .x = 0.0, .y = 0.0, .w = 1.0, .h = 1.0 };
         const ComponentIterator = World.ArchetypeComponentIterator(getSignature());
         var comp_iter = ComponentIterator.init(world);
@@ -322,7 +312,7 @@ pub const ColorRectSystem = struct {
                 var draw_matrix = transform_comp.global_matrix;
                 draw_matrix.translateOffset(.{ .x = color_rect.offset.x, .y = color_rect.offset.y, .z = 0.0 });
                 try renderer.queueSpriteDraw(&.{
-                    .texture = &self.texture,
+                    .texture = &global.assets.textures.white_square,
                     .source_rect = draw_source,
                     .global_matrix = draw_matrix,
                     .dest_size = color_rect.size,

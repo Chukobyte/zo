@@ -47,6 +47,7 @@ pub const SceneSystem = World.SceneSystem(.{ .definitions = &.{
 pub const GameAssets = struct {
 
     textures: struct {
+        white_square: Texture,
         map: Texture,
         battle_map: Texture,
         british_soldiers: Texture,
@@ -67,17 +68,19 @@ pub const GameAssets = struct {
 
 
     pub fn init() !@This() {
+        const nearest_neighbor: bool = true;
         var asset_manager = @This(){
             .textures = .{
-                .map = try Texture.initFromMemory2(allocator, static_assets.map_texture, true),
-                .battle_map = try Texture.initFromMemory2(allocator, static_assets.battle_map_texture, true),
-                .british_soldiers = try Texture.initFromMemory2(allocator, static_assets.british_soldiers_texture, true),
-                .action_box = try Texture.initFromMemory2(allocator, static_assets.action_box_texture, true),
+                .white_square = try Texture.initWhiteSquare(allocator, nearest_neighbor, .{ .w = 1, .h = 1 }),
+                .map = try Texture.initFromMemory2(allocator, static_assets.map_texture, nearest_neighbor),
+                .battle_map = try Texture.initFromMemory2(allocator, static_assets.battle_map_texture, nearest_neighbor),
+                .british_soldiers = try Texture.initFromMemory2(allocator, static_assets.british_soldiers_texture, nearest_neighbor),
+                .action_box = try Texture.initFromMemory2(allocator, static_assets.action_box_texture, nearest_neighbor),
             },
             .fonts = .{
-                .pixeloid_16 = try Font.initFromMemory2(static_assets.default_font, 16, true),
-                .pixeloid_24 = try Font.initFromMemory2(static_assets.default_font, 24, true),
-                .pixeloid_32 = try Font.initFromMemory2(static_assets.default_font, 32, true),
+                .pixeloid_16 = try Font.initFromMemory2(static_assets.default_font, 16, nearest_neighbor),
+                .pixeloid_24 = try Font.initFromMemory2(static_assets.default_font, 24, nearest_neighbor),
+                .pixeloid_32 = try Font.initFromMemory2(static_assets.default_font, 32, nearest_neighbor),
             },
             .audio = .{
                 .click = try AudioSource.initWavFromMemory2(static_assets.click_audio),
