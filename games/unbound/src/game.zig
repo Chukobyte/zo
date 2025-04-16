@@ -1258,6 +1258,22 @@ const BattleInstance = struct {
         }
         return false;
     }
+
+    pub fn getTroopMovementSpaces(_: *@This(), leader: *const Leader, start_space: Vec2i) !FixedArrayList(Vec2i, 12) {
+        var spaces_list = FixedArrayList(Vec2i, 12).init();
+        var spaces_to_check = FixedArrayList(Vec2i, 12).init();
+        const spaces_to_move = leader.troop.move;
+        const directions: [4]Vec2i = .{ Vec2i.Left, Vec2i.Right, Vec2i.Up, Vec2i.Down };
+        var current_movement = spaces_to_move;
+        try spaces_to_check.append(start_space);
+        while (spaces_to_check.len > 0) {
+            var current_pos: Vec2i = Vec2i.Zero;
+            for (directions) |*dir| {
+                const newPos: Vec2i = current_pos.add(dir);
+            }
+        }
+        return spaces_list;
+    }
 };
 
 pub const BattleEntity = struct {
@@ -1326,7 +1342,8 @@ pub const BattleEntity = struct {
                 // Temp to end the battle for now
                 global.scene_system.changeScene(MilitarySceneDefinition);
             } else if (self.battle_instance.getEntityLeader(clicked_entity)) |leader| {
-                _ = leader;
+                const spaces_to_move: u32 = leader.troop.move;
+                _ = spaces_to_move;
                 self.attack_action_object.setVisible(true);
                 self.finish_action_object.setVisible(true);
             }
