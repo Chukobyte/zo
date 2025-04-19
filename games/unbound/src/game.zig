@@ -1181,6 +1181,8 @@ pub const BattleSceneDefinition = struct {
 
 const BattleInstance = struct {
 
+    const GridSpaceList = FixedArrayList(Vec2i, 12);
+
     const Leader = struct {
         troop_objects: FixedArrayList(*GameObject, 4) = FixedArrayList(*GameObject, 4).init(),
 
@@ -1259,17 +1261,22 @@ const BattleInstance = struct {
         return false;
     }
 
-    pub fn getTroopMovementSpaces(_: *@This(), leader: *const Leader, start_space: Vec2i) !FixedArrayList(Vec2i, 12) {
-        var spaces_list = FixedArrayList(Vec2i, 12).init();
-        var spaces_to_check = FixedArrayList(Vec2i, 12).init();
-        const spaces_to_move = leader.troop.move;
+    pub fn getTroopMovementSpaces(_: *@This(), leader: *const Leader, start_space: Vec2i) !GridSpaceList {
         const directions: [4]Vec2i = .{ Vec2i.Left, Vec2i.Right, Vec2i.Up, Vec2i.Down };
-        var current_movement = spaces_to_move;
+        var current_movement = leader.troop.move;
+        var spaces_list = GridSpaceList.init();
+        var spaces_to_check = GridSpaceList.init();
         try spaces_to_check.append(start_space);
-        while (spaces_to_check.len > 0) {
-            var current_pos: Vec2i = Vec2i.Zero;
-            for (directions) |*dir| {
-                const newPos: Vec2i = current_pos.add(dir);
+        while (spaces_to_check.popIfExists()) |current_pos| {
+            for (directions) |dir| {
+                const newPos: Vec2i = current_pos.add(&dir);
+                // TODO: Verify if pos is valid
+                try spaces_list.appendUnique(newPos);
+                try spaces_to_check.append(newPos);
+            }
+            current_movement -= 1;
+            if (current_movement == 0) {
+                break;
             }
         }
         return spaces_list;
@@ -1283,6 +1290,7 @@ pub const BattleEntity = struct {
     battle_instance: BattleInstance = undefined,
     spatial_hash: SpatialHashMap(Entity) = undefined,
     on_mouse_move_handle: ?SubscriberHandle = null,
+    selected_grid_space_list: ?BattleInstance.GridSpaceList = null,
 
     pub fn onEnterScene(self: *@This(), world: *World, _: Entity) !void {
         self.spatial_hash = try SpatialHashMap(Entity).init(global.allocator, 32);
@@ -1346,7 +1354,11 @@ pub const BattleEntity = struct {
                 _ = spaces_to_move;
                 self.attack_action_object.setVisible(true);
                 self.finish_action_object.setVisible(true);
+                const leader_space: Vec2i = .{ .x = 10, .y = 4 };
+                self.selected_grid_space_list = self.battle_instance.getTroopMovementSpaces(leader, leader_space) catch { return .invalid; };
+                return .success;
             }
+            self.selected_grid_space_list = null;
         }
         return .success;
     }
@@ -1383,52 +1395,30 @@ pub const BattleEntity = struct {
             if (remove_actions_options) {
                 self.attack_action_object.setVisible(false);
                 self.finish_action_object.setVisible(false);
+                self.selected_grid_space_list = null;
             }
         }
-    }
 
-    // pub fn update(self: *@This(), _: *World, _: Entity, delta_time_seconds: f32) !void {
-    //     self.timer.update(delta_time_seconds);
-    //     if (self.timer.hasTimedOut()) {
-    //         global.scene_system.changeScene(MilitarySceneDefinition);
-    //     }
-    //
-    //     // Temp grid drawing
-    //     // const GridBatcher = struct {
-    //     //     const draw_source: Rect2 = .{ .x = 0, .y = 0, .w = 1.0, .h = 1.0 };
-    //     //     var texture : Texture = undefined;
-    //     //     var initialized = false;
-    //     //
-    //     //
-    //     //     pub fn queueDraw(base_pos: Vec2, comptime grid_size: Dim2i, comptime cell_size: Dim2i, grid_color: LinearColor, z_index: i32) !void {
-    //     //         if (!initialized) {
-    //     //             initialized = true;
-    //     //             texture = try Texture.initWhiteSquare(global.allocator, true, .{ .w = 1, .h = 1 });
-    //     //         }
-    //     //         var param_list = zo.misc.FixedArrayList(renderer.DrawSpriteParams, grid_size.w * grid_size.h).init();
-    //     //         for (0..grid_size.h) |y| {
-    //     //             for (0..grid_size.w) |x| {
-    //     //                 const cell_pos: Vec2 = .{ .x = @floatFromInt(x * cell_size.w), .y = @floatFromInt(y * cell_size.h) };
-    //     //                 const transform: Transform2D = .{ .position = base_pos.add(&cell_pos) };
-    //     //                 try param_list.append(.{
-    //     //                     .texture = &texture,
-    //     //                     .source_rect = draw_source,
-    //     //                     .global_matrix = transform.toMat4(),
-    //     //                     .dest_size = .{ .w = @floatFromInt(cell_size.w), .h = @floatFromInt(cell_size.h) },
-    //     //                     .modulate = grid_color,
-    //     //                     .z_index = z_index,
-    //     //                 });
-    //     //             }}
-    //     //         try renderer.queueSpriteDraws(param_list.asSlice());
-    //     //     }
-    //     // };
-    //     // const base_pos: Vec2 = .{ .x = 10, .y = 10 };
-    //     // const grid_size: Dim2i = .{ .w = 15, .h = 10 };
-    //     // const cell_size: Dim2i = .{ .w = 32, .h = 32 };
-    //     // const grid_color: LinearColor = .{ .r = 1.0, .g = 1.0, .b = 1.0, .a = 0.5 };
-    //     // const z_index: i32 = 11;
-    //     // try GridBatcher.queueDraw(base_pos, grid_size, cell_size, grid_color, z_index);
-    // }
+        if (self.selected_grid_space_list) |grid_space_list| {
+            const draw_source: Rect2 = .{ .x = 0, .y = 0, .w = 1.0, .h = 1.0 };
+            var param_list = zo.misc.FixedArrayList(renderer.DrawSpriteParams, 12).init();
+            const cell_size: f32 = @floatFromInt(self.spatial_hash.cell_size);
+            const cell_size_vec: Vec2 = .{ .x = cell_size, .y = cell_size };
+            for (grid_space_list.items) |grid_space| {
+                const pos: Vec2 = cell_size_vec.mult(&grid_space.cast(f32));
+                const transform: Transform2D = .{ .position = pos };
+                try param_list.append(.{
+                    .texture = &global.assets.textures.white_square,
+                    .source_rect = draw_source,
+                    .global_matrix = transform.toMat4(),
+                    .dest_size = .{ .w = cell_size, .h = cell_size },
+                    .modulate = LinearColor.Blue,
+                    .z_index = 13,
+                });
+            }
+            try renderer.queueSpriteDraws(param_list.asSlice());
+        }
+    }
 };
 
 pub const EndTurnMapSceneDefinition = struct {

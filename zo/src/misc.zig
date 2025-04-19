@@ -22,6 +22,12 @@ pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
             self.len += 1;
         }
 
+        pub fn appendUnique(self: *@This(), item: T) FixedArrayListError!void {
+            if (!self.contains(&item)) {
+                try self.append(item);
+            }
+        }
+
         pub fn addOne(self: *@This()) FixedArrayListError!*T {
             if (self.len >= self.items.len) return FixedArrayListError.OutOfCapacity;
             const new_item: *T = &self.items[self.len];
@@ -33,6 +39,10 @@ pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
             if (self.len == 0) return FixedArrayListError.IndexOutOfBounds;
             self.len -= 1;
             return self.items[self.len];
+        }
+
+        pub fn popIfExists(self: *@This()) ?T {
+            return self.pop() catch null;
         }
 
         pub fn popPtr(self: *@This()) !*T {
@@ -63,7 +73,7 @@ pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
             return &removed;
         }
 
-        pub fn findIndexByValue(self: *@This(), value: *const T) ?usize {
+        pub fn findIndexByValue(self: *const @This(), value: *const T) ?usize {
             for (0..self.len) |i| {
                 const item = &self.items[i];
                 if (std.mem.eql(u8, std.mem.asBytes(&item), std.mem.asBytes(value))) {
@@ -78,6 +88,10 @@ pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
                 return try self.swapRemove(i);
             }
             return null;
+        }
+
+        pub fn contains(self: *const @This(), value: *const T) bool {
+            return self.findIndexByValue(value) != null;
         }
 
         pub inline fn asSlice(self: *const @This()) []const T {
