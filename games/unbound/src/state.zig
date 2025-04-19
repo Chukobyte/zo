@@ -5,6 +5,7 @@ const zo = @import("zo");
 const math = @import("zo").math;
 
 const Vec2 = math.Vec2;
+const Vec2i = math.Vec2i;
 const MinMax = math.MinMax;
 const String = zo.string.HeapString;
 
@@ -101,6 +102,7 @@ pub const Troop = struct {
     move: u32 = 3,
     attack: u32 = 2,
     defense: u32 = 1,
+    grid_space: ?Vec2i = null,
 };
 
 pub const Character = struct {

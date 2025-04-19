@@ -1210,6 +1210,7 @@ const BattleInstance = struct {
         try world.setComponent(left_troop.node.entity, UIEventComponent, &.{ .collider = .{ .x = 0.0, .y = 0.0, .w = 32.0, .h = 32.0 }, .on_click = on_click });
         instance.moveTroop(left_troop, .{ .x = 4, .y = 4 });
         try instance.left_leader.troop_objects.append(left_troop);
+        instance.left_leader.troop.grid_space = .{ .x = 4, .y = 4 };
         // Right
         const right_troop = try GameObject.initInScene(
             SpriteClass,
@@ -1220,6 +1221,7 @@ const BattleInstance = struct {
         try world.setComponent(right_troop.node.entity, UIEventComponent, &.{ .collider = .{ .x = 0.0, .y = 0.0, .w = 32.0, .h = 32.0 }, .on_click = on_click });
         instance.moveTroop(right_troop, .{ .x = 15, .y = 4 });
         try instance.right_leader.troop_objects.append(right_troop);
+        instance.right_leader.troop.grid_space = .{ .x = 15, .y = 4 };
         return instance;
     }
 
@@ -1261,11 +1263,12 @@ const BattleInstance = struct {
         return false;
     }
 
-    pub fn getTroopMovementSpaces(_: *@This(), leader: *const Leader, start_space: Vec2i) !GridSpaceList {
+    pub fn getTroopMovementSpaces(_: *@This(), leader: *const Leader) !GridSpaceList {
         const directions: [4]Vec2i = .{ Vec2i.Left, Vec2i.Right, Vec2i.Up, Vec2i.Down };
         var current_movement = leader.troop.move;
         var spaces_list = GridSpaceList.init();
         var spaces_to_check = GridSpaceList.init();
+        const start_space: Vec2i = leader.troop.grid_space.?;
         try spaces_to_check.append(start_space);
         while (spaces_to_check.popIfExists()) |current_pos| {
             for (directions) |dir| {
@@ -1354,8 +1357,7 @@ pub const BattleEntity = struct {
                 _ = spaces_to_move;
                 self.attack_action_object.setVisible(true);
                 self.finish_action_object.setVisible(true);
-                const leader_space: Vec2i = .{ .x = 10, .y = 4 };
-                self.selected_grid_space_list = self.battle_instance.getTroopMovementSpaces(leader, leader_space) catch { return .invalid; };
+                self.selected_grid_space_list = self.battle_instance.getTroopMovementSpaces(leader) catch { return .invalid; };
                 return .success;
             }
             self.selected_grid_space_list = null;
