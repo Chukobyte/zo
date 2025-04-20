@@ -42,13 +42,17 @@ pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
         }
 
         pub fn popIfExists(self: *@This()) ?T {
-            return self.pop() catch null;
+            return self.pop() catch { return null; };
         }
 
         pub fn popPtr(self: *@This()) !*T {
             if (self.len == 0) return FixedArrayListError.IndexOutOfBounds;
             self.len -= 1;
             return &self.items[self.len];
+        }
+
+        pub fn popPtrIfExists(self: *@This()) ?*T {
+            return self.popPtr() catch { return null; };
         }
 
         pub fn swapRemove(self: *@This(), i: usize) FixedArrayListError!T {
@@ -75,8 +79,7 @@ pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
 
         pub fn findIndexByValue(self: *const @This(), value: *const T) ?usize {
             for (0..self.len) |i| {
-                const item = &self.items[i];
-                if (std.mem.eql(u8, std.mem.asBytes(&item), std.mem.asBytes(value))) {
+                if (std.mem.eql(u8, std.mem.asBytes(&self.items[i]), std.mem.asBytes(value))) {
                     return i;
                 }
             }
@@ -92,6 +95,15 @@ pub fn FixedArrayList(comptime T: type, capacity: comptime_int) type {
 
         pub fn contains(self: *const @This(), value: *const T) bool {
             return self.findIndexByValue(value) != null;
+        }
+
+        pub fn containsValue(self: *const @This(), value: *const T) bool {
+            for (0..self.len) |i| {
+                if (self.items[i].equals(value)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         pub inline fn asSlice(self: *const @This()) []const T {

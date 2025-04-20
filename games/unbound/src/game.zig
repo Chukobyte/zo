@@ -1181,7 +1181,7 @@ pub const BattleSceneDefinition = struct {
 
 const BattleInstance = struct {
 
-    const GridSpaceList = FixedArrayList(Vec2i, 12);
+    const GridSpaceList = FixedArrayList(Vec2i, 32);
 
     const Leader = struct {
         troop_objects: FixedArrayList(*GameObject, 4) = FixedArrayList(*GameObject, 4).init(),
@@ -1264,25 +1264,32 @@ const BattleInstance = struct {
     }
 
     pub fn getTroopMovementSpaces(_: *@This(), leader: *const Leader) !GridSpaceList {
+        const MovementNode = struct {
+            pos: Vec2i,
+            remaining: i32,
+        };
+
         const directions: [4]Vec2i = .{ Vec2i.Left, Vec2i.Right, Vec2i.Up, Vec2i.Down };
-        var current_movement = leader.troop.move;
-        var spaces_list = GridSpaceList.init();
-        var spaces_to_check = GridSpaceList.init();
-        const start_space: Vec2i = leader.troop.grid_space.?;
-        try spaces_to_check.append(start_space);
-        while (spaces_to_check.popIfExists()) |current_pos| {
+        var result = GridSpaceList.init();
+        var visited = GridSpaceList.init();
+        const start = leader.troop.grid_space.?;
+        var queue = FixedArrayList(MovementNode, 32).init();
+        try queue.append(.{ .pos = start, .remaining = @as(i32, @intCast(leader.troop.move)) });
+        try visited.append(start);
+        try result.append(start);
+        while (queue.popIfExists()) |node| {
+            if (node.remaining <= 0) continue;
             for (directions) |dir| {
-                const newPos: Vec2i = current_pos.add(&dir);
-                // TODO: Verify if pos is valid
-                try spaces_list.appendUnique(newPos);
-                try spaces_to_check.append(newPos);
-            }
-            current_movement -= 1;
-            if (current_movement == 0) {
-                break;
+                const next_pos = node.pos.add(&dir);
+                // TODO: Add bounds and walkability check here
+                 if (!visited.containsValue(&next_pos)) {
+                    try visited.append(next_pos);
+                    try result.append(next_pos);
+                    try queue.append(.{ .pos = next_pos, .remaining = node.remaining - 1 });
+                }
             }
         }
-        return spaces_list;
+        return result;
     }
 };
 
@@ -1403,10 +1410,11 @@ pub const BattleEntity = struct {
 
         if (self.selected_grid_space_list) |grid_space_list| {
             const draw_source: Rect2 = .{ .x = 0, .y = 0, .w = 1.0, .h = 1.0 };
-            var param_list = zo.misc.FixedArrayList(renderer.DrawSpriteParams, 12).init();
+            var param_list = zo.misc.FixedArrayList(renderer.DrawSpriteParams, 32).init();
             const cell_size: f32 = @floatFromInt(self.spatial_hash.cell_size);
             const cell_size_vec: Vec2 = .{ .x = cell_size, .y = cell_size };
-            for (grid_space_list.items) |grid_space| {
+            for (0..grid_space_list.len) |i| {
+                const grid_space: Vec2i = grid_space_list.items[i];
                 const pos: Vec2 = cell_size_vec.mult(&grid_space.cast(f32));
                 const transform: Transform2D = .{ .position = pos };
                 try param_list.append(.{
@@ -1414,7 +1422,7 @@ pub const BattleEntity = struct {
                     .source_rect = draw_source,
                     .global_matrix = transform.toMat4(),
                     .dest_size = .{ .w = cell_size, .h = cell_size },
-                    .modulate = LinearColor.Blue,
+                    .modulate = .{ .r = 0.0, .g = 0.0, .b = 1.0, .a = 0.5 },
                     .z_index = 13,
                 });
             }
