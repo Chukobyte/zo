@@ -1276,7 +1276,6 @@ const BattleInstance = struct {
         var queue = FixedArrayList(MovementNode, 32).init();
         try queue.append(.{ .pos = start, .remaining = @as(i32, @intCast(leader.troop.move)) });
         try visited.append(start);
-        try result.append(start);
         while (queue.popIfExists()) |node| {
             if (node.remaining <= 0) continue;
             for (directions) |dir| {
@@ -1392,14 +1391,27 @@ pub const BattleEntity = struct {
     pub fn update(self: *@This(), world: *World, _: Entity, _: f32) !void {
         // Checking for empty clicks (no entity clicked).  May want to move this type logic to the UIEventSystem.
         if (input.isKeyJustPressed(.{ .key = .mouse_button_left })) {
-            const ui_event_system = world.getSystemInstance(UIEventSystem);
             var remove_actions_options = false;
-            if (ui_event_system.entity_clicked_this_frame) |entity_clicked_this_frame| {
-                if (!self.battle_instance.isEntityTroop(entity_clicked_this_frame)) {
-                    remove_actions_options = true;
+            if (self.selected_grid_space_list) |grid_space_list| {
+                const global_mouse_pos = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
+                var grid_pos: Vec2i = self.spatial_hash.toGridPos2(global_mouse_pos);
+                for (0..grid_space_list.len) |i| {
+                    const grid_space = grid_space_list.items[i];
+                    if (grid_pos.equals(&grid_space)) {
+                        self.battle_instance.moveTroop(self.battle_instance.left_leader.troop_objects.items[0], grid_pos);
+                        self.battle_instance.left_leader.troop.grid_space = grid_space;
+                        remove_actions_options = true;
+                    }
                 }
             } else {
-                remove_actions_options = true;
+                const ui_event_system = world.getSystemInstance(UIEventSystem);
+                if (ui_event_system.entity_clicked_this_frame) |entity_clicked_this_frame| {
+                    if (!self.battle_instance.isEntityTroop(entity_clicked_this_frame)) {
+                        remove_actions_options = true;
+                    }
+                } else {
+                    remove_actions_options = true;
+                }
             }
             if (remove_actions_options) {
                 self.attack_action_object.setVisible(false);
