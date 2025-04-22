@@ -1304,7 +1304,6 @@ const BattleInstance = struct {
         const directions: [4]Vec2i = .{ Vec2i.Left, Vec2i.Right, Vec2i.Up, Vec2i.Down };
         var info = GridSpaceInfo.init(troop_data);
         const leader: *Leader = troop_data.leader;
-        info.troop_data = troop_data;
         var visited = GridSpaceList.init();
         const start = leader.troop.grid_space.?;
         var queue = FixedArrayList(MovementNode, 32).init();
