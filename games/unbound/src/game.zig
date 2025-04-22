@@ -1183,6 +1183,15 @@ const BattleInstance = struct {
 
     const GridSpaceList = FixedArrayList(Vec2i, 32);
 
+    const GridSpaceInfo = struct {
+        leader: *Leader,
+        positions: GridSpaceList,
+
+        pub fn init(leader_inst: *Leader) @This() {
+            return @This(){ .leader = leader_inst, .positions = GridSpaceList.init(), };
+        }
+    };
+
     const Leader = struct {
         troop_objects: FixedArrayList(*GameObject, 4) = FixedArrayList(*GameObject, 4).init(),
 
@@ -1263,14 +1272,15 @@ const BattleInstance = struct {
         return false;
     }
 
-    pub fn getTroopMovementSpaces(_: *@This(), leader: *const Leader) !GridSpaceList {
+    pub fn getTroopMovementSpaces(_: *@This(), leader: *Leader) !GridSpaceInfo {
         const MovementNode = struct {
             pos: Vec2i,
             remaining: i32,
         };
 
         const directions: [4]Vec2i = .{ Vec2i.Left, Vec2i.Right, Vec2i.Up, Vec2i.Down };
-        var result = GridSpaceList.init();
+        var info = GridSpaceInfo.init(leader);
+        info.leader = leader;
         var visited = GridSpaceList.init();
         const start = leader.troop.grid_space.?;
         var queue = FixedArrayList(MovementNode, 32).init();
@@ -1283,12 +1293,12 @@ const BattleInstance = struct {
                 // TODO: Add bounds and walkability check here
                  if (!visited.containsValue(&next_pos)) {
                     try visited.append(next_pos);
-                    try result.append(next_pos);
+                    try info.positions.append(next_pos);
                     try queue.append(.{ .pos = next_pos, .remaining = node.remaining - 1 });
                 }
             }
         }
-        return result;
+        return info;
     }
 };
 
@@ -1299,7 +1309,7 @@ pub const BattleEntity = struct {
     battle_instance: BattleInstance = undefined,
     spatial_hash: SpatialHashMap(Entity) = undefined,
     on_mouse_move_handle: ?SubscriberHandle = null,
-    selected_grid_space_list: ?BattleInstance.GridSpaceList = null,
+    selected_grid_space_info: ?BattleInstance.GridSpaceInfo = null,
 
     pub fn onEnterScene(self: *@This(), world: *World, _: Entity) !void {
         self.spatial_hash = try SpatialHashMap(Entity).init(global.allocator, 32);
@@ -1363,10 +1373,10 @@ pub const BattleEntity = struct {
                 _ = spaces_to_move;
                 self.attack_action_object.setVisible(true);
                 self.finish_action_object.setVisible(true);
-                self.selected_grid_space_list = self.battle_instance.getTroopMovementSpaces(leader) catch { return .invalid; };
+                self.selected_grid_space_info = self.battle_instance.getTroopMovementSpaces(leader) catch { return .invalid; };
                 return .success;
             }
-            self.selected_grid_space_list = null;
+            self.selected_grid_space_info = null;
         }
         return .success;
     }
@@ -1389,21 +1399,23 @@ pub const BattleEntity = struct {
     }
 
     pub fn update(self: *@This(), world: *World, _: Entity, _: f32) !void {
-        // Checking for empty clicks (no entity clicked).  May want to move this type logic to the UIEventSystem.
+        // TODO: Maybe we should move this logic to the UIEventSystem?
         if (input.isKeyJustPressed(.{ .key = .mouse_button_left })) {
             var remove_actions_options = false;
-            if (self.selected_grid_space_list) |grid_space_list| {
+            if (self.selected_grid_space_info) |*info| {
+                // Move troop if a grid space is matches with a mouse click
                 const global_mouse_pos = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
                 var grid_pos: Vec2i = self.spatial_hash.toGridPos2(global_mouse_pos);
-                for (0..grid_space_list.len) |i| {
-                    const grid_space = grid_space_list.items[i];
+                for (0..info.positions.len) |i| {
+                    const grid_space = info.positions.items[i];
                     if (grid_pos.equals(&grid_space)) {
-                        self.battle_instance.moveTroop(self.battle_instance.left_leader.troop_objects.items[0], grid_pos);
-                        self.battle_instance.left_leader.troop.grid_space = grid_space;
+                        self.battle_instance.moveTroop(info.leader.troop_objects.items[0], grid_pos);
+                        info.leader.troop.grid_space = grid_space;
                         remove_actions_options = true;
                     }
                 }
             } else {
+                // Unselect if
                 const ui_event_system = world.getSystemInstance(UIEventSystem);
                 if (ui_event_system.entity_clicked_this_frame) |entity_clicked_this_frame| {
                     if (!self.battle_instance.isEntityTroop(entity_clicked_this_frame)) {
@@ -1416,17 +1428,17 @@ pub const BattleEntity = struct {
             if (remove_actions_options) {
                 self.attack_action_object.setVisible(false);
                 self.finish_action_object.setVisible(false);
-                self.selected_grid_space_list = null;
+                self.selected_grid_space_info = null;
             }
         }
 
-        if (self.selected_grid_space_list) |grid_space_list| {
+        if (self.selected_grid_space_info) |info| {
             const draw_source: Rect2 = .{ .x = 0, .y = 0, .w = 1.0, .h = 1.0 };
             var param_list = zo.misc.FixedArrayList(renderer.DrawSpriteParams, 32).init();
             const cell_size: f32 = @floatFromInt(self.spatial_hash.cell_size);
             const cell_size_vec: Vec2 = .{ .x = cell_size, .y = cell_size };
-            for (0..grid_space_list.len) |i| {
-                const grid_space: Vec2i = grid_space_list.items[i];
+            for (0..info.positions.len) |i| {
+                const grid_space: Vec2i = info.positions.items[i];
                 const pos: Vec2 = cell_size_vec.mult(&grid_space.cast(f32));
                 const transform: Transform2D = .{ .position = pos };
                 try param_list.append(.{
