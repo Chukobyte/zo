@@ -1185,10 +1185,11 @@ const BattleInstance = struct {
 
     const GridSpaceInfo = struct {
         leader: *Leader,
+        troop_data: SelectedTroopData,
         positions: GridSpaceList,
 
-        pub fn init(leader_inst: *Leader) @This() {
-            return @This(){ .leader = leader_inst, .positions = GridSpaceList.init(), };
+        pub fn init(troop_data: SelectedTroopData) @This() {
+            return @This(){ .leader = troop_data.leader, .troop_data = troop_data, .positions = GridSpaceList.init(), };
         }
     };
 
@@ -1200,6 +1201,11 @@ const BattleInstance = struct {
         has_moved: bool = false,
         has_attacked: bool = false,
         troop: state.Troop = .{ .active = 3000 }, // TODO: Get stats from characters
+    };
+
+    const SelectedTroopData = struct {
+        leader: *Leader,
+        troop_object: *GameObject,
     };
 
     world: *World,
@@ -1244,18 +1250,35 @@ const BattleInstance = struct {
 
     }
 
-    pub fn getEntityLeader(self: *@This(), entity: Entity) ?*Leader {
-        for (0..self.left_leader.troop_objects.len) |i| {
-            if (self.left_leader.troop_objects.items[i].node.entity == entity) {
-                return &self.left_leader;
+    pub const LeaderSearchFilter = enum {
+        all,
+        player_leader,
+        enemy_leader,
+    };
+
+    pub fn getSelectedTroopData(self: *@This(), entity: Entity, comptime filter: LeaderSearchFilter) ?SelectedTroopData {
+        var selected_troop_data: ?SelectedTroopData = null;
+        if (filter == .all or filter == .player_leader) {
+            for (0..self.left_leader.troop_objects.len) |i| {
+                if (self.left_leader.troop_objects.items[i].node.entity == entity) {
+                    selected_troop_data = .{
+                        .leader = &self.left_leader,
+                        .troop_object = self.left_leader.troop_objects.items[i]
+                    };
+                }
             }
         }
-        for (0..self.right_leader.troop_objects.len) |i| {
-            if (self.right_leader.troop_objects.items[i].node.entity == entity) {
-                return &self.right_leader;
+        if (filter == .all or filter == .enemy_leader) {
+            for (0..self.right_leader.troop_objects.len) |i| {
+                if (self.right_leader.troop_objects.items[i].node.entity == entity) {
+                    selected_troop_data = .{
+                        .leader = &self.right_leader,
+                        .troop_object = self.right_leader.troop_objects.items[i]
+                    };
+                }
             }
         }
-        return null;
+        return selected_troop_data;
     }
 
     pub fn isEntityTroop(self: *const @This(), entity: Entity) bool {
@@ -1272,15 +1295,15 @@ const BattleInstance = struct {
         return false;
     }
 
-    pub fn getTroopMovementSpaces(_: *@This(), leader: *Leader) !GridSpaceInfo {
+    pub fn getGridSpaceInfo(_: *@This(), troop_data: SelectedTroopData) !GridSpaceInfo {
         const MovementNode = struct {
             pos: Vec2i,
             remaining: i32,
         };
 
         const directions: [4]Vec2i = .{ Vec2i.Left, Vec2i.Right, Vec2i.Up, Vec2i.Down };
-        var info = GridSpaceInfo.init(leader);
-        info.leader = leader;
+        var info = GridSpaceInfo.init(troop_data);
+        const leader: *Leader = troop_data.leader;
         var visited = GridSpaceList.init();
         const start = leader.troop.grid_space.?;
         var queue = FixedArrayList(MovementNode, 32).init();
@@ -1309,6 +1332,7 @@ pub const BattleEntity = struct {
     battle_instance: BattleInstance = undefined,
     spatial_hash: SpatialHashMap(Entity) = undefined,
     on_mouse_move_handle: ?SubscriberHandle = null,
+    // Player grid space info
     selected_grid_space_info: ?BattleInstance.GridSpaceInfo = null,
 
     pub fn onEnterScene(self: *@This(), world: *World, _: Entity) !void {
@@ -1368,12 +1392,13 @@ pub const BattleEntity = struct {
             } else if (self.finish_action_object.getEntity() == clicked_entity) {
                 // Temp to end the battle for now
                 global.scene_system.changeScene(MilitarySceneDefinition);
-            } else if (self.battle_instance.getEntityLeader(clicked_entity)) |leader| {
-                const spaces_to_move: u32 = leader.troop.move;
+            } else if (self.battle_instance.getSelectedTroopData(clicked_entity, .player_leader)) |troop_data| {
+                const spaces_to_move: u32 = troop_data.leader.troop.move;
                 _ = spaces_to_move;
                 self.attack_action_object.setVisible(true);
                 self.finish_action_object.setVisible(true);
-                self.selected_grid_space_info = self.battle_instance.getTroopMovementSpaces(leader) catch { return .invalid; };
+                self.selected_grid_space_info = self.battle_instance.getGridSpaceInfo(troop_data) catch { return .invalid; };
+                self.selected_grid_space_info.?.troop_data = troop_data;
                 return .success;
             }
             self.selected_grid_space_info = null;
@@ -1409,13 +1434,13 @@ pub const BattleEntity = struct {
                 for (0..info.positions.len) |i| {
                     const grid_space = info.positions.items[i];
                     if (grid_pos.equals(&grid_space)) {
-                        self.battle_instance.moveTroop(info.leader.troop_objects.items[0], grid_pos);
+                        self.battle_instance.moveTroop(info.troop_data.troop_object, grid_pos);
                         info.leader.troop.grid_space = grid_space;
                         remove_actions_options = true;
                     }
                 }
             } else {
-                // Unselect if
+                // Selecting a space that on the screen that isn't a grid space will disable grid space selection
                 const ui_event_system = world.getSystemInstance(UIEventSystem);
                 if (ui_event_system.entity_clicked_this_frame) |entity_clicked_this_frame| {
                     if (!self.battle_instance.isEntityTroop(entity_clicked_this_frame)) {
