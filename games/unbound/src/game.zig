@@ -1304,6 +1304,7 @@ const BattleInstance = struct {
         const directions: [4]Vec2i = .{ Vec2i.Left, Vec2i.Right, Vec2i.Up, Vec2i.Down };
         var info = GridSpaceInfo.init(troop_data);
         const leader: *Leader = troop_data.leader;
+        info.troop_data = troop_data;
         var visited = GridSpaceList.init();
         const start = leader.troop.grid_space.?;
         var queue = FixedArrayList(MovementNode, 32).init();
@@ -1393,12 +1394,9 @@ pub const BattleEntity = struct {
                 // Temp to end the battle for now
                 global.scene_system.changeScene(MilitarySceneDefinition);
             } else if (self.battle_instance.getSelectedTroopData(clicked_entity, .player_leader)) |troop_data| {
-                const spaces_to_move: u32 = troop_data.leader.troop.move;
-                _ = spaces_to_move;
                 self.attack_action_object.setVisible(true);
                 self.finish_action_object.setVisible(true);
                 self.selected_grid_space_info = self.battle_instance.getGridSpaceInfo(troop_data) catch { return .invalid; };
-                self.selected_grid_space_info.?.troop_data = troop_data;
                 return .success;
             }
             self.selected_grid_space_info = null;
