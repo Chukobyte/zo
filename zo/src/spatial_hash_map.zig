@@ -108,8 +108,25 @@ pub fn SpatialHashMap(comptime ObjectT: type) type {
             try self.object_to_data_map.put(object, object_data);
         }
 
-        pub fn getObjects(self: *@This(), pos: Vec2) []ObjectT {
+        pub fn updateObjectPositionByGridPos(self: *@This(), object: ObjectT, grid_pos: Vec2i) !void {
+            const cell_size: f32 = @floatFromInt(self.cell_size);
+            const collision: Rect2 = .{ .x = @as(f32, @floatFromInt(grid_pos.x)) * cell_size, .y = @as(f32, @floatFromInt(grid_pos.y)) * cell_size, .w = 0.0, .h = 0.0 };
+            // Remove object to clear old data before updating
+            self.removeObject(object);
+            var object_data: ObjectData = .{ .collider = collision };
+            if (try self.addObjectToCell(grid_pos, object)) |cell| {
+                _ = object_data.cell_list.addUniqueCell(cell);
+            }
+            _ = self.object_to_data_map.remove(object);
+            try self.object_to_data_map.put(object, object_data);
+        }
+
+        pub inline fn getObjects(self: *@This(), pos: Vec2) []ObjectT {
             const grid_pos = self.toGridPos(pos.x, pos.y);
+            return self.getObjectsByGridPos(grid_pos);
+        }
+
+        pub fn getObjectsByGridPos(self: *@This(), grid_pos: Vec2i) []ObjectT {
             if (self.map.get(grid_pos)) |*found_cell| {
                 return found_cell.objects.items[0..found_cell.objects.items.len];
             }
@@ -158,12 +175,12 @@ pub fn SpatialHashMap(comptime ObjectT: type) type {
             }
         }
 
-        pub inline fn toGridPos(self: *@This(), x: f32, y: f32) Vec2i {
+        pub inline fn toGridPos(self: *const @This(), x: f32, y: f32) Vec2i {
             const cell_size: i32 = @intCast(self.cell_size);
             return .{ .x = @divFloor(@as(i32, @intFromFloat(x)),  cell_size), .y = @divFloor(@as(i32, @intFromFloat(y)), cell_size) };
         }
 
-        pub inline fn toGridPos2(self: *@This(), pos: Vec2i) Vec2i {
+        pub inline fn toGridPos2(self: *const @This(), pos: Vec2i) Vec2i {
             const cell_size: i32 = @intCast(self.cell_size);
             return .{ .x = @divFloor(pos.x,  cell_size), .y = @divFloor(pos.y, cell_size) };
         }

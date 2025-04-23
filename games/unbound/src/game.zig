@@ -1209,12 +1209,12 @@ const BattleInstance = struct {
     };
 
     world: *World,
-    cell_size: usize,
+    spatial_hash: SpatialHashMap(Entity),
     left_leader: Leader = .{},
     right_leader: Leader = .{},
 
-    pub fn init(world: *World, cell_size: usize, on_click: *const fn(Entity) OnUIChangedResponse) !@This() {
-        var instance = @This(){ .world = world, .cell_size = cell_size };
+    pub fn init(world: *World, on_click: *const fn(Entity) OnUIChangedResponse) !@This() {
+        var instance = @This(){ .world = world, .spatial_hash = try SpatialHashMap(Entity).init(global.allocator, 32) };
         // Left
         const left_troop = try GameObject.initInScene(
             SpriteClass,
@@ -1223,7 +1223,7 @@ const BattleInstance = struct {
             null
         );
         try world.setComponent(left_troop.node.entity, UIEventComponent, &.{ .collider = .{ .x = 0.0, .y = 0.0, .w = 32.0, .h = 32.0 }, .on_click = on_click });
-        instance.moveTroop(left_troop, .{ .x = 4, .y = 4 });
+        try instance.moveTroop(left_troop, .{ .x = 4, .y = 4 });
         try instance.left_leader.troop_objects.append(left_troop);
         instance.left_leader.troop.grid_space = .{ .x = 4, .y = 4 };
         // Right
@@ -1234,19 +1234,34 @@ const BattleInstance = struct {
             null
         );
         try world.setComponent(right_troop.node.entity, UIEventComponent, &.{ .collider = .{ .x = 0.0, .y = 0.0, .w = 32.0, .h = 32.0 }, .on_click = on_click });
-        instance.moveTroop(right_troop, .{ .x = 15, .y = 4 });
+        try instance.moveTroop(right_troop, .{ .x = 15, .y = 4 });
         try instance.right_leader.troop_objects.append(right_troop);
         instance.right_leader.troop.grid_space = .{ .x = 15, .y = 4 };
         return instance;
     }
 
-    pub fn moveTroop(self: *@This(), troop: *GameObject, position: Vec2i) void {
-        const cell_size: i32 = @intCast(self.cell_size);
+    pub fn deinit(self: *@This()) void {
+        self.spatial_hash.deinit();
+    }
+
+    pub fn moveTroop(self: *@This(), troop: *GameObject, position: Vec2i) !void {
+        const cell_size: i32 = @intCast(self.getGridCellSize());
         const world_pos: Vec2 = position.mult(&.{ .x = cell_size, .y = cell_size }).cast(f32);
         troop.setGlobalPosition(world_pos);
+        try self.spatial_hash.updateObjectPositionByGridPos(troop.getEntity(), position);
     }
 
     pub fn goToNextTurn(_: *const @This()) void {
+
+    }
+
+    pub inline fn getGridCellSize(self: *const @This()) usize {
+        return self.spatial_hash.cell_size;
+    }
+
+    pub inline fn getMouseGridPosition(self: *const @This()) Vec2i {
+        const global_mouse_pos = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
+        return self.spatial_hash.toGridPos2(global_mouse_pos);
 
     }
 
@@ -1330,13 +1345,11 @@ pub const BattleEntity = struct {
     attack_action_object: *GameObject = undefined,
     finish_action_object: *GameObject = undefined,
     battle_instance: BattleInstance = undefined,
-    spatial_hash: SpatialHashMap(Entity) = undefined,
     on_mouse_move_handle: ?SubscriberHandle = null,
     // Player grid space info
     selected_grid_space_info: ?BattleInstance.GridSpaceInfo = null,
 
     pub fn onEnterScene(self: *@This(), world: *World, _: Entity) !void {
-        self.spatial_hash = try SpatialHashMap(Entity).init(global.allocator, 32);
         self.on_mouse_move_handle = try input.mouse_move_delegate.subscribe(onMouseMove);
         _ = try GameObject.initInScene(
             SpriteClass,
@@ -1345,7 +1358,7 @@ pub const BattleEntity = struct {
             null
         );
 
-        self.battle_instance = try BattleInstance.init(world, self.spatial_hash.cell_size, onClick);
+        self.battle_instance = try BattleInstance.init(world, onClick);
 
         self.attack_action_object = try GameObject.initInScene(
             ActionButtonClass,
@@ -1379,7 +1392,7 @@ pub const BattleEntity = struct {
     }
 
     pub fn onExitScene(self: *@This(), _: *World, _: Entity) void {
-        self.spatial_hash.deinit();
+        self.battle_instance.deinit();
         if (self.on_mouse_move_handle) |handle| {
             input.mouse_move_delegate.unsubscribe(handle);
         }
@@ -1409,10 +1422,9 @@ pub const BattleEntity = struct {
 
     pub fn onMouseMove(_: Vec2i) void {
         if (global.world.findEntityScriptInstance(@This())) |self| {
-            const global_mouse_pos = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
-            var grid_pos: Vec2i = self.spatial_hash.toGridPos2(global_mouse_pos);
+            var grid_pos: Vec2i = self.battle_instance.getMouseGridPosition();
             if (grid_pos.y > 8) { return; }
-            const cell_size: i32 = @intCast(self.spatial_hash.cell_size);
+            const cell_size: i32 = @intCast(self.battle_instance.getGridCellSize());
             grid_pos = grid_pos.mult(&.{ .x = cell_size, .y = cell_size });
             const position_padding: Vec2 = .{ .x = 1.0, .y = 1.0 };
             const final_map_pos = grid_pos.cast(f32).add(&position_padding);
@@ -1426,12 +1438,11 @@ pub const BattleEntity = struct {
             var remove_actions_options = false;
             if (self.selected_grid_space_info) |*info| {
                 // Move troop if a grid space is matches with a mouse click
-                const global_mouse_pos = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
-                var grid_pos: Vec2i = self.spatial_hash.toGridPos2(global_mouse_pos);
+                var grid_pos: Vec2i = self.battle_instance.getMouseGridPosition();
                 for (0..info.positions.len) |i| {
                     const grid_space = info.positions.items[i];
                     if (grid_pos.equals(&grid_space)) {
-                        self.battle_instance.moveTroop(info.troop_data.troop_object, grid_pos);
+                        try self.battle_instance.moveTroop(info.troop_data.troop_object, grid_pos);
                         info.leader.troop.grid_space = grid_space;
                         remove_actions_options = true;
                     }
@@ -1457,7 +1468,7 @@ pub const BattleEntity = struct {
         if (self.selected_grid_space_info) |info| {
             const draw_source: Rect2 = .{ .x = 0, .y = 0, .w = 1.0, .h = 1.0 };
             var param_list = zo.misc.FixedArrayList(renderer.DrawSpriteParams, 32).init();
-            const cell_size: f32 = @floatFromInt(self.spatial_hash.cell_size);
+            const cell_size: f32 = @floatFromInt(self.battle_instance.getGridCellSize());
             const cell_size_vec: Vec2 = .{ .x = cell_size, .y = cell_size };
             for (0..info.positions.len) |i| {
                 const grid_space: Vec2i = info.positions.items[i];
