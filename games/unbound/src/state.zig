@@ -103,6 +103,8 @@ pub const Troop = struct {
     attack: u32 = 2,
     defense: u32 = 1,
     grid_space: ?Vec2i = null,
+    attacks_left: u32 = 0,
+    moves_left:  u32 = 0,
 };
 
 pub const Character = struct {

@@ -1196,10 +1196,6 @@ const BattleInstance = struct {
     const Leader = struct {
         troop_objects: FixedArrayList(*GameObject, 4) = FixedArrayList(*GameObject, 4).init(),
 
-        // TODO: Troop properties, create a battle troop object to store these
-
-        has_moved: bool = false,
-        has_attacked: bool = false,
         troop: state.Troop = .{ .active = 3000 }, // TODO: Get stats from characters
     };
 
@@ -1208,10 +1204,16 @@ const BattleInstance = struct {
         troop_object: *GameObject,
     };
 
+    const Turn = enum {
+        player,
+        enemy,
+    };
+
     world: *World,
     spatial_hash: SpatialHashMap(Entity),
-    left_leader: Leader = .{},
+    left_leader: Leader = .{}, // Player Leader
     right_leader: Leader = .{},
+    turn: Turn = .player,
 
     pub fn init(world: *World, on_click: *const fn(Entity) OnUIChangedResponse) !@This() {
         var instance = @This(){ .world = world, .spatial_hash = try SpatialHashMap(Entity).init(global.allocator, 32) };
@@ -1237,6 +1239,9 @@ const BattleInstance = struct {
         try instance.moveTroop(right_troop, .{ .x = 15, .y = 4 });
         try instance.right_leader.troop_objects.append(right_troop);
         instance.right_leader.troop.grid_space = .{ .x = 15, .y = 4 };
+
+        instance.turn = .enemy;
+        instance.goToNextTurn();
         return instance;
     }
 
@@ -1251,8 +1256,20 @@ const BattleInstance = struct {
         try self.spatial_hash.updateObjectPositionByGridPos(troop.getEntity(), position);
     }
 
-    pub fn goToNextTurn(_: *const @This()) void {
-
+    // TODO: Temp, finish implementing
+    pub fn goToNextTurn(self: *@This()) void {
+        switch (self.turn) {
+            .player => {
+                self.turn = .enemy;
+                self.right_leader.troop.attacks_left = 1;
+                self.right_leader.troop.moves_left = 1;
+            },
+            .enemy => {
+                self.turn = .player;
+                self.left_leader.troop.attacks_left = 1;
+                self.left_leader.troop.moves_left = 1;
+            },
+        }
     }
 
     pub inline fn getGridCellSize(self: *const @This()) usize {
@@ -1341,12 +1358,21 @@ const BattleInstance = struct {
 };
 
 pub const BattleEntity = struct {
+
+    const SelectionState = enum {
+        none,
+        player_movement,
+        player_attack,
+    };
+
     selector_object: *GameObject = undefined,
     move_action_object: *GameObject = undefined,
     attack_action_object: *GameObject = undefined,
     finish_action_object: *GameObject = undefined,
     battle_instance: BattleInstance = undefined,
     on_mouse_move_handle: ?SubscriberHandle = null,
+    selection_state: SelectionState = .none,
+    selected_entity: ?Entity = null,
     // Player grid space info
     selected_grid_space_info: ?BattleInstance.GridSpaceInfo = null,
 
@@ -1389,9 +1415,7 @@ pub const BattleEntity = struct {
         finish_nav_element.right = attack_nav_element;
         finish_nav_element.left = attack_nav_element;
 
-        self.move_action_object.setVisible(false);
-        self.attack_action_object.setVisible(false);
-        self.finish_action_object.setVisible(false);
+        self.setActionPanelVisibility(false);
 
         self.selector_object = try GameObject.initInScene(
             ColorRectClass,
@@ -1409,33 +1433,68 @@ pub const BattleEntity = struct {
         }
     }
 
+    fn getAdjacentEntities(self: *@This(), grid_pos: Vec2i) ?FixedArrayList(Entity, 4) {
+        var adjacent_entities = FixedArrayList(Entity, 4).init();
+        const adjacent_spaces: [4]Vec2i = .{ grid_pos.add(&Vec2i.Left), grid_pos.add(&Vec2i.Right), grid_pos.add(&Vec2i.Up), grid_pos.add(&Vec2i.Down) };
+        for (adjacent_spaces) |pos| {
+            const space_entities: []Entity = self.battle_instance.spatial_hash.getObjectsByGridPos(pos);
+            if (space_entities.len > 0) {
+                adjacent_entities.append(space_entities[0]) catch { unreachable; };  // Shouldn't make it to unreachable
+            }
+        }
+        if (adjacent_entities.len == 0) { return null; }
+        return adjacent_entities;
+    }
+
+    fn setActionPanelVisibility(self: *@This(), visible: bool) void {
+        if (visible) {
+            // Attack
+            if (self.selected_entity) |selected_entity| {
+                if (self.battle_instance.getSelectedTroopData(selected_entity, .player_leader)) |troop_data| {
+                    const selected_grid_space_info = self.battle_instance.getGridSpaceInfo(troop_data) catch { unreachable; };
+                    if (selected_grid_space_info.leader.troop.grid_space) |grid_space| {
+                        if (self.getAdjacentEntities(grid_space) != null) {
+                            self.attack_action_object.setVisible(true);
+                        }
+                    }
+                }
+            }
+            // Move
+            const troop = &self.battle_instance.left_leader.troop;
+            if (troop.moves_left > 0) {
+                self.move_action_object.setVisible(true);
+            }
+            // Finish
+            self.finish_action_object.setVisible(true);
+        } else {
+            self.attack_action_object.setVisible(false);
+            self.move_action_object.setVisible(false);
+            self.finish_action_object.setVisible(false);
+        }
+    }
+
     pub fn onClick(clicked_entity: Entity) OnUIChangedResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
             if (self.move_action_object.node.entity == clicked_entity) {
-                // TODO: Add movement
-            } else if (self.attack_action_object.node.entity == clicked_entity) {
-                // TODO: Add attacking
-            } else if (self.finish_action_object.getEntity() == clicked_entity) {
-                // Temp to end the battle for now
-                global.scene_system.changeScene(MilitarySceneDefinition);
-            } else if (self.battle_instance.getSelectedTroopData(clicked_entity, .player_leader)) |troop_data| {
+                const troop = &self.battle_instance.left_leader.troop;
+                if (troop.moves_left <= 0) { return .invalid; }
+                self.selection_state = .player_movement;
+                const troop_data = self.battle_instance.getSelectedTroopData(self.selected_entity.?, .player_leader).?;
                 self.selected_grid_space_info = self.battle_instance.getGridSpaceInfo(troop_data) catch { return .invalid; };
-                self.move_action_object.setVisible(true);
-                self.finish_action_object.setVisible(true);
-                if (self.selected_grid_space_info.?.leader.troop.grid_space) |grid_space| {
-                    var can_attack = false;
-                    const adjacent_spaces: [4]Vec2i = .{ grid_space.add(&Vec2i.Left), grid_space.add(&Vec2i.Right), grid_space.add(&Vec2i.Up), grid_space.add(&Vec2i.Down) };
-                    for (adjacent_spaces) |pos| {
-                        const space_entities: []Entity = self.battle_instance.spatial_hash.getObjectsByGridPos(pos);
-                        if (space_entities.len > 0) {
-                            can_attack = true;
-                            break;
-                        }
-                    }
-                    if (can_attack) {
-                        self.attack_action_object.setVisible(true);
-                    }
+                return .success;
+            } else if (self.attack_action_object.node.entity == clicked_entity) {
+                const troop = &self.battle_instance.left_leader.troop;
+                if (troop.attacks_left > 0 and self.getAdjacentEntities(troop.grid_space.?) != null) {
+                    self.selection_state = .player_attack;
                 }
+            } else if (self.finish_action_object.getEntity() == clicked_entity) {
+                self.setActionPanelVisibility(false);
+                self.battle_instance.goToNextTurn();
+                // Temp to end the battle for now
+                // global.scene_system.changeScene(MilitarySceneDefinition);
+            } else if (self.battle_instance.getSelectedTroopData(clicked_entity, .player_leader) != null) {
+                self.selected_entity = clicked_entity;
+                self.setActionPanelVisibility(true);
                 return .success;
             }
             self.selected_grid_space_info = null;
@@ -1460,38 +1519,54 @@ pub const BattleEntity = struct {
     }
 
     pub fn update(self: *@This(), world: *World, _: Entity, _: f32) !void {
+        // TODO: Temp will actually handle turn
+        if (self.battle_instance.turn == .enemy) {
+            self.battle_instance.goToNextTurn();
+        }
+
         // TODO: Maybe we should move this logic to the UIEventSystem?
         if (input.isKeyJustPressed(.{ .key = .mouse_button_left })) {
             var remove_actions_options = false;
-            if (self.selected_grid_space_info) |*info| {
-                // Move troop if a grid space is matches with a mouse click
-                var grid_pos: Vec2i = self.battle_instance.getMouseGridPosition();
-                for (0..info.positions.len) |i| {
-                    const grid_space = info.positions.items[i];
-                    if (grid_pos.equals(&grid_space)) {
-                        try self.battle_instance.moveTroop(info.troop_data.troop_object, grid_pos);
-                        info.leader.troop.grid_space = grid_space;
-                        remove_actions_options = true;
+            switch (self.selection_state) {
+                .none => {},
+                .player_movement => {
+                    if (self.selected_grid_space_info) |*info| {
+                        // Move troop if a grid space is matches with a mouse click
+                        var grid_pos: Vec2i = self.battle_instance.getMouseGridPosition();
+                        for (0..info.positions.len) |i| {
+                            const grid_space = info.positions.items[i];
+                            if (grid_pos.equals(&grid_space)) {
+                                try self.battle_instance.moveTroop(info.troop_data.troop_object, grid_pos);
+                                info.leader.troop.grid_space = grid_space;
+                                info.leader.troop.moves_left -= 1;
+                                remove_actions_options = true;
+                            }
+                        }
+                    } else {
+                        // Selecting a space that on the screen that isn't a grid space will disable grid space selection
+                        const ui_event_system = world.getSystemInstance(UIEventSystem);
+                        if (ui_event_system.entity_clicked_this_frame) |entity_clicked_this_frame| {
+                            if (!self.battle_instance.isEntityTroop(entity_clicked_this_frame)) {
+                                remove_actions_options = true;
+                            }
+                        } else {
+                            remove_actions_options = true;
+                        }
                     }
-                }
-            } else {
-                // Selecting a space that on the screen that isn't a grid space will disable grid space selection
-                const ui_event_system = world.getSystemInstance(UIEventSystem);
-                if (ui_event_system.entity_clicked_this_frame) |entity_clicked_this_frame| {
-                    if (!self.battle_instance.isEntityTroop(entity_clicked_this_frame)) {
-                        remove_actions_options = true;
-                    }
-                } else {
+                },
+                .player_attack => {
                     remove_actions_options = true;
-                }
+                },
             }
             if (remove_actions_options) {
-                self.move_action_object.setVisible(false);
-                self.attack_action_object.setVisible(false);
-                self.finish_action_object.setVisible(false);
+                self.setActionPanelVisibility(false);
                 self.selected_grid_space_info = null;
+                self.selected_entity = null;
+                self.selection_state = .none;
             }
         }
+
+        if (self.selection_state == .none) { return; }
 
         if (self.selected_grid_space_info) |info| {
             const draw_source: Rect2 = .{ .x = 0, .y = 0, .w = 1.0, .h = 1.0 };
