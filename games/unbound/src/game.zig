@@ -1342,6 +1342,7 @@ const BattleInstance = struct {
 
 pub const BattleEntity = struct {
     selector_object: *GameObject = undefined,
+    move_action_object: *GameObject = undefined,
     attack_action_object: *GameObject = undefined,
     finish_action_object: *GameObject = undefined,
     battle_instance: BattleInstance = undefined,
@@ -1360,15 +1361,24 @@ pub const BattleEntity = struct {
 
         self.battle_instance = try BattleInstance.init(world, onClick);
 
-        self.attack_action_object = try GameObject.initInScene(
+        var base_pos: Vec2 = .{ .x = 65.0, .y = 305.0 };
+        self.move_action_object = try GameObject.initInScene(
             ActionButtonClass,
-            .{ .font = &global.assets.fonts.pixeloid_24, .text = "Attack", .on_click = onClick, .transform = .{ .position = .{ .x = 65.0, .y = 305.0 } } },
+            .{ .font = &global.assets.fonts.pixeloid_24, .text = "Move", .on_click = onClick, .transform = .{ .position = base_pos } },
             null,
             null
         );
+        base_pos.x += 120.0;
+        self.attack_action_object = try GameObject.initInScene(
+            ActionButtonClass,
+            .{ .font = &global.assets.fonts.pixeloid_24, .text = "Attack", .on_click = onClick, .transform = .{ .position = base_pos } },
+            null,
+            null
+        );
+        base_pos.x += 120.0;
         self.finish_action_object = try GameObject.initInScene(
             ActionButtonClass,
-            .{ .font = &global.assets.fonts.pixeloid_24, .text = "Finish", .on_click = onClick, .transform = .{ .position = .{ .x = 185.0, .y = 305.0 } } },
+            .{ .font = &global.assets.fonts.pixeloid_24, .text = "Finish", .on_click = onClick, .transform = .{ .position = base_pos } },
             null,
             null
         );
@@ -1379,6 +1389,7 @@ pub const BattleEntity = struct {
         finish_nav_element.right = attack_nav_element;
         finish_nav_element.left = attack_nav_element;
 
+        self.move_action_object.setVisible(false);
         self.attack_action_object.setVisible(false);
         self.finish_action_object.setVisible(false);
 
@@ -1400,13 +1411,16 @@ pub const BattleEntity = struct {
 
     pub fn onClick(clicked_entity: Entity) OnUIChangedResponse {
         if (global.world.findEntityScriptInstance(@This())) |self| {
-            if (self.attack_action_object.node.entity == clicked_entity) {
+            if (self.move_action_object.node.entity == clicked_entity) {
+                // TODO: Add movement
+            } else if (self.attack_action_object.node.entity == clicked_entity) {
                 // TODO: Add attacking
             } else if (self.finish_action_object.getEntity() == clicked_entity) {
                 // Temp to end the battle for now
                 global.scene_system.changeScene(MilitarySceneDefinition);
             } else if (self.battle_instance.getSelectedTroopData(clicked_entity, .player_leader)) |troop_data| {
                 self.selected_grid_space_info = self.battle_instance.getGridSpaceInfo(troop_data) catch { return .invalid; };
+                self.move_action_object.setVisible(true);
                 self.finish_action_object.setVisible(true);
                 if (self.selected_grid_space_info.?.leader.troop.grid_space) |grid_space| {
                     var can_attack = false;
@@ -1472,6 +1486,7 @@ pub const BattleEntity = struct {
                 }
             }
             if (remove_actions_options) {
+                self.move_action_object.setVisible(false);
                 self.attack_action_object.setVisible(false);
                 self.finish_action_object.setVisible(false);
                 self.selected_grid_space_info = null;
