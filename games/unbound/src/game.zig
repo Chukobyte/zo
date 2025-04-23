@@ -1406,9 +1406,22 @@ pub const BattleEntity = struct {
                 // Temp to end the battle for now
                 global.scene_system.changeScene(MilitarySceneDefinition);
             } else if (self.battle_instance.getSelectedTroopData(clicked_entity, .player_leader)) |troop_data| {
-                self.attack_action_object.setVisible(true);
-                self.finish_action_object.setVisible(true);
                 self.selected_grid_space_info = self.battle_instance.getGridSpaceInfo(troop_data) catch { return .invalid; };
+                self.finish_action_object.setVisible(true);
+                if (self.selected_grid_space_info.?.leader.troop.grid_space) |grid_space| {
+                    var can_attack = false;
+                    const adjacent_spaces: [4]Vec2i = .{ grid_space.add(&Vec2i.Left), grid_space.add(&Vec2i.Right), grid_space.add(&Vec2i.Up), grid_space.add(&Vec2i.Down) };
+                    for (adjacent_spaces) |pos| {
+                        const space_entities: []Entity = self.battle_instance.spatial_hash.getObjectsByGridPos(pos);
+                        if (space_entities.len > 0) {
+                            can_attack = true;
+                            break;
+                        }
+                    }
+                    if (can_attack) {
+                        self.attack_action_object.setVisible(true);
+                    }
+                }
                 return .success;
             }
             self.selected_grid_space_info = null;
