@@ -1,5 +1,12 @@
 const std = @import("std");
 
+pub fn sign(comptime T: type, val: T) T {
+    const zero: T = @as(T, 0);
+    const one: T = @as(T, 1);
+    const neg_one: T = @as(T, -1);
+    return if (val > zero) one else if (val < zero) neg_one else zero;
+}
+
 // Vector2
 pub fn Vector2(comptime T: type) type {
     return struct {
@@ -43,6 +50,13 @@ pub fn Vector2(comptime T: type) type {
             return @This(){
                 .x = a.x * b.x,
                 .y = a.y * b.y,
+            };
+        }
+
+        pub fn getSign(self: *const @This()) @This() {
+            return @This(){
+                .x = sign(T, self.x),
+                .y = sign(T, self.y),
             };
         }
 
