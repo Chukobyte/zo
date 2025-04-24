@@ -1272,9 +1272,34 @@ const BattleInstance = struct {
         }
     }
 
+    pub fn processEnemyTurn(self: *@This()) !void {
+        const Local = struct {
+            pub inline fn getMoveDir(player_leader: *BattleInstance.Leader, enemy_leader: *BattleInstance.Leader) Vec2i {
+                const player_grid_space: Vec2i = player_leader.troop.grid_space.?;
+                const enemy_grid_space: Vec2i = enemy_leader.troop.grid_space.?;
+                const diff: Vec2i = player_grid_space.sub(&enemy_grid_space);
+                const diff_sign: Vec2i = diff.getSign();
+                var move_dir: Vec2i = Vec2i.Zero;
+                if (diff_sign.x != 0) {
+                    move_dir.x += diff.x;
+                } else if (diff_sign.y != 0) {
+                    move_dir.y += diff.y;
+                }
+                return move_dir;
+            }
+        };
+
+        const player_leader = &self.left_leader;
+        const enemy_leader = &self.right_leader;
+        const new_pos: Vec2i = Local.getMoveDir(player_leader, enemy_leader);
+        try self.moveTroop(enemy_leader.troop_objects.items[0], new_pos);
+        enemy_leader.troop.grid_space = new_pos;
+    }
+
     pub inline fn getGridCellSize(self: *const @This()) usize {
         return self.spatial_hash.cell_size;
     }
+
 
     pub inline fn getMouseGridPosition(self: *const @This()) Vec2i {
         const global_mouse_pos = input.getWorldMousePosition(window.getWindowSize(), renderer.getResolution());
@@ -1519,29 +1544,9 @@ pub const BattleEntity = struct {
     }
 
     pub fn update(self: *@This(), world: *World, _: Entity, _: f32) !void {
-        const Local = struct {
-            pub inline fn getMoveDir(player_leader: *BattleInstance.Leader, enemy_leader: *BattleInstance.Leader) Vec2i {
-                const player_grid_space: Vec2i = player_leader.troop.grid_space.?;
-                const enemy_grid_space: Vec2i = enemy_leader.troop.grid_space.?;
-                const diff: Vec2i = player_grid_space.sub(&enemy_grid_space);
-                const diff_sign: Vec2i = diff.getSign();
-                var move_dir: Vec2i = Vec2i.Zero;
-                if (diff_sign.x != 0) {
-                    move_dir.x += diff.x;
-                } else if (diff_sign.y != 0) {
-                    move_dir.y += diff.y;
-                }
-                return move_dir;
-            }
-        };
-
         // TODO: Temp will actually handle turn
         if (self.battle_instance.turn == .enemy) {
-            const player_leader = &self.battle_instance.left_leader;
-            const enemy_leader = &self.battle_instance.right_leader;
-            const new_pos: Vec2i = Local.getMoveDir(player_leader, enemy_leader);
-            try self.battle_instance.moveTroop(enemy_leader.troop_objects.items[0], new_pos);
-            enemy_leader.troop.grid_space = new_pos;
+            try self.battle_instance.processEnemyTurn();
             self.battle_instance.goToNextTurn();
         }
 
